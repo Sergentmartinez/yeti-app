@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Mountain, Package, CheckCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export default function LandingPage() {
   return (
@@ -51,8 +50,9 @@ export default function LandingPage() {
                 className="object-cover"
                 priority
             />
-            {/* Correction Tailwind : bg-linear-to-b */}
-            <div className="absolute inset-0 bg-linear-to-b from-zinc-950/30 via-zinc-950/50 to-zinc-950"></div>
+            {/* Overlay Dégradé pour lisibilité */}
+            {/* Note: Si tu utilises Tailwind v3, remplace 'bg-linear-to-b' par 'bg-gradient-to-b' */}
+            <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/30 via-zinc-950/50 to-zinc-950"></div>
         </div>
 
         {/* Contenu */}
@@ -66,7 +66,7 @@ export default function LandingPage() {
             <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-white mb-6 leading-[0.9]">
                 PRÉPARE.<br />
                 OPTIMISE.<br />
-                <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-400 to-orange-600">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-600">
                     CONQUIERS.
                 </span>
             </h1>
@@ -94,7 +94,7 @@ export default function LandingPage() {
         {/* Scroll Indicator */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 animate-bounce">
             <span className="text-[10px] uppercase tracking-widest text-zinc-400">Scroll</span>
-            <div className="w-px h-8 bg-linear-to-b from-transparent via-zinc-400 to-transparent"></div>
+            <div className="w-px h-8 bg-gradient-to-b from-transparent via-zinc-400 to-transparent"></div>
         </div>
       </section>
 
@@ -105,7 +105,6 @@ export default function LandingPage() {
            <div className="p-8 rounded-2xl bg-zinc-900/50 border border-white/5 hover:border-orange-600/30 transition-colors group">
              <Mountain className="w-8 h-8 text-orange-600 mb-4" />
              <h3 className="text-xl font-bold text-white mb-2">Itinéraires Intelligents</h3>
-             {/* CORRECTION ICI : L'algorithme avec &apos; */}
              <p className="text-zinc-400 text-sm leading-relaxed">L&apos;algorithme recalcule vos étapes en temps réel selon votre rythme cardiaque et votre progression.</p>
            </div>
 

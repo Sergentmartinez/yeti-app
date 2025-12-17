@@ -3,17 +3,20 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Map, ArrowRight, Mountain, Info } from 'lucide-react';
+import { Map, ArrowRight, Info, Mountain } from 'lucide-react'; // Ajout de Mountain ici au cas où
 import { cn } from '@/lib/utils';
 import { getAllTreks } from '@/lib/data'; 
 import { Trek } from '@/types'; 
-import { Logo } from "@/components/Logo"; // ✅ 1. IMPORT DU LOGO
+// Si le composant Logo n'existe pas, commentez la ligne ci-dessous
+import { Logo } from "@/components/Logo"; 
 
 const TrekCard = ({ trek }: { trek: Trek }) => {
     const nameParts = trek.name.split(' ');
     const firstWord = nameParts[0];
     const restOfName = nameParts.slice(1).join(' ');
     const isSpirit = trek.theme === 'spirit';
+    
+    // Couleurs dynamiques
     const themeColor = isSpirit ? 'text-blue-500' : 'text-orange-500';
     const hoverBorder = isSpirit ? 'hover:border-blue-500/50' : 'hover:border-orange-500/50';
     const hoverShadow = isSpirit ? 'hover:shadow-blue-900/20' : 'hover:shadow-orange-900/20';
@@ -34,13 +37,16 @@ const TrekCard = ({ trek }: { trek: Trek }) => {
             )}
         >
             <div className="relative h-64 w-full overflow-hidden">
+                {/* AJOUT DE unoptimized POUR EVITER LE CRASH */}
                 <Image
                     src={trek.heroImage}
                     alt={trek.name}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-700"
+                    unoptimized 
                 />
-                <div className="absolute inset-0 bg-linear-to-t from-zinc-900 via-zinc-900/20 to-transparent" />
+                {/* Correction: bg-gradient-to-t est plus sûr que bg-linear-to-t */}
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/20 to-transparent" />
                 
                 <div className="absolute top-4 left-4 bg-zinc-950/60 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -92,7 +98,8 @@ const TrekCard = ({ trek }: { trek: Trek }) => {
 
 export default function TreksPage() {
     const [filter, setFilter] = useState('all');
-    const allTreks = getAllTreks();
+    // Sécurité si getAllTreks renvoie undefined
+    const allTreks = getAllTreks ? getAllTreks() : [];
 
     const filteredTreks = allTreks.filter(trek => {
         if (filter === 'all') return true;
@@ -108,8 +115,8 @@ export default function TreksPage() {
             <nav className="absolute top-0 left-0 right-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
                 
-                    {/* ✅ 2. REMPLACEMENT PAR LE COMPOSANT LOGO (Blanc) */}
-                    <Logo color="white" />
+                    {/* Si Logo n'existe pas, on met un texte simple pour éviter le crash */}
+                    <Link href="/" className="font-bold text-2xl tracking-tighter">YETI</Link>
 
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-200">
                         <Link href="/treks" className="text-white font-bold transition-colors drop-shadow-md">
@@ -132,7 +139,7 @@ export default function TreksPage() {
             <div className="pt-32 pb-16 px-6">
                 <div className="max-w-7xl mx-auto">
                     <h1 className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter">
-                        Grandes <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-500 to-red-600">Traversées</span>
+                        Grandes <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">Traversées</span>
                     </h1>
                     <p className="text-zinc-400 text-xl font-medium max-w-4xl leading-relaxed">
                         Les plus beaux itinéraires d&apos;Europe, préparés et optimisés par YETI. 
