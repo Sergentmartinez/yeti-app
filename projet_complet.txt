@@ -1,0 +1,3870 @@
+
+📁 [DOSSIER] app
+
+📁 [DOSSIER] app\api
+
+📄 [FICHIER] app\api\placeholder.ts
+--- DÉBUT DU CODE ---
+// API Routes Placeholder
+// Ce dossier contiendra les routes API pour:
+// - /api/auth - Authentification (Supabase)
+// - /api/packs - Gestion des packs utilisateur
+// - /api/ai - Endpoints IA pour le Pack Builder
+// - /api/export - Génération de PDF/Roadbooks
+
+export {};
+
+--- FIN DU CODE ---
+
+📁 [DOSSIER] app\basecamp
+
+📁 [DOSSIER] app\basecamp\gear
+
+📄 [FICHIER] app\basecamp\gear\page.tsx
+--- DÉBUT DU CODE ---
+import { GearItemCard } from "@/components/pack";
+import { GEAR_ITEMS, GEAR_CATEGORIES, calculateTotalWeight, formatWeight, getOwnedGear } from "@/lib/gear";
+import { Icons } from "@/components/icons";
+
+export default function GearPage() {
+  const ownedGear = getOwnedGear();
+  const totalWeight = calculateTotalWeight(ownedGear);
+  const groupedItems = GEAR_CATEGORIES.map((cat) => ({
+    ...cat,
+    items: GEAR_ITEMS.filter((item) => item.category === cat.id),
+  })).filter((cat) => cat.items.length > 0);
+
+  return (
+    <main className="min-h-screen bg-stone-50">
+      {/* Header */}
+      <section className="bg-stone-950 text-white py-12 px-8">
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Mon Inventaire</h1>
+        <p className="text-stone-400 mb-6">Gère ton matériel outdoor permanent</p>
+        
+        <div className="flex flex-wrap gap-6">
+          <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-4 border border-white/10">
+            <div className="flex items-center gap-2 text-stone-400 text-xs mb-1">
+              <Icons.Layers className="w-4 h-4" />
+              Total
+            </div>
+            <div className="text-3xl font-bold font-mono">{GEAR_ITEMS.length}</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-4 border border-white/10">
+            <div className="flex items-center gap-2 text-stone-400 text-xs mb-1">
+              <Icons.Check className="w-4 h-4" />
+              Possédés
+            </div>
+            <div className="text-3xl font-bold font-mono">{ownedGear.length}</div>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md rounded-xl px-6 py-4 border border-white/10">
+            <div className="flex items-center gap-2 text-stone-400 text-xs mb-1">
+              <Icons.Activity className="w-4 h-4" />
+              Poids
+            </div>
+            <div className="text-3xl font-bold font-mono">{formatWeight(totalWeight)}</div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Filters */}
+      <section className="border-b border-stone-200 bg-white sticky top-0 z-40">
+        <div className="px-8 py-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <button className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-lg">
+              <Icons.Layers className="w-4 h-4" />
+              Tous
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 bg-stone-100 text-stone-600 text-sm font-semibold rounded-lg hover:bg-stone-200 transition">
+              <Icons.Check className="w-4 h-4" />
+              Possédés
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 bg-stone-100 text-stone-600 text-sm font-semibold rounded-lg hover:bg-stone-200 transition">
+              <Icons.Star className="w-4 h-4" />
+              Essentiels
+            </button>
+            <div className="flex-1" />
+            <div className="relative">
+              <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+              <input 
+                type="text" 
+                placeholder="Rechercher..." 
+                className="pl-10 pr-4 py-2 bg-stone-100 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-orange-500" 
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+      
+      {/* Items by category */}
+      <section className="px-8 py-10">
+        <div className="space-y-10">
+          {groupedItems.map((category) => (
+            <div key={category.id}>
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-xl font-bold text-stone-900">{category.name}</h2>
+                <span className="text-sm text-stone-500">({category.items.length})</span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {category.items.map((item) => (
+                  <GearItemCard key={item.id} item={item} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+--- FIN DU CODE ---
+
+📄 [FICHIER] app\basecamp\layout.tsx
+--- DÉBUT DU CODE ---
+import { BasecampSidebar } from "@/components/layout";
+
+export default function BasecampLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-stone-50">
+      <BasecampSidebar />
+      <div className="ml-64">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+--- FIN DU CODE ---
+
+📁 [DOSSIER] app\basecamp\packbuilder
+
+📄 [FICHIER] app\basecamp\packbuilder\page.tsx
+--- DÉBUT DU CODE ---
+"use client";
+
+import { useState, useMemo } from "react";
+import Link from "next/link";
+import { getAllTreks } from "@/lib/data"; // Attention: bien importer depuis lib/data maintenant
+import { GEAR_ITEMS, GEAR_CATEGORIES, calculateTotalWeight, formatWeight } from "@/lib/gear";
+import { GearItemCard, WeightGauge } from "@/components/pack";
+import { Icons } from "@/components/icons";
+import { GearItem } from "@/types"; // Import du TYPE depuis l'index
+import { cn } from "@/lib/utils";
+
+export default function PackBuilderPage() {
+  const treks = getAllTreks();
+  const [selectedTrek, setSelectedTrek] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  const trek = selectedTrek ? treks.find((t) => t.slug === selectedTrek) : null;
+  const isSpirit = trek?.theme === "spirit";
+
+  const filteredItems = useMemo(() => {
+    if (activeCategory === "all") return GEAR_ITEMS;
+    return GEAR_ITEMS.filter((item) => item.category === activeCategory);
+  }, [activeCategory]);
+
+  const packItems = useMemo(() => {
+    return GEAR_ITEMS.filter((item) => selectedItems.has(item.id));
+  }, [selectedItems]);
+
+  const totalWeight = calculateTotalWeight(packItems);
+
+  const toggleItem = (item: GearItem) => {
+    const newSet = new Set(selectedItems);
+    if (newSet.has(item.id)) {
+      newSet.delete(item.id);
+    } else {
+      newSet.add(item.id);
+    }
+    setSelectedItems(newSet);
+  };
+
+  return (
+    <main className="min-h-screen bg-stone-50">
+      {/* Header */}
+      <section className="bg-stone-950 text-white py-8 px-8">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 bg-orange-600 rounded-xl flex items-center justify-center">
+            <Icons.Activity className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Pack Builder</h1>
+            <p className="text-stone-400 text-sm">Construis le sac parfait pour TON trek</p>
+          </div>
+        </div>
+        
+        {/* Info box */}
+        <div className="bg-orange-600/20 border border-orange-500/30 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <Icons.Info className="w-5 h-5 text-orange-400 mt-0.5" />
+            <div>
+              <p className="text-sm text-stone-200">
+                <strong className="text-white">Qu&apos;est-ce que le Pack Builder ?</strong> Un outil avancé pour créer et optimiser ton sac pour un trek spécifique.
+              </p>
+              <p className="text-sm text-stone-400 mt-1">
+                Ton matériel permanent se trouve dans ton <Link href="/basecamp/gear" className="text-orange-400 hover:underline">Inventaire</Link>. Ici, tu construis un pack adapté à un itinéraire précis.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div className="flex">
+        {/* LEFT PANEL - Item Selection */}
+        <div className="flex-1 border-r border-stone-200">
+          {/* Trek Selection */}
+          <div className="p-6 border-b border-stone-200 bg-white">
+            <label className="block text-sm font-semibold text-stone-700 mb-3">1. Choisis ton trek</label>
+            <div className="flex flex-wrap gap-3">
+              {treks.map((t) => {
+                const isSel = selectedTrek === t.slug;
+                const isSp = t.theme === "spirit";
+                return (
+                  <button
+                    key={t.slug}
+                    onClick={() => setSelectedTrek(t.slug)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition border-2",
+                      isSel
+                        ? isSp
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-orange-600 text-white border-orange-600"
+                        : "bg-white text-stone-700 border-stone-200 hover:border-stone-400"
+                    )}
+                  >
+                    {isSp ? <Icons.Pelerinage className="w-4 h-4" /> : <Icons.Sportif className="w-4 h-4" />}
+                    {t.name}
+                  </button>
+                );
+              })}
+            </div>
+            {trek && (
+              <div className="mt-4 flex items-center gap-4 text-sm text-stone-500">
+                <span className="font-mono">{trek.stats.dist} km</span>
+                <span className="font-mono">{trek.stats.days} jours</span>
+                <span className="font-mono">Diff. {trek.stats.difficulty}/5</span>
+              </div>
+            )}
+          </div>
+
+          {/* Category Filter */}
+          <div className="p-4 border-b border-stone-200 bg-stone-50">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setActiveCategory("all")}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-semibold rounded-lg transition",
+                  activeCategory === "all" ? "bg-stone-900 text-white" : "bg-white text-stone-600 hover:bg-stone-100"
+                )}
+              >
+                Tous
+              </button>
+              {GEAR_CATEGORIES.slice(0, 8).map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-semibold rounded-lg transition",
+                    activeCategory === cat.id ? "bg-stone-900 text-white" : "bg-white text-stone-600 hover:bg-stone-100"
+                  )}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Items List */}
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-stone-900">2. Sélectionne ton matériel</h2>
+              <span className="text-sm text-stone-500">{filteredItems.length} articles</span>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {filteredItems.map((item) => (
+                <GearItemCard
+                  key={item.id}
+                  item={item}
+                  selected={selectedItems.has(item.id)}
+                  onClick={() => toggleItem(item)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT PANEL - Pack Summary */}
+        <div className="w-96 bg-white sticky top-0 h-screen overflow-y-auto">
+          <div className="p-6 border-b border-stone-200">
+            <h2 className="text-lg font-bold text-stone-900 mb-1">Ton Pack</h2>
+            {trek ? (
+              <p className={cn("text-sm font-semibold", isSpirit ? "text-blue-600" : "text-orange-600")}>
+                {trek.name}
+              </p>
+            ) : (
+              <p className="text-sm text-stone-500">Sélectionne un trek</p>
+            )}
+          </div>
+
+          {/* Weight Gauge */}
+          <div className="p-6 border-b border-stone-200">
+            <WeightGauge weight={totalWeight} />
+          </div>
+
+          {/* Selected Items */}
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-stone-900">Articles ({packItems.length})</h3>
+              {packItems.length > 0 && (
+                <button
+                  onClick={() => setSelectedItems(new Set())}
+                  className="text-xs text-red-600 hover:text-red-700 font-semibold"
+                >
+                  Tout vider
+                </button>
+              )}
+            </div>
+
+            {packItems.length === 0 ? (
+              <div className="text-center py-8">
+                <Icons.NavPack className="w-12 h-12 text-stone-300 mx-auto mb-3" />
+                <p className="text-sm text-stone-500">Ton pack est vide</p>
+                <p className="text-xs text-stone-400 mt-1">Clique sur les articles à gauche pour les ajouter</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {packItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-3 bg-stone-50 rounded-lg"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm text-stone-900 truncate">{item.name}</div>
+                      <div className="text-xs text-stone-500">{item.categoryName}</div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-sm text-stone-600">{formatWeight(item.weight)}</span>
+                      <button
+                        onClick={() => toggleItem(item)}
+                        className="w-6 h-6 flex items-center justify-center rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition"
+                      >
+                        <Icons.Close className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="p-6 border-t border-stone-200 bg-stone-50">
+            <button
+              disabled={packItems.length === 0 || !trek}
+              className={cn(
+                "w-full py-3 font-semibold rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed",
+                isSpirit ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-orange-600 text-white hover:bg-orange-700"
+              )}
+            >
+              <Icons.Save className="w-4 h-4" />
+              Sauvegarder ce Pack
+            </button>
+            <button className="w-full mt-3 py-3 bg-stone-200 text-stone-700 font-semibold rounded-xl hover:bg-stone-300 transition flex items-center justify-center gap-2">
+              <Icons.Download className="w-4 h-4" />
+              Exporter PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+--- FIN DU CODE ---
+
+📁 [DOSSIER] app\basecamp\packs
+
+📄 [FICHIER] app\basecamp\packs\page.tsx
+--- DÉBUT DU CODE ---
+import Link from "next/link";
+import { Icons } from "@/components/icons";
+
+const MOCK_PACKS = [
+  { id: "pack-1", name: "GR20 Ultralight", trek: "GR20", weight: 7.8, items: 18, createdAt: "2025-01-05" },
+  { id: "pack-2", name: "TMB Confort", trek: "TMB", weight: 11.2, items: 24, createdAt: "2024-12-20" },
+];
+
+export default function PacksPage() {
+  return (
+    <main className="min-h-screen bg-stone-50">
+      <section className="bg-stone-950 text-white py-12 px-8">
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Mes Packs</h1>
+        <p className="text-stone-400">Packs sauvegardés depuis le Pack Builder</p>
+      </section>
+
+      <section className="px-8 py-10">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {MOCK_PACKS.map((pack) => (
+            <div key={pack.id} className="bg-white p-6 rounded-2xl border border-stone-200 hover:shadow-lg transition">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="font-bold text-stone-900">{pack.name}</h3>
+                  <p className="text-sm text-stone-500">{pack.trek}</p>
+                </div>
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <Icons.NavPack className="w-5 h-5 text-orange-600" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <div className="text-xs text-stone-500 mb-1">Poids</div>
+                  <div className="text-xl font-bold font-mono text-stone-900">{pack.weight} kg</div>
+                </div>
+                <div>
+                  <div className="text-xs text-stone-500 mb-1">Articles</div>
+                  <div className="text-xl font-bold font-mono text-stone-900">{pack.items}</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-4 border-t border-stone-100">
+                <span className="text-xs text-stone-400">{pack.createdAt}</span>
+                <button className="flex items-center gap-1 text-sm text-orange-600 font-semibold hover:text-orange-700">
+                  Voir <Icons.ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+          <Link href="/basecamp/packbuilder" className="bg-stone-100 p-6 rounded-2xl border-2 border-dashed border-stone-300 hover:border-orange-500 hover:bg-orange-50 transition flex flex-col items-center justify-center min-h-[200px]">
+            <div className="w-14 h-14 bg-white rounded-xl flex items-center justify-center mb-4 shadow-sm">
+              <Icons.Plus className="w-7 h-7 text-orange-600" />
+            </div>
+            <span className="font-semibold text-stone-700">Créer un nouveau Pack</span>
+            <span className="text-sm text-stone-500 mt-1">via le Pack Builder</span>
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] app\basecamp\page.tsx
+--- DÉBUT DU CODE ---
+import Image from "next/image"; // <--- Import nécessaire
+import { MOCK_USER, getAllTreks } from "@/lib/data";
+
+export default function BasecampPage() {
+  const treks = getAllTreks();
+
+  return (
+    <div className="flex flex-col gap-8 p-8 max-w-7xl mx-auto">
+      {/* HEADER */}
+      <header className="flex items-center justify-between border-b border-gray-200 pb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Basecamp</h1>
+          {/* CORRECTION ESLINT : Utilisation de &rsquo; pour l'apostrophe */}
+          <p className="text-gray-500 mt-1">
+            Prêt pour l&rsquo;aventure, {MOCK_USER.username} ?
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className="text-right hidden sm:block">
+            <p className="text-sm font-medium text-gray-900">{MOCK_USER.username}</p>
+            <p className="text-xs text-gray-500 capitalize">{MOCK_USER.role}</p>
+          </div>
+          
+          {/* CORRECTION NEXT IMAGE : Utilisation de <Image /> au lieu de <img> */}
+          <div className="relative h-10 w-10 rounded-full bg-slate-200 overflow-hidden border border-gray-300 flex items-center justify-center">
+            {MOCK_USER.avatarUrl ? (
+              <Image 
+                src={MOCK_USER.avatarUrl} 
+                alt="Avatar" 
+                width={40} 
+                height={40}
+                className="object-cover"
+                unoptimized // Ajouté pour éviter de devoir configurer next.config.js immédiatement
+              />
+            ) : (
+              <span className="font-bold text-slate-600">
+                {MOCK_USER.username.slice(0, 2).toUpperCase()}
+              </span>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* CONTENU PRINCIPAL */}
+      <main className="space-y-8">
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold tracking-tight">Vos Treks en cours</h2>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {treks.map((trek) => (
+              <article 
+                key={trek.id} 
+                className="group flex flex-col justify-between rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200"
+              >
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                      {trek.name}
+                    </h3>
+                    <span className={`shrink-0 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      trek.category === 'sportif' ? 'bg-red-100 text-red-700' :
+                      trek.category === 'modere' ? 'bg-blue-100 text-blue-700' :
+                      'bg-green-100 text-green-700'
+                    }`}>
+                      {trek.category}
+                    </span>
+                  </div>
+                  
+                  <p className="text-sm text-gray-500 flex items-center gap-1">
+                    📍 {trek.location}
+                  </p>
+
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {trek.description}
+                  </p>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-gray-100 grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase">Dist.</p>
+                    <p className="font-medium text-sm">{trek.stats.dist} km</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase">D+</p>
+                    <p className="font-medium text-sm">{trek.stats.dplus} m</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase">Diff.</p>
+                    <p className="font-medium text-sm">{trek.stats.difficulty}/5</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+--- FIN DU CODE ---
+
+📁 [DOSSIER] app\basecamp\routes
+
+📄 [FICHIER] app\basecamp\routes\page.tsx
+--- DÉBUT DU CODE ---
+import Link from "next/link";
+import { Icons } from "@/components/icons";
+
+export default function RoutesPage() {
+  return (
+    <main className="min-h-screen bg-stone-50">
+      <section className="bg-stone-950 text-white py-12 px-8">
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Mes Routes</h1>
+        <p className="text-stone-400">Tes treks planifiés et en cours</p>
+      </section>
+
+      <section className="px-8 py-10">
+        <div className="text-center py-16">
+          <Icons.NavRoutes className="w-16 h-16 text-stone-300 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-stone-900 mb-2">Aucune route planifiée</h3>
+          <p className="text-stone-600 mb-6">Explore les treks disponibles et lance ton premier projet</p>
+          <Link href="/treks" className="inline-flex items-center gap-2 px-6 py-3 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 transition">
+            <Icons.NavTrek className="w-5 h-5" />
+            Explorer les Treks
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+--- FIN DU CODE ---
+
+📁 [DOSSIER] app\experts
+
+📁 [DOSSIER] app\experts\[id]
+
+📄 [FICHIER] app\experts\[id]\page.tsx
+--- DÉBUT DU CODE ---
+"use client";
+
+import { use } from "react";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Navbar } from "@/components/nav";
+import { getExpertById, TREKS } from "@/lib/data";
+
+export default function ExpertPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const expert = getExpertById(id);
+
+  if (!expert) {
+    notFound();
+  }
+
+  const completedTreks = TREKS.filter((t) => expert.treksCompleted.includes(t.slug));
+
+  return (
+    <>
+      <Navbar />
+      <main className="min-h-screen bg-stone-100 pt-16">
+        {/* Header */}
+        <section className="bg-stone-950 text-white py-12 px-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center gap-6">
+              <div className="w-24 h-24 rounded-2xl bg-orange-600 flex items-center justify-center text-4xl font-black">
+                {expert.name.charAt(0)}
+              </div>
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="text-3xl font-black tracking-tight">{expert.name}</h1>
+                  <span className="px-2 py-0.5 bg-orange-600 text-white text-xs font-bold rounded">
+                    EXPERT CERTIFIÉ
+                  </span>
+                </div>
+                <p className="text-orange-500 font-medium">{expert.title}</p>
+                <div className="flex items-center gap-4 mt-2 text-stone-400 text-sm">
+                  <span>{expert.followers.toLocaleString()} followers</span>
+                  <span>•</span>
+                  <span>{expert.certifiedPacks} packs certifiés</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Stats */}
+        <section className="px-6 -mt-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 grid md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-black text-orange-600">{expert.certifiedPacks}</div>
+                <div className="text-sm text-stone-500">Packs Certifiés</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-black text-orange-600">{completedTreks.length}</div>
+                <div className="text-sm text-stone-500">Treks Maîtrisés</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-black text-orange-600">
+                  {expert.followers.toLocaleString()}
+                </div>
+                <div className="text-sm text-stone-500">Followers</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Content */}
+        <section className="px-6 py-12">
+          <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-8">
+              {/* Bio */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200">
+                <h2 className="text-xl font-bold text-stone-900 mb-4">À propos</h2>
+                <p className="text-stone-600 leading-relaxed">{expert.bio}</p>
+              </div>
+
+              {/* Completed Treks */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200">
+                <h2 className="text-xl font-bold text-stone-900 mb-4">Treks Maîtrisés</h2>
+                <div className="space-y-4">
+                  {completedTreks.map((trek) => (
+                    <Link
+                      key={trek.slug}
+                      href={`/treks/${trek.slug}`}
+                      className="flex items-center gap-4 p-4 bg-stone-50 rounded-xl hover:bg-stone-100 transition"
+                    >
+                      <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+                        <span className="text-xl">🏔️</span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-bold text-stone-900">{trek.name}</div>
+                        <div className="text-sm text-stone-500">
+                          {trek.stats.totalDistance} km • {trek.stats.estimatedDays} jours
+                        </div>
+                      </div>
+                      <div className={`font-mono font-bold ${
+                        trek.stats.difficulty >= 4 ? "text-red-500" :
+                        trek.stats.difficulty >= 3 ? "text-orange-500" : "text-green-500"
+                      }`}>
+                        {trek.stats.difficulty.toFixed(1)}/5
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              {/* Certified Packs (Placeholder) */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200">
+                <h2 className="text-xl font-bold text-stone-900 mb-4">Packs Certifiés</h2>
+                <div className="text-center py-8 text-stone-400">
+                  <div className="text-3xl mb-2">🎒</div>
+                  <div className="text-sm">Les packs certifiés seront disponibles prochainement</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Contact Card */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200">
+                <h3 className="font-bold text-stone-900 mb-4">Contacter l&apos;Expert</h3>
+                <button className="w-full px-6 py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition mb-3">
+                  Demander un Conseil
+                </button>
+                <button className="w-full px-6 py-3 bg-stone-100 text-stone-900 font-bold rounded-xl hover:bg-stone-200 transition">
+                  Suivre
+                </button>
+              </div>
+
+              {/* Badges */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200">
+                <h3 className="font-bold text-stone-900 mb-4">Badges</h3>
+                <div className="flex flex-wrap gap-2">
+                  <span className="px-3 py-1.5 bg-orange-100 text-orange-700 text-sm font-bold rounded-lg">
+                    🏆 Expert Certifié
+                  </span>
+                  <span className="px-3 py-1.5 bg-green-100 text-green-700 text-sm font-bold rounded-lg">
+                    ✓ Profil Vérifié
+                  </span>
+                  <span className="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-bold rounded-lg">
+                    🎯 Pack Master
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] app\globals.css
+--- DÉBUT DU CODE ---
+@import "tailwindcss";
+
+@theme {
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", Monaco, "Cascadia Code", monospace;
+  --color-spirit-50: #eff6ff;
+  --color-spirit-100: #dbeafe;
+  --color-spirit-500: #3b82f6;
+  --color-spirit-600: #2563eb;
+  --color-spirit-700: #1d4ed8;
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply antialiased; }
+}
+
+.line-clamp-2 { 
+  display: -webkit-box; 
+  -webkit-line-clamp: 2; 
+  -webkit-box-orient: vertical; 
+  overflow: hidden; 
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] app\layout.tsx
+--- DÉBUT DU CODE ---
+import type { Metadata } from "next";
+import { Inter } from "next/font/google"; // On utilise une police Pro
+import "./globals.css";
+
+// Configuration de la police "Inter" pour un look Tech/Premium
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "YETI | La plateforme premium des grandes traversées",
+  description: "Préparez vos treks européens avec YETI : GR20, Tour du Mont-Blanc, Camino de Santiago.",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="fr" className={`${inter.variable}`}>
+      {/*
+        CHANGEMENTS :
+        1. bg-zinc-950 : Un gris presque noir, plus riche que le noir pur (#000).
+        2. text-zinc-100 : Texte blanc cassé pour éviter la fatigue visuelle.
+        3. antialiased : Indispensable pour que la typo soit nette et fine.
+      */}
+      <body className="bg-zinc-950 text-zinc-100 antialiased font-sans selection:bg-orange-500 selection:text-white">
+        {children}
+      </body>
+    </html>
+  );
+}
+--- FIN DU CODE ---
+
+📄 [FICHIER] app\not-found.tsx
+--- DÉBUT DU CODE ---
+import Link from "next/link";
+import { Icons } from "@/components/icons";
+
+export default function NotFound() {
+  return (
+    <main className="min-h-screen bg-stone-950 flex items-center justify-center p-6">
+      <div className="text-center">
+        <div className="w-24 h-24 bg-orange-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
+          <Icons.Logo className="w-12 h-12 text-white" />
+        </div>
+        <h1 className="text-6xl font-bold text-white mb-4">404</h1>
+        <p className="text-xl text-stone-400 mb-8">Cette page n&apos;existe pas</p>
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-2 px-8 py-4 bg-orange-600 text-white font-semibold rounded-xl hover:bg-orange-700 transition"
+        >
+          <Icons.Home className="w-5 h-5" />
+          Retour à l&apos;accueil
+        </Link>
+      </div>
+    </main>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] app\page.tsx
+--- DÉBUT DU CODE ---
+import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, Map, Compass, Award } from "lucide-react";
+
+export default function Home() {
+  return (
+    <main className="relative min-h-screen flex flex-col bg-zinc-950">
+
+      {/* --- NAVIGATION TRANSPARENTE --- */}
+      <nav className="absolute top-0 left-0 right-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-24 flex items-center justify-between">
+          
+          {/* LOGO YETI */}
+          <Link href="/" className="flex items-baseline gap-1 cursor-pointer select-none group">
+            <span 
+              className="text-3xl font-bold tracking-tighter text-white group-hover:text-zinc-300 transition-colors uppercase"
+              style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+            >
+              YETI
+            </span>
+            <div className="w-2.5 h-2.5 bg-orange-600 shadow-[0_0_5px_rgba(234,88,12,0.8)] group-hover:shadow-[0_0_10px_rgba(234,88,12,1)] transition-all"></div>
+          </Link>
+
+          {/* Liens Desktop */}
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-200">
+            <Link href="/treks" className="hover:text-white transition-colors drop-shadow-md">
+              Treks
+            </Link>
+            <Link href="/basecamp" className="hover:text-white transition-colors drop-shadow-md">
+              Basecamp
+            </Link>
+            {/* CORRECTION ICI : lien vers /basecamp/packbuilder */}
+            <Link href="/basecamp/packbuilder" className="hover:text-white transition-colors drop-shadow-md">
+              Pack Builder
+            </Link>
+          </div>
+
+          {/* Bouton Action */}
+          <Link href="/treks" className="bg-white text-zinc-950 px-5 py-2 text-sm font-bold tracking-tight rounded-full hover:bg-zinc-200 transition-colors shadow-lg shadow-black/20">
+            Commencer
+          </Link>
+        </div>
+      </nav>
+
+      {/* --- HERO SECTION --- */}
+      <section className="relative h-screen flex items-center justify-center overflow-hidden">
+
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=3540&auto=format&fit=crop"
+            alt="Montagne Background"
+            fill
+            className="object-cover"
+            priority
+          />
+          {/* Gradient v4 strict */}
+          <div className="absolute inset-0 bg-linear-to-b from-zinc-950/30 via-zinc-950/50 to-zinc-950" />
+        </div>
+
+        <div className="relative z-10 max-w-5xl mx-auto px-6 text-center mt-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-600/10 border border-orange-600/20 text-orange-500 text-xs font-bold uppercase tracking-widest mb-8 backdrop-blur-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
+            Saison 2025 Ouverte
+          </div>
+
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold tracking-tighter text-white mb-6 leading-[0.9]">
+            PRÉPARE.<br />
+            OPTIMISE.<br />
+            {/* Gradient v4 strict */}
+            <span className="text-transparent bg-clip-text bg-linear-to-r from-orange-400 to-orange-600">
+              CONQUIERS.
+            </span>
+          </h1>
+
+          <p className="text-lg md:text-xl text-zinc-300 max-w-2xl mx-auto mb-10 leading-relaxed font-light drop-shadow-md">
+            La plateforme premium de préparation pour les grandes traversées européennes.
+            Planifiez votre <Link href="/treks/gr20" className="text-white font-medium hover:text-orange-500 underline decoration-orange-500/30 underline-offset-4 transition-colors">GR20</Link>, <Link href="/treks/tmb" className="text-white font-medium hover:text-orange-500 underline decoration-orange-500/30 underline-offset-4 transition-colors">TMB</Link> ou <Link href="/treks/camino" className="text-white font-medium hover:text-orange-500 underline decoration-orange-500/30 underline-offset-4 transition-colors">Camino</Link> avec une précision algorithmique.
+          </p>
+
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4">
+            <Link href="/treks" className="group h-12 px-8 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-bold tracking-tight transition-all flex items-center gap-2 shadow-[0_0_40px_-10px_rgba(234,88,12,0.6)]">
+              Explorer les Treks
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+
+            {/* CORRECTION ICI : lien vers /basecamp/packbuilder */}
+            <Link href="/basecamp/packbuilder" className="h-12 px-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium backdrop-blur-md transition-all flex items-center gap-2">
+              <Compass className="w-4 h-4 text-zinc-400" />
+              Pack Builder IA
+            </Link>
+          </div>
+        </div>
+
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50 animate-bounce">
+          <span className="text-[10px] uppercase tracking-widest text-zinc-400">Scroll</span>
+          {/* Tailwind v4 strict */}
+          <div className="w-px h-8 bg-linear-to-b from-transparent via-zinc-400 to-transparent" />
+        </div>
+      </section>
+
+      {/* --- SECTION FONCTIONNALITÉS --- */}
+      <section className="bg-zinc-950 py-24 px-6 border-t border-white/5">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+            
+           <div className="p-8 rounded-2xl bg-zinc-900/50 border border-white/5 hover:border-orange-600/30 transition-colors group">
+             <Map className="w-8 h-8 text-orange-600 mb-4" />
+             <h3 className="text-xl font-bold text-white mb-2">Itinéraires Intelligents</h3>
+             <p className="text-zinc-400 text-sm leading-relaxed">L&apos;algorithme recalcule vos étapes en temps réel selon votre rythme cardiaque et votre progression.</p>
+           </div>
+
+           <div className="p-8 rounded-2xl bg-zinc-900/50 border border-white/5 hover:border-orange-600/30 transition-colors group">
+             <Compass className="w-8 h-8 text-orange-600 mb-4" />
+             <h3 className="text-xl font-bold text-white mb-2">Matériel Optimisé</h3>
+             <p className="text-zinc-400 text-sm leading-relaxed">Générez la liste parfaite. Chaque gramme est pesé et justifié selon la météo locale.</p>
+           </div>
+
+           <div className="p-8 rounded-2xl bg-zinc-900/50 border border-white/5 hover:border-orange-600/30 transition-colors group">
+             <Award className="w-8 h-8 text-orange-600 mb-4" />
+             <h3 className="text-xl font-bold text-white mb-2">Experts Certifiés</h3>
+             <p className="text-zinc-400 text-sm leading-relaxed">Accédez aux conseils et conditions validés quotidiennement par des guides de haute montagne.</p>
+           </div>
+
+        </div>
+      </section>
+    </main>
+  );
+}
+--- FIN DU CODE ---
+
+📁 [DOSSIER] app\treks
+
+📄 [FICHIER] app\treks\page.tsx
+--- DÉBUT DU CODE ---
+import Link from "next/link";
+import Image from "next/image";
+import { ArrowLeft, Mountain, Calendar, Activity } from "lucide-react";
+import { getAllTreks } from "@/lib/data"; // Import depuis le nouveau fichier data.ts
+
+export default function TreksPage() {
+  const treks = getAllTreks();
+
+  return (
+    <main className="min-h-screen bg-zinc-950 text-zinc-100 p-6 md:p-12">
+      
+      {/* Header Simple */}
+      <header className="max-w-7xl mx-auto mb-16">
+        <Link href="/" className="inline-flex items-center gap-2 text-zinc-400 hover:text-white mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Retour Basecamp
+        </Link>
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tighter mb-4">
+          CATALOGUE <span className="text-orange-600">2025</span>
+        </h1>
+        <p className="text-zinc-400 max-w-2xl">
+          Sélectionnez votre expédition. Toutes les données sont vérifiées et mises à jour pour la saison à venir.
+        </p>
+      </header>
+
+      {/* Grille des Treks */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {treks.map((trek) => (
+          <Link key={trek.id} href={`/treks/${trek.slug}`} className="group relative block bg-zinc-900 border border-white/5 rounded-2xl overflow-hidden hover:border-orange-600/50 transition-all duration-300">
+            
+            {/* Image */}
+            <div className="relative h-64 w-full overflow-hidden">
+              <Image
+                src={trek.heroImage}
+                alt={trek.name}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              {/* Gradient v4 strict */}
+              <div className="absolute inset-0 bg-linear-to-t from-zinc-900 via-transparent to-transparent" />
+              
+              {/* Badge Catégorie */}
+              <div className="absolute top-4 left-4 px-3 py-1 bg-black/50 backdrop-blur-md border border-white/10 rounded-full text-xs font-bold uppercase tracking-widest text-white">
+                {trek.category}
+              </div>
+            </div>
+
+            {/* Contenu */}
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-2">
+                <h2 className="text-2xl font-bold tracking-tight">{trek.name}</h2>
+                <span className="text-orange-500 font-bold">{trek.stats.difficulty}/5</span>
+              </div>
+              
+              <p className="text-zinc-400 text-sm mb-6 line-clamp-2">{trek.description}</p>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-4 py-4 border-t border-white/5">
+                <div>
+                  <div className="flex items-center gap-1 text-xs text-zinc-500 mb-1">
+                    <Activity className="w-3 h-3" /> Distance
+                  </div>
+                  <div className="font-mono font-bold text-zinc-200">{trek.stats.dist}km</div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1 text-xs text-zinc-500 mb-1">
+                    <Mountain className="w-3 h-3" /> D+
+                  </div>
+                  <div className="font-mono font-bold text-zinc-200">{trek.stats.dplus}m</div>
+                </div>
+                <div>
+                  <div className="flex items-center gap-1 text-xs text-zinc-500 mb-1">
+                    <Calendar className="w-3 h-3" /> Durée
+                  </div>
+                  <div className="font-mono font-bold text-zinc-200">{trek.stats.days}j</div>
+                </div>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </main>
+  );
+}
+--- FIN DU CODE ---
+
+📁 [DOSSIER] app\treks\[slug]
+
+📄 [FICHIER] app\treks\[slug]\page.tsx
+--- DÉBUT DU CODE ---
+import { notFound } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
+import { getAllTreks } from "@/lib/data";
+import { Stage, Trek } from "@/types";
+import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
+
+// Génération statique des routes pour la performance
+export function generateStaticParams() {
+  const treks = getAllTreks();
+  return treks.map((trek) => ({ slug: trek.slug }));
+}
+
+export default function TrekPage({ params }: { params: { slug: string } }) {
+  const treks = getAllTreks();
+  const trek = treks.find((t) => t.slug === params.slug);
+
+  if (!trek) { notFound(); }
+
+  // Détection du thème (Spirituel vs Sportif)
+  const isSpirit = trek.theme === "spirit";
+  const themeColor = isSpirit ? "text-blue-600" : "text-orange-600";
+  const themeBg = isSpirit ? "bg-blue-600" : "bg-orange-600";
+  const themeLightBg = isSpirit ? "bg-blue-50" : "bg-orange-50";
+  const themeBorder = isSpirit ? "border-blue-200" : "border-orange-200";
+
+  return (
+    <div className="min-h-screen bg-stone-50 pb-40 font-sans text-stone-900">
+      
+      {/* --- 1. HERO HEADER (Inspiré de TMBV2.html) --- */}
+      <header className="relative h-[85vh] w-full bg-stone-900 text-white overflow-hidden rounded-b-[2.5rem] shadow-2xl">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0 bg-stone-950">
+          <Image
+            src={trek.heroImage}
+            alt={trek.name}
+            fill
+            className="object-cover opacity-80"
+            priority
+          />
+          <div className="absolute inset-0 bg-linear-to-t from-stone-950 via-stone-900/60 to-transparent" />
+        </div>
+
+        {/* Navbar Flottante */}
+        <nav className="absolute top-0 w-full z-20 flex justify-between items-center p-6 md:p-8">
+          <Link href="/basecamp" className="flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-md px-4 py-2 border border-white/20 hover:bg-white/20 transition cursor-pointer group">
+            <Icons.ArrowLeft className="w-4 h-4 text-white group-hover:-translate-x-1 transition-transform" />
+            <span className="text-xs font-bold uppercase tracking-wider text-white">Retour Basecamp</span>
+          </Link>
+          
+          <div className="font-black text-3xl tracking-tighter">
+            YETI<span className={isSpirit ? "text-blue-500" : "text-orange-500"}>.</span>
+          </div>
+          
+          <div className="w-10 h-10 flex items-center justify-center bg-white/10 backdrop-blur-md rounded-full border border-white/10">
+            {isSpirit ? <Icons.Pelerinage className="w-5 h-5 text-white" /> : <Icons.Sportif className="w-5 h-5 text-white" />}
+          </div>
+        </nav>
+
+        {/* Contenu Hero */}
+        <div className="absolute bottom-0 left-0 w-full p-6 md:p-16 z-10">
+          <div className="max-w-7xl mx-auto">
+            {/* Coordinates / Location */}
+            <div className="mb-6 inline-flex items-center gap-4 text-white/90 font-mono text-sm bg-black/30 px-4 py-2 rounded-lg backdrop-blur-md border border-white/10">
+              <Icons.MapPin className={cn("w-4 h-4", isSpirit ? "text-blue-400" : "text-orange-500")} />
+              <span>{trek.location}</span>
+            </div>
+
+            {/* Titre & Sous-titre */}
+            <div className="flex flex-col md:flex-row md:items-end gap-4 md:gap-8 mb-8">
+              <h1 className="text-6xl md:text-8xl font-black leading-none tracking-tighter text-white uppercase">
+                {trek.name.split(" ")[0]} <span className={isSpirit ? "text-blue-500" : "text-orange-500"}>{trek.name.split(" ").slice(1).join(" ")}</span>
+              </h1>
+              <span className="text-2xl md:text-4xl font-light text-stone-300 mb-2 md:mb-4">
+                {trek.subtitle}
+              </span>
+            </div>
+            
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-white/20 pt-8">
+              <div>
+                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                  <Icons.StatsDistance className="w-3 h-3" /> Distance
+                </div>
+                <div className="text-3xl font-black font-mono text-white">
+                  {trek.stats.dist}<span className="text-lg text-stone-500 ml-1">km</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                  <Icons.StatsElevation className="w-3 h-3" /> Dénivelé +
+                </div>
+                <div className="text-3xl font-black font-mono text-white">
+                  {Math.round(trek.stats.dplus / 1000)}<span className="text-lg text-stone-500 ml-1">km</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                  <Icons.StatsDuration className="w-3 h-3" /> Durée Moy.
+                </div>
+                <div className="text-3xl font-black font-mono text-white">
+                  {trek.stats.days}<span className="text-lg text-stone-500 ml-1">jours</span>
+                </div>
+              </div>
+               <div>
+                <div className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1">Difficulté</div>
+                <div className="flex items-center gap-2">
+                   <div className={cn("text-3xl font-black font-mono", isSpirit ? "text-green-400" : "text-orange-500")}>
+                     {trek.stats.difficulty}<span className="text-lg text-stone-500">/5</span>
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* --- 2. MAIN CONTENT (Layout Split) --- */}
+      <main className="relative z-20 max-w-7xl mx-auto px-6 mt-16">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          
+          {/* === COLONNE GAUCHE (2/3) : Récit & Étapes === */}
+          <div className="lg:col-span-2 space-y-12">
+            
+            {/* Description */}
+            <section>
+              <h2 className="text-3xl font-bold text-stone-900 mb-6">Le Récit</h2>
+              <p className="text-lg text-stone-600 leading-relaxed">
+                {trek.description}
+              </p>
+              {trek.category === "pelerinage" && (
+                <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100 flex gap-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                    <Icons.Pelerinage className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-blue-900 text-sm mb-1">Esprit Pèlerin</h4>
+                    <p className="text-sm text-blue-700">Ce parcours nécessite une Crédential pour accéder aux auberges. Le rythme est aussi spirituel que physique.</p>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            {/* Liste des Étapes (Design "Stage Card") */}
+            <section>
+              <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-200">
+                <h2 className="text-2xl font-bold text-stone-900">Les Étapes</h2>
+                <span className={cn("text-xs px-2 py-1 rounded font-bold uppercase", themeLightBg, themeColor)}>
+                  {trek.stages.length} Sections
+                </span>
+              </div>
+
+              <div className="space-y-0 relative border-l-2 border-stone-200 ml-3">
+                {trek.stages.map((stage) => (
+                  <div key={stage.id} className="relative pl-8 pb-8 group last:pb-0">
+                    {/* Timeline Dot */}
+                    <div className={cn(
+                      "absolute -left-[9px] top-6 w-4 h-4 rounded-full border-4 border-stone-50 z-10 transition-colors duration-300",
+                      isSpirit ? "bg-stone-300 group-hover:bg-blue-500" : "bg-stone-300 group-hover:bg-orange-500"
+                    )} />
+                    
+                    {/* Card */}
+                    <div className={cn(
+                      "bg-white border border-stone-200 p-6 rounded-2xl transition-all duration-300 hover:shadow-lg hover:-translate-y-1",
+                      `hover:${themeBorder}`
+                    )}>
+                      {/* Header Card */}
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-black bg-stone-900 text-white px-2 py-1 rounded font-mono">
+                            {stage.code}
+                          </span>
+                          <h3 className="font-bold text-stone-900 text-lg">{stage.title}</h3>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xl font-bold font-mono text-stone-900">{stage.stats.dist} km</div>
+                          <div className="text-xs text-stone-400 font-bold">+{stage.stats.dplus}m</div>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-stone-600 text-sm leading-relaxed mb-4">
+                        {stage.description}
+                      </p>
+
+                      {/* Footer Card: Tags & POIs */}
+                      <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-stone-100">
+                        {stage.tags?.map((tag, i) => (
+                          <span key={i} className={cn("px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md", themeLightBg, themeColor)}>
+                            {tag}
+                          </span>
+                        ))}
+                        {stage.pois && stage.pois.length > 0 && (
+                          <div className="ml-auto flex items-center gap-1 text-xs text-stone-400">
+                            <Icons.MapPin className="w-3 h-3" />
+                            {stage.pois[stage.pois.length - 1].label}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          {/* === COLONNE DROITE (1/3) : Sidebar Infos === */}
+          <div className="lg:col-span-1 space-y-8">
+            
+            {/* Carte "Expertise YETI" */}
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200 sticky top-24">
+              <h3 className="text-xs font-bold uppercase text-stone-400 mb-4 tracking-widest">L&apos;Expertise YETI</h3>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3 text-sm font-medium text-stone-700">
+                  <span className={cn("w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] text-white mt-0.5", themeBg)}>✓</span>
+                  <span>Meilleure Saison : {trek.bestSeason.join(", ")}</span>
+                </li>
+                <li className="flex items-start gap-3 text-sm font-medium text-stone-700">
+                  <span className={cn("w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] text-white mt-0.5", themeBg)}>✓</span>
+                  <span>Point culminant : {trek.stats.maxAltitude}m</span>
+                </li>
+                {trek.statusBadge && (
+                  <li className="flex items-start gap-3 text-sm font-medium text-stone-700">
+                    <span className={cn("w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] text-white mt-0.5", themeBg)}>✓</span>
+                    <span>Statut : {trek.statusBadge}</span>
+                  </li>
+                )}
+              </ul>
+
+              <div className="mt-6 pt-6 border-t border-stone-100">
+                <h4 className="text-xs font-bold uppercase text-stone-400 mb-3 tracking-widest">Logistique</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                      <Icons.Train className="w-4 h-4 text-stone-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-stone-900">Accès Train</p>
+                      <p className="text-[10px] text-stone-500">Gare la plus proche</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+                    <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+                      <Icons.BedDouble className="w-4 h-4 text-stone-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-stone-900">Hébergement</p>
+                      <p className="text-[10px] text-stone-500">{isSpirit ? "Auberges / Gîtes" : "Refuges / Bivouac"}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Pack Builder */}
+              <div className="mt-6">
+                <Link 
+                  href="/basecamp/packbuilder" 
+                  className={cn(
+                    "block w-full py-3 text-center text-white font-bold text-sm rounded-xl shadow-lg transition hover:-translate-y-0.5",
+                    themeBg
+                  )}
+                >
+                  Préparer mon Sac
+                </Link>
+                <p className="text-center text-[10px] text-stone-400 mt-2">
+                  Optimisez votre équipement avec l&apos;IA
+                </p>
+              </div>
+            </div>
+
+            {/* Profil de l'effort (Barres simplifiées) */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm">
+              <div className="text-xs font-bold text-stone-500 mb-6 flex items-center gap-2">
+                <Icons.TrendingUp className="w-4 h-4" />
+                Intensité par étape
+              </div>
+              <div className="space-y-4">
+                {trek.stages.map((stage) => {
+                  // Calcul simple pour la barre de progression (base 1500m D+ = 100%)
+                  const intensity = Math.min(100, (stage.stats.dplus / 1500) * 100);
+                  return (
+                    <div key={stage.id} className="flex items-center gap-3">
+                      <span className="text-xs font-mono font-bold text-stone-400 w-8">{stage.code}</span>
+                      <div className="flex-1 h-2 bg-stone-100 rounded-full overflow-hidden">
+                        <div 
+                          className={cn("h-full rounded-full", themeBg)} 
+                          style={{ width: `${intensity}%` }} 
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-stone-500 w-12 text-right">+{stage.stats.dplus}m</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+--- FIN DU CODE ---
+
+📁 [DOSSIER] app\{treks
+
+📁 [DOSSIER] app\{treks\[slug],basecamp
+
+📁 [DOSSIER] app\{treks\[slug],basecamp\{gear,packbuilder,routes,packs}}
+
+📁 [DOSSIER] app\{treks\[slug],basecamp\{gear,packbuilder,routes}}
+
+📁 [DOSSIER] components
+
+📁 [DOSSIER] components\icons
+
+📄 [FICHIER] components\icons\index.tsx
+--- DÉBUT DU CODE ---
+import { 
+  Map, 
+  Mountain, 
+  Tent, 
+  Backpack, 
+  Compass, 
+  Thermometer, 
+  Wind, 
+  Droplets, 
+  Flame, 
+  Utensils, 
+  Shirt, 
+  BedDouble, 
+  Zap, 
+  Box, 
+  CheckCircle2, 
+  X, 
+  ChevronRight, 
+  ChevronDown, 
+  ChevronLeft,
+  Search, 
+  Plus, 
+  Trash2, 
+  FileText, 
+  Share2, 
+  User, 
+  Settings, 
+  LogOut, 
+  Train, 
+  Plane, 
+  Bus, 
+  CalendarRange, 
+  Activity, 
+  ArrowRight, 
+  ArrowLeft, 
+  Home, 
+  Package, 
+  Route, 
+  Save, 
+  Download, 
+  Filter, 
+  Star, 
+  Shell, 
+  Footprints, 
+  Clock, 
+  MapPin, 
+  Heart, 
+  Menu, 
+  ChevronUp, 
+  Info, 
+  AlertTriangle, 
+  Check, 
+  Layers, 
+  Target, 
+  Gauge, 
+  TrendingUp,
+} from "lucide-react";
+
+// Configuration globale pour un look "Technique/Fin"
+const TECH_STROKE = 1.5; 
+
+export const Icons = {
+  // --- IDENTITÉ ---
+  Logo: ({ className }: { className?: string }) => (
+    <Mountain strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Yeti: ({ className }: { className?: string }) => (
+    <Mountain strokeWidth={TECH_STROKE} className={className} />
+  ),
+
+  // --- NAVIGATION ---
+  Home: ({ className }: { className?: string }) => (
+    <Home strokeWidth={TECH_STROKE} className={className} />
+  ),
+  NavTrek: ({ className }: { className?: string }) => (
+    <Map strokeWidth={TECH_STROKE} className={className} />
+  ),
+  NavBasecamp: ({ className }: { className?: string }) => (
+    <Tent strokeWidth={TECH_STROKE} className={className} />
+  ),
+  NavPack: ({ className }: { className?: string }) => (
+    <Backpack strokeWidth={TECH_STROKE} className={className} />
+  ),
+  NavRoutes: ({ className }: { className?: string }) => (
+    <Route strokeWidth={TECH_STROKE} className={className} />
+  ),
+  NavInventory: ({ className }: { className?: string }) => (
+    <Package strokeWidth={TECH_STROKE} className={className} />
+  ),
+  
+  // --- TREK CATEGORIES ---
+  Sportif: ({ className }: { className?: string }) => (
+    <Mountain strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Pelerinage: ({ className }: { className?: string }) => (
+    <Shell strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Modere: ({ className }: { className?: string }) => (
+    <Footprints strokeWidth={TECH_STROKE} className={className} />
+  ),
+  
+  // --- CATÉGORIES MATÉRIEL (Pack Builder) ---
+  CatShelter: ({ className }: { className?: string }) => (
+    <Tent strokeWidth={TECH_STROKE} className={className} />
+  ),
+  CatSleep: ({ className }: { className?: string }) => (
+    <BedDouble strokeWidth={TECH_STROKE} className={className} />
+  ),
+  CatCook: ({ className }: { className?: string }) => (
+    <Flame strokeWidth={TECH_STROKE} className={className} />
+  ),
+  CatFood: ({ className }: { className?: string }) => (
+    <Utensils strokeWidth={TECH_STROKE} className={className} />
+  ),
+  CatWater: ({ className }: { className?: string }) => (
+    <Droplets strokeWidth={TECH_STROKE} className={className} />
+  ),
+  CatWear: ({ className }: { className?: string }) => (
+    <Shirt strokeWidth={TECH_STROKE} className={className} />
+  ),
+  CatTech: ({ className }: { className?: string }) => (
+    <Zap strokeWidth={TECH_STROKE} className={className} />
+  ),
+  CatMisc: ({ className }: { className?: string }) => (
+    <Box strokeWidth={TECH_STROKE} className={className} />
+  ),
+  CatNav: ({ className }: { className?: string }) => (
+    <Compass strokeWidth={TECH_STROKE} className={className} />
+  ),
+
+  // --- DONNÉES & STATS ---
+  StatsDistance: ({ className }: { className?: string }) => (
+    <Map strokeWidth={TECH_STROKE} className={className} />
+  ),
+  StatsElevation: ({ className }: { className?: string }) => (
+    <TrendingUp strokeWidth={TECH_STROKE} className={className} />
+  ),
+  StatsDuration: ({ className }: { className?: string }) => (
+    <CalendarRange strokeWidth={TECH_STROKE} className={className} />
+  ),
+  StatsDifficulty: ({ className }: { className?: string }) => (
+    <Gauge strokeWidth={TECH_STROKE} className={className} />
+  ),
+  StatsAltitude: ({ className }: { className?: string }) => (
+    <Target strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Activity: ({ className }: { className?: string }) => (
+    <Activity strokeWidth={TECH_STROKE} className={className} />
+  ),
+  
+  // --- MÉTÉO ---
+  WeatherSun: ({ className }: { className?: string }) => (
+    <Thermometer strokeWidth={TECH_STROKE} className={className} />
+  ),
+  WeatherWind: ({ className }: { className?: string }) => (
+    <Wind strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Water: ({ className }: { className?: string }) => (
+    <Droplets strokeWidth={TECH_STROKE} className={className} />
+  ),
+
+  // --- TRANSPORT ---
+  Train: ({ className }: { className?: string }) => (
+    <Train strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Bus: ({ className }: { className?: string }) => (
+    <Bus strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Plane: ({ className }: { className?: string }) => (
+    <Plane strokeWidth={TECH_STROKE} className={className} />
+  ),
+
+  // --- UI GÉNÉRIQUE ---
+  Search: ({ className }: { className?: string }) => (
+    <Search strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Filter: ({ className }: { className?: string }) => (
+    <Filter strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Check: ({ className }: { className?: string }) => (
+    <Check strokeWidth={TECH_STROKE} className={className} />
+  ),
+  CheckCircle: ({ className }: { className?: string }) => (
+    <CheckCircle2 strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Close: ({ className }: { className?: string }) => (
+    <X strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Plus: ({ className }: { className?: string }) => (
+    <Plus strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Trash: ({ className }: { className?: string }) => (
+    <Trash2 strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Save: ({ className }: { className?: string }) => (
+    <Save strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Download: ({ className }: { className?: string }) => (
+    <Download strokeWidth={TECH_STROKE} className={className} />
+  ),
+  ArrowRight: ({ className }: { className?: string }) => (
+    <ArrowRight strokeWidth={TECH_STROKE} className={className} />
+  ),
+  ArrowLeft: ({ className }: { className?: string }) => (
+    <ArrowLeft strokeWidth={TECH_STROKE} className={className} />
+  ),
+  ChevronRight: ({ className }: { className?: string }) => (
+    <ChevronRight strokeWidth={TECH_STROKE} className={className} />
+  ),
+  ChevronLeft: ({ className }: { className?: string }) => (
+    <ChevronLeft strokeWidth={TECH_STROKE} className={className} />
+  ),
+  ChevronDown: ({ className }: { className?: string }) => (
+    <ChevronDown strokeWidth={TECH_STROKE} className={className} />
+  ),
+  ChevronUp: ({ className }: { className?: string }) => (
+    <ChevronUp strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Menu: ({ className }: { className?: string }) => (
+    <Menu strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Share: ({ className }: { className?: string }) => (
+    <Share2 strokeWidth={TECH_STROKE} className={className} />
+  ),
+  File: ({ className }: { className?: string }) => (
+    <FileText strokeWidth={TECH_STROKE} className={className} />
+  ),
+  User: ({ className }: { className?: string }) => (
+    <User strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Settings: ({ className }: { className?: string }) => (
+    <Settings strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Logout: ({ className }: { className?: string }) => (
+    <LogOut strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Star: ({ className }: { className?: string }) => (
+    <Star strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Heart: ({ className }: { className?: string }) => (
+    <Heart strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Clock: ({ className }: { className?: string }) => (
+    <Clock strokeWidth={TECH_STROKE} className={className} />
+  ),
+  MapPin: ({ className }: { className?: string }) => (
+    <MapPin strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Info: ({ className }: { className?: string }) => (
+    <Info strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Warning: ({ className }: { className?: string }) => (
+    <AlertTriangle strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Layers: ({ className }: { className?: string }) => (
+    <Layers strokeWidth={TECH_STROKE} className={className} />
+  ),
+  BedDouble: ({ className }: { className?: string }) => (
+    <BedDouble strokeWidth={TECH_STROKE} className={className} />
+  ),
+  TrendingUp: ({ className }: { className?: string }) => (
+    <TrendingUp strokeWidth={TECH_STROKE} className={className} />
+  ),
+};
+
+export default Icons;
+--- FIN DU CODE ---
+
+📁 [DOSSIER] components\layout
+
+📄 [FICHIER] components\layout\BasecampSidebar.tsx
+--- DÉBUT DU CODE ---
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
+
+const BASECAMP_NAV = [
+  { href: "/basecamp", label: "Dashboard", icon: Icons.Home, exact: true },
+  { href: "/basecamp/gear", label: "Mon Inventaire", icon: Icons.NavInventory },
+  { href: "/basecamp/packs", label: "Mes Packs", icon: Icons.NavPack },
+  { href: "/basecamp/routes", label: "Mes Routes", icon: Icons.NavRoutes },
+];
+
+export function BasecampSidebar() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-stone-950 border-r border-stone-800 flex flex-col z-50">
+      {/* Logo */}
+      <div className="p-6 border-b border-stone-800">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center">
+            <Icons.Logo className="w-6 h-6 text-white" />
+          </div>
+          <span className="text-2xl font-bold tracking-tight text-white">
+            YETI<span className="text-orange-500">.</span>
+          </span>
+        </Link>
+      </div>
+
+      {/* Basecamp Section */}
+      <nav className="flex-1 p-4 overflow-y-auto">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 px-3 mb-3">
+            <Icons.NavBasecamp className="w-4 h-4 text-stone-500" />
+            <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Basecamp</span>
+          </div>
+          <p className="px-3 text-xs text-stone-600 mb-4">Ton espace personnel d&apos;aventurier</p>
+          
+          <div className="space-y-1">
+            {BASECAMP_NAV.map((item) => {
+              const isActive = item.exact 
+                ? pathname === item.href 
+                : pathname?.startsWith(item.href);
+              const IconComponent = item.icon;
+              
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                    isActive
+                      ? "bg-orange-600 text-white"
+                      : "text-stone-400 hover:text-white hover:bg-stone-800"
+                  )}
+                >
+                  <IconComponent className="w-5 h-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Pack Builder - Outil séparé */}
+        <div className="mt-8 pt-6 border-t border-stone-800">
+          <div className="flex items-center gap-2 px-3 mb-3">
+            <Icons.NavPack className="w-4 h-4 text-orange-500" />
+            <span className="text-xs font-semibold text-orange-500 uppercase tracking-wider">Outil</span>
+          </div>
+          
+          <Link
+            href="/basecamp/packbuilder"
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+              pathname === "/basecamp/packbuilder"
+                ? "bg-orange-600 text-white"
+                : "text-stone-400 hover:text-white hover:bg-stone-800 border border-stone-700"
+            )}
+          >
+            <Icons.Activity className="w-5 h-5" />
+            Pack Builder
+          </Link>
+          <p className="px-3 mt-2 text-[10px] text-stone-600">Construis le sac parfait pour ton trek</p>
+        </div>
+
+        {/* Quick Links */}
+        <div className="mt-8 pt-6 border-t border-stone-800">
+          <div className="px-3 mb-3">
+            <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Explorer</span>
+          </div>
+          <Link
+            href="/treks"
+            className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm text-stone-400 hover:text-white hover:bg-stone-800 transition"
+          >
+            <Icons.NavTrek className="w-4 h-4" />
+            Voir les Treks
+          </Link>
+        </div>
+      </nav>
+
+      {/* Bottom Section */}
+      <div className="p-4 border-t border-stone-800">
+        <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-xl p-4 text-white">
+          <div className="flex items-center gap-2 mb-2">
+            <Icons.Star className="w-4 h-4" />
+            <span className="text-sm font-bold">Premium</span>
+          </div>
+          <p className="text-xs text-orange-100 mb-3">Export PDF, IA personnalisée...</p>
+          <button className="w-full py-2 bg-white text-orange-600 text-xs font-bold rounded-lg hover:bg-orange-50 transition">
+            Upgrade
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\layout\index.ts
+--- DÉBUT DU CODE ---
+export { BasecampSidebar } from "./BasecampSidebar";
+export { Navbar } from "./Navbar";
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\layout\Navbar.tsx
+--- DÉBUT DU CODE ---
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
+
+export function Navbar() {
+  const pathname = usePathname();
+  
+  const navItems = [
+    { href: "/", label: "Accueil", exact: true },
+    { href: "/treks", label: "Treks" },
+    { href: "/basecamp", label: "Basecamp" },
+  ];
+
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 bg-stone-950/90 backdrop-blur-md border-b border-stone-800">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
+          <div className="w-9 h-9 bg-orange-600 rounded-lg flex items-center justify-center">
+            <Icons.Logo className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-xl font-bold tracking-tight text-white">
+            YETI<span className="text-orange-500">.</span>
+          </span>
+        </Link>
+
+        {/* Navigation */}
+        <nav className="flex items-center gap-1">
+          {navItems.map((item) => {
+            const isActive = item.exact 
+              ? pathname === item.href 
+              : pathname?.startsWith(item.href);
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                  isActive
+                    ? "bg-white/10 text-white"
+                    : "text-stone-400 hover:text-white hover:bg-white/5"
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* CTA */}
+        <div className="flex items-center gap-3">
+          <Link
+            href="/basecamp/packbuilder"
+            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white text-sm font-semibold rounded-lg hover:bg-orange-700 transition"
+          >
+            <Icons.NavPack className="w-4 h-4" />
+            Pack Builder
+          </Link>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\layout\Sidebar.tsx
+--- DÉBUT DU CODE ---
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+
+const NAV_ITEMS = [
+  { href: "/", label: "Accueil", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
+  { href: "/treks", label: "Treks", icon: "M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z" },
+  { href: "/basecamp", label: "Basecamp", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" },
+  { href: "/basecamp/packbuilder", label: "Pack Builder", icon: "M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" },
+  { href: "/basecamp/gear", label: "Inventaire", icon: "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" },
+  { href: "/basecamp/routes", label: "Mes Routes", icon: "M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" },
+];
+
+const TREK_SHORTCUTS = [
+  { slug: "gr20", name: "GR20", theme: "orange" },
+  { slug: "tmb", name: "TMB", theme: "orange" },
+  { slug: "camino", name: "Camino", theme: "spirit" },
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-stone-950 border-r border-stone-800 flex flex-col z-50">
+      {/* Logo */}
+      <div className="p-6 border-b border-stone-800">
+        <Link href="/" className="flex items-center gap-2">
+          <span className="text-3xl font-black tracking-tighter text-white">
+            YETI<span className="text-orange-500">.</span>
+          </span>
+        </Link>
+        <p className="text-xs text-stone-500 mt-1">Trek Copilot</p>
+      </div>
+
+      {/* Main Navigation */}
+      <nav className="flex-1 p-4 overflow-y-auto">
+        <div className="space-y-1">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all",
+                  isActive
+                    ? "bg-orange-600 text-white"
+                    : "text-stone-400 hover:text-white hover:bg-stone-800"
+                )}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+                </svg>
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Trek Shortcuts */}
+        <div className="mt-8">
+          <h3 className="px-4 text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">
+            Treks Rapides
+          </h3>
+          <div className="space-y-1">
+            {TREK_SHORTCUTS.map((trek) => {
+              const isActive = pathname === `/treks/${trek.slug}`;
+              return (
+                <Link
+                  key={trek.slug}
+                  href={`/treks/${trek.slug}`}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all",
+                    isActive
+                      ? trek.theme === "spirit"
+                        ? "bg-blue-600/20 text-blue-400"
+                        : "bg-orange-600/20 text-orange-400"
+                      : "text-stone-500 hover:text-white hover:bg-stone-800"
+                  )}
+                >
+                  <span className={cn(
+                    "w-2 h-2 rounded-full",
+                    trek.theme === "spirit" ? "bg-blue-500" : "bg-orange-500"
+                  )} />
+                  {trek.name}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
+      {/* Bottom Section */}
+      <div className="p-4 border-t border-stone-800">
+        <div className="bg-gradient-to-r from-orange-600 to-orange-500 rounded-xl p-4 text-white">
+          <div className="text-sm font-bold mb-1">Premium</div>
+          <p className="text-xs text-orange-100 mb-3">Export PDF, IA personnalisée...</p>
+          <button className="w-full py-2 bg-white text-orange-600 text-xs font-bold rounded-lg hover:bg-orange-50 transition">
+            Upgrade
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+--- FIN DU CODE ---
+
+📁 [DOSSIER] components\nav
+
+📄 [FICHIER] components\nav\index.ts
+--- DÉBUT DU CODE ---
+export { Navbar } from "./Navbar";
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\nav\Navbar.tsx
+--- DÉBUT DU CODE ---
+"use client";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+
+const NAV_LINKS = [
+  { href: "/", label: "Accueil" },
+  { href: "/treks", label: "Treks" },
+  { href: "/basecamp", label: "Basecamp" },
+  { href: "/basecamp/packbuilder", label: "Pack Builder" },
+];
+
+export function Navbar() {
+  const pathname = usePathname();
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-stone-950/95 backdrop-blur-md border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <Link href="/" className="font-black text-2xl tracking-tighter text-white">YETI<span className="text-orange-500">.</span></Link>
+        <div className="hidden md:flex items-center gap-8">
+          {NAV_LINKS.map((link) => (
+            <Link key={link.href} href={link.href} className={cn("text-sm font-medium transition-colors", pathname === link.href ? "text-orange-500" : "text-stone-400 hover:text-white")}>{link.label}</Link>
+          ))}
+        </div>
+        <Link href="/basecamp" className="hidden md:flex items-center gap-2 px-4 py-2 bg-orange-600 text-white text-sm font-bold rounded-lg hover:bg-orange-700 transition">Mon Basecamp</Link>
+      </div>
+    </nav>
+  );
+}
+
+--- FIN DU CODE ---
+
+📁 [DOSSIER] components\pack
+
+📄 [FICHIER] components\pack\GearItemCard.tsx
+--- DÉBUT DU CODE ---
+import { GearItem } from "@/types";
+import { formatWeight } from "@/lib/gear";
+import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
+
+interface GearItemCardProps { 
+  item: GearItem; 
+  selected?: boolean; 
+  quantity?: number; 
+  onClick?: () => void;
+}
+
+export function GearItemCard({ item, selected = false, quantity, onClick }: GearItemCardProps) {
+  return (
+    <div 
+      className={cn(
+        "bg-white p-4 rounded-xl border transition-all cursor-pointer", 
+        selected 
+          ? "border-orange-500 bg-orange-50 shadow-md" 
+          : "border-stone-200 hover:border-orange-300 hover:shadow-md"
+      )} 
+      onClick={onClick}
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-stone-900 truncate">{item.name}</span>
+            {item.owned && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 text-green-700 text-[9px] font-semibold rounded">
+                <Icons.Check className="w-2.5 h-2.5" />
+                Possédé
+              </span>
+            )}
+            {item.essential && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[9px] font-semibold rounded">
+                <Icons.Star className="w-2.5 h-2.5" />
+                Essentiel
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-stone-500 mt-1">
+            {item.brand && <span className="font-medium">{item.brand} • </span>}
+            {item.categoryName}
+          </div>
+        </div>
+        <div className="text-right ml-3">
+          <div className="font-mono font-semibold text-stone-900">{formatWeight(item.weight)}</div>
+          {quantity && quantity > 0 && (
+            <div className="text-xs text-orange-600 font-semibold">×{quantity}</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\pack\index.ts
+--- DÉBUT DU CODE ---
+export { WeightGauge } from "./WeightGauge";
+export { GearItemCard } from "./GearItemCard";
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\pack\WeightGauge.tsx
+--- DÉBUT DU CODE ---
+// components/pack/WeightGauge.tsx
+import { getWeightStatus, WEIGHT_THRESHOLDS } from "@/lib/gear"; // <--- Import depuis LIB
+import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
+
+export function WeightGauge({ weight, showLabel = true }: { weight: number; showLabel?: boolean }) {
+  const status = getWeightStatus(weight);
+  const kg = weight / 1000;
+  
+  const cfg = {
+    ultralight: { color: "text-green-600", bg: "bg-green-100", barColor: "bg-green-500", label: "Ultralight", icon: Icons.CheckCircle },
+    optimal: { color: "text-orange-500", bg: "bg-orange-100", barColor: "bg-orange-500", label: "Optimisé", icon: Icons.Check },
+    heavy: { color: "text-yellow-600", bg: "bg-yellow-100", barColor: "bg-yellow-500", label: "Lourd", icon: Icons.Warning },
+    too_heavy: { color: "text-red-600", bg: "bg-red-100", barColor: "bg-red-500", label: "Trop lourd", icon: Icons.Close },
+  }[status];
+  
+  const pct = Math.min((weight / WEIGHT_THRESHOLDS.HEAVY) * 100, 100);
+  const IconComponent = cfg.icon;
+  
+  return (
+    <div className="space-y-3">
+      <div className="text-center">
+        <div className={cn("text-5xl font-bold font-mono", cfg.color)}>{kg.toFixed(2)}</div>
+        <div className="text-stone-500 text-sm">kilogrammes</div>
+      </div>
+      
+      <div className="h-3 bg-stone-100 rounded-full overflow-hidden">
+        <div 
+          className={cn("h-full rounded-full transition-all duration-500", cfg.barColor)} 
+          style={{ width: `${pct}%` }} 
+        />
+      </div>
+      
+      <div className="flex justify-between text-[10px] text-stone-400 font-mono">
+        <span>0 kg</span>
+        <span className="text-green-600">8 kg</span>
+        <span className="text-orange-500">12 kg</span>
+        <span className="text-red-500">15 kg</span>
+      </div>
+      
+      {showLabel && (
+        <div className="text-center">
+          <span className={cn("inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-semibold", cfg.bg, cfg.color)}>
+            <IconComponent className="w-4 h-4" />
+            {cfg.label}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+--- FIN DU CODE ---
+
+📁 [DOSSIER] components\trek
+
+📄 [FICHIER] components\trek\ElevationChart.tsx
+--- DÉBUT DU CODE ---
+"use client";
+import { POI } from "@/types";
+
+interface ElevationChartProps { 
+  profile: number[]; 
+  pois?: POI[]; 
+  theme?: "orange" | "spirit"; 
+  height?: number; 
+}
+
+export function ElevationChart({ profile, pois, theme = "orange", height = 200 }: ElevationChartProps) {
+  if (!profile || profile.length < 2) {
+    return (
+      <div className="w-full h-32 bg-stone-100 rounded-lg flex items-center justify-center text-stone-400 text-sm">
+        Pas de données
+      </div>
+    );
+  }
+  
+  const width = 800;
+  const topPadding = 40, bottomPadding = 10;
+  const drawHeight = height - topPadding - bottomPadding;
+  
+  let realMin = Math.min(...profile), realMax = Math.max(...profile);
+  const range = realMax - realMin;
+  if (range < 500) { 
+    realMax += (500 - range) / 2; 
+    realMin -= (500 - range) / 2; 
+  }
+  const scaleMax = realMax * 1.05, scaleMin = realMin * 0.95;
+  
+  const points = profile.map((alt, i) => {
+    const x = (i / (profile.length - 1)) * width;
+    const y = height - bottomPadding - ((alt - scaleMin) / (scaleMax - scaleMin)) * drawHeight;
+    return `${x},${y}`;
+  }).join(" ");
+  
+  const fillPoints = `0,${height} ${points} ${width},${height}`;
+  const strokeColor = theme === "spirit" ? "#2563eb" : "#ea580c";
+  const gradientId = `elev-${Math.random().toString(36).substring(7)}`;
+  
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full h-full block">
+      <defs>
+        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={fillPoints} fill={`url(#${gradientId})`} />
+      <polyline points={points} fill="none" stroke={strokeColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      {pois?.map((poi, idx) => {
+        const realX = (poi.x / 100) * width;
+        const closestIndex = Math.round((poi.x / 100) * (profile.length - 1));
+        const alt = profile[Math.min(closestIndex, profile.length - 1)];
+        const y = height - bottomPadding - ((alt - scaleMin) / (scaleMax - scaleMin)) * drawHeight;
+        return (
+          <g key={idx}>
+            <line x1={realX} y1={y} x2={realX} y2={height} stroke={strokeColor} strokeWidth="1" strokeDasharray="4,4" opacity="0.3" />
+            <circle cx={realX} cy={y} r="4" fill="white" stroke={strokeColor} strokeWidth="2" />
+            <text x={realX} y={y - 12} fontSize="11" textAnchor="middle" fill="#44403c" fontWeight="bold" fontFamily="system-ui, sans-serif">{poi.label}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\trek\index.ts
+--- DÉBUT DU CODE ---
+export { TrekCard } from "./TrekCard";
+export { ElevationChart } from "./ElevationChart";
+export { StageCard } from "./StageCard";
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\trek\StageCard.tsx
+--- DÉBUT DU CODE ---
+import { TrekStage } from "@/types";
+import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
+
+interface StageCardProps { 
+  stage: TrekStage; 
+  theme?: "orange" | "spirit"; 
+  onClick?: () => void; 
+}
+
+export function StageCard({ stage, theme = "orange", onClick }: StageCardProps) {
+  const isSpirit = theme === "spirit";
+  
+  return (
+    <div 
+      className={cn(
+        "bg-white border border-stone-200 p-5 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-lg", 
+        isSpirit ? "hover:border-blue-500" : "hover:border-orange-500"
+      )} 
+      onClick={onClick}
+    >
+      <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-3">
+          <span className={cn(
+            "text-xs font-bold px-2 py-1 rounded font-mono",
+            isSpirit ? "bg-blue-600 text-white" : "bg-stone-900 text-white"
+          )}>
+            {stage.code}
+          </span>
+          <h3 className="font-semibold text-stone-900">{stage.title}</h3>
+        </div>
+        <div className="text-right">
+          <div className="text-xl font-bold font-mono text-stone-900">{stage.dist} km</div>
+          <div className="flex items-center gap-1 text-[10px] text-stone-400 justify-end">
+            <Icons.StatsElevation className="w-3 h-3" />
+            +{stage.dplus}m
+          </div>
+        </div>
+      </div>
+      
+      <p className="text-sm text-stone-600 line-clamp-2 mb-3">{stage.desc}</p>
+      
+      <div className="flex flex-wrap gap-1.5">
+        {stage.tags.slice(0, 3).map((tag, idx) => (
+          <span 
+            key={idx} 
+            className={cn(
+              "px-2 py-0.5 text-[10px] font-semibold rounded",
+              isSpirit ? "bg-blue-50 text-blue-700" : "bg-orange-50 text-orange-700"
+            )}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\trek\TrekCard.tsx
+--- DÉBUT DU CODE ---
+import Image from "next/image";
+import Link from "next/link";
+import { TrekData } from "@/types";
+import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
+
+export function TrekCard({ trek }: { trek: TrekData }) {
+  const isSpirit = trek.theme === "spirit";
+  
+  return (
+    <Link href={`/treks/${trek.slug}`}>
+      <div className="group relative bg-white rounded-2xl overflow-hidden border border-stone-200 hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
+        <div className="relative h-56 overflow-hidden">
+          <Image src={trek.heroImage} alt={trek.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-900 via-transparent to-transparent" />
+          
+          {/* Status badge */}
+          <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20">
+            <span className={cn("w-2 h-2 rounded-full animate-pulse", isSpirit ? "bg-yellow-400" : "bg-green-500")} />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-white">{trek.statusBadge}</span>
+          </div>
+          
+          {/* Category icon */}
+          <div className={cn("absolute top-4 right-4 w-10 h-10 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20", isSpirit ? "bg-blue-600/80" : "bg-orange-600/80")}>
+            {isSpirit ? <Icons.Pelerinage className="w-5 h-5 text-white" /> : <Icons.Sportif className="w-5 h-5 text-white" />}
+          </div>
+          
+          <div className="absolute bottom-4 left-4 right-4">
+            <h3 className="text-2xl font-bold text-white tracking-tight">{trek.name}</h3>
+            <p className="text-stone-300 text-sm">{trek.subtitle}</p>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="grid grid-cols-4 gap-4 mb-4">
+            <div>
+              <div className="flex items-center gap-1 text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">
+                <Icons.StatsDistance className="w-3 h-3" />
+                <span>Dist.</span>
+              </div>
+              <div className="text-lg font-bold font-mono text-stone-900">{trek.stats.totalDistance}<span className="text-xs text-stone-500 ml-0.5">km</span></div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1 text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">
+                <Icons.StatsElevation className="w-3 h-3" />
+                <span>D+</span>
+              </div>
+              <div className="text-lg font-bold font-mono text-stone-900">{Math.round(trek.stats.totalElevationGain / 1000)}<span className="text-xs text-stone-500 ml-0.5">km</span></div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1 text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">
+                <Icons.Clock className="w-3 h-3" />
+                <span>Durée</span>
+              </div>
+              <div className="text-lg font-bold font-mono text-stone-900">{trek.stats.estimatedDays}<span className="text-xs text-stone-500 ml-0.5">j</span></div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1 text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">
+                <Icons.StatsDifficulty className="w-3 h-3" />
+                <span>Niveau</span>
+              </div>
+              <div className={cn("text-lg font-bold font-mono", trek.stats.difficulty >= 4 ? "text-red-600" : trek.stats.difficulty >= 3 ? "text-orange-500" : "text-green-600")}>{trek.stats.difficulty.toFixed(1)}<span className="text-xs text-stone-500">/5</span></div>
+            </div>
+          </div>
+          
+          <p className="text-sm text-stone-600 line-clamp-2">{trek.description}</p>
+          
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-1 text-xs text-stone-400">
+              <Icons.MapPin className="w-3 h-3" />
+              {trek.country}
+            </div>
+            <div className={cn("flex items-center gap-1 text-sm font-semibold group-hover:translate-x-1 transition-transform", isSpirit ? "text-blue-600" : "text-orange-600")}>
+              Découvrir
+              <Icons.ChevronRight className="w-4 h-4" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+--- FIN DU CODE ---
+
+📁 [DOSSIER] components\ui
+
+📄 [FICHIER] components\ui\Badge.tsx
+--- DÉBUT DU CODE ---
+import { cn } from "@/lib/utils";
+
+interface BadgeProps { children: React.ReactNode; variant?: "default" | "success" | "warning" | "danger" | "orange" | "spirit"; size?: "sm" | "md"; className?: string; }
+
+export function Badge({ children, variant = "default", size = "sm", className }: BadgeProps) {
+  const variants = { 
+    default: "bg-stone-100 text-stone-700", 
+    success: "bg-green-100 text-green-700", 
+    warning: "bg-yellow-100 text-yellow-700", 
+    danger: "bg-red-100 text-red-700", 
+    orange: "bg-orange-100 text-orange-700", 
+    spirit: "bg-blue-100 text-blue-700" 
+  };
+  const sizes = { sm: "px-2 py-0.5 text-[10px]", md: "px-3 py-1 text-xs" };
+  return <span className={cn("inline-flex items-center gap-1 font-semibold uppercase tracking-wider rounded", variants[variant], sizes[size], className)}>{children}</span>;
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\ui\Button.tsx
+--- DÉBUT DU CODE ---
+import { cn } from "@/lib/utils";
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "ghost" | "spirit" | "outline";
+  size?: "sm" | "md" | "lg";
+  children: React.ReactNode;
+}
+
+export function Button({ variant = "primary", size = "md", className, children, ...props }: ButtonProps) {
+  const variants = {
+    primary: "bg-orange-600 text-white hover:bg-orange-700 shadow-lg",
+    secondary: "bg-stone-900 text-white hover:bg-stone-800 shadow-lg",
+    ghost: "bg-white/10 backdrop-blur-md text-white hover:bg-white/20 border border-white/20",
+    spirit: "bg-blue-600 text-white hover:bg-blue-700 shadow-lg",
+    outline: "bg-transparent border-2 border-stone-300 text-stone-700 hover:border-orange-500 hover:text-orange-600",
+  };
+  const sizes = { sm: "px-4 py-2 text-xs", md: "px-6 py-3 text-sm", lg: "px-8 py-4 text-base" };
+  return (
+    <button className={cn("font-semibold tracking-wide transition-all duration-200 rounded-xl flex items-center justify-center gap-2 disabled:opacity-50", variants[variant], sizes[size], className)} {...props}>
+      {children}
+    </button>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\ui\Card.tsx
+--- DÉBUT DU CODE ---
+import { cn } from "@/lib/utils";
+
+interface CardProps { children: React.ReactNode; className?: string; hover?: boolean; padding?: "none" | "sm" | "md" | "lg"; }
+
+export function Card({ children, className, hover = false, padding = "md" }: CardProps) {
+  const paddings = { none: "", sm: "p-4", md: "p-6", lg: "p-8" };
+  return (
+    <div className={cn("bg-white border border-stone-200 rounded-2xl shadow-sm", hover && "hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer", paddings[padding], className)}>
+      {children}
+    </div>
+  );
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\ui\Icons.tsx
+--- DÉBUT DU CODE ---
+import { 
+    Map, Mountain, Tent, Backpack, Compass, Thermometer, Wind, Droplets, 
+    Flame, Utensils, Shirt, BedDouble, Zap, Box, CheckCircle2, X, 
+    ChevronRight, ChevronDown, Search, Plus, Trash2, FileText, Share2, 
+    User, Settings, LogOut, Train, Plane, Bus, CalendarRange, Activity, 
+    ArrowRight, ArrowLeft, CloudSun, Home, TrendingUp, Download, Check
+  } from "lucide-react";
+  
+  // Épaisseur de trait pour le look "Technique/Pro"
+  const TECH_STROKE = 1.5; 
+  
+  export const Icons = {
+    // --- IDENTITÉ ---
+    Logo: ({ className }: { className?: string }) => (
+      <Mountain strokeWidth={TECH_STROKE} className={className} />
+    ),
+  
+    // --- NAVIGATION ---
+    NavTrek: ({ className }: { className?: string }) => (
+      <Map strokeWidth={TECH_STROKE} className={className} />
+    ),
+    NavBasecamp: ({ className }: { className?: string }) => (
+      <Tent strokeWidth={TECH_STROKE} className={className} />
+    ),
+    NavPack: ({ className }: { className?: string }) => (
+      <Backpack strokeWidth={TECH_STROKE} className={className} />
+    ),
+    
+    // --- CATÉGORIES MATÉRIEL (Pack Builder) ---
+    CatShelter: ({ className }: { className?: string }) => (
+      <Tent strokeWidth={TECH_STROKE} className={className} />
+    ),
+    CatSleep: ({ className }: { className?: string }) => (
+      <BedDouble strokeWidth={TECH_STROKE} className={className} />
+    ),
+    CatCook: ({ className }: { className?: string }) => (
+      <Flame strokeWidth={TECH_STROKE} className={className} />
+    ),
+    CatFood: ({ className }: { className?: string }) => (
+      <Utensils strokeWidth={TECH_STROKE} className={className} />
+    ),
+    CatWater: ({ className }: { className?: string }) => (
+      <Droplets strokeWidth={TECH_STROKE} className={className} />
+    ),
+    CatWear: ({ className }: { className?: string }) => (
+      <Shirt strokeWidth={TECH_STROKE} className={className} />
+    ),
+    CatTech: ({ className }: { className?: string }) => (
+      <Zap strokeWidth={TECH_STROKE} className={className} />
+    ),
+    CatMisc: ({ className }: { className?: string }) => (
+      <Box strokeWidth={TECH_STROKE} className={className} />
+    ),
+  
+    // --- DONNÉES & MÉTÉO ---
+    StatsDistance: ({ className }: { className?: string }) => (
+      <Map strokeWidth={TECH_STROKE} className={className} />
+    ),
+    StatsElevation: ({ className }: { className?: string }) => (
+      <Activity strokeWidth={TECH_STROKE} className={className} />
+    ),
+    StatsDuration: ({ className }: { className?: string }) => (
+      <CalendarRange strokeWidth={TECH_STROKE} className={className} />
+    ),
+    WeatherSun: ({ className }: { className?: string }) => (
+      <Thermometer strokeWidth={TECH_STROKE} className={className} />
+    ),
+    WeatherCloudSun: ({ className }: { className?: string }) => (
+      <CloudSun strokeWidth={TECH_STROKE} className={className} />
+    ),
+    WeatherWind: ({ className }: { className?: string }) => (
+      <Wind strokeWidth={TECH_STROKE} className={className} />
+    ),
+  
+    // --- TRANSPORT & LOGISTIQUE ---
+    Train: ({ className }: { className?: string }) => (
+      <Train strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Bus: ({ className }: { className?: string }) => (
+      <Bus strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Plane: ({ className }: { className?: string }) => (
+      <Plane strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Home: ({ className }: { className?: string }) => (
+      <Home strokeWidth={TECH_STROKE} className={className} />
+    ),
+  
+    // --- UI GÉNÉRIQUE (Boutons, Actions) ---
+    Search: ({ className }: { className?: string }) => (
+      <Search strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Check: ({ className }: { className?: string }) => (
+      <CheckCircle2 strokeWidth={TECH_STROKE} className={className} />
+    ),
+    SimpleCheck: ({ className }: { className?: string }) => (
+      <Check strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Close: ({ className }: { className?: string }) => (
+      <X strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Plus: ({ className }: { className?: string }) => (
+      <Plus strokeWidth={TECH_STROKE} className={className} />
+    ),
+    PlusCircle: ({ className }: { className?: string }) => (
+      <Plus strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Trash: ({ className }: { className?: string }) => (
+      <Trash2 strokeWidth={TECH_STROKE} className={className} />
+    ),
+    ArrowRight: ({ className }: { className?: string }) => (
+      <ArrowRight strokeWidth={TECH_STROKE} className={className} />
+    ),
+    ArrowLeft: ({ className }: { className?: string }) => (
+      <ArrowLeft strokeWidth={TECH_STROKE} className={className} />
+    ),
+    ChevronDown: ({ className }: { className?: string }) => (
+      <ChevronDown strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Share: ({ className }: { className?: string }) => (
+      <Share2 strokeWidth={TECH_STROKE} className={className} />
+    ),
+    File: ({ className }: { className?: string }) => (
+      <FileText strokeWidth={TECH_STROKE} className={className} />
+    ),
+    User: ({ className }: { className?: string }) => (
+      <User strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Settings: ({ className }: { className?: string }) => (
+      <Settings strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Logout: ({ className }: { className?: string }) => (
+      <LogOut strokeWidth={TECH_STROKE} className={className} />
+    ),
+    TrendingUp: ({ className }: { className?: string }) => (
+      <TrendingUp strokeWidth={TECH_STROKE} className={className} />
+    ),
+    Download: ({ className }: { className?: string }) => (
+      <Download strokeWidth={TECH_STROKE} className={className} />
+    ),
+  };
+--- FIN DU CODE ---
+
+📄 [FICHIER] components\ui\index.ts
+--- DÉBUT DU CODE ---
+export { Button } from "./Button";
+export { Card } from "./Card";
+export { Badge } from "./Badge";
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] CURRENT_FILES.md
+--- DÉBUT DU CODE ---
+# 🗂️ CURRENT_FILES.md  
+État actuel du projet YETI (Jan 2025)
+
+## 📁 app/
+- layout.tsx
+- globals.css
+
+### /dashboard
+- layout.tsx
+- page.tsx
+
+### /treks
+- page.tsx
+
+### /treks/[slug]
+- page.tsx
+
+### /packbuilder
+- page.tsx
+
+### /inventory
+- page.tsx
+
+---
+
+## 📁 components/
+### components/nav
+- SidebarNav.tsx
+
+### components/pack
+- GearItemCard.tsx
+
+### components/trek
+- TrekHeader.tsx
+- TrekStats.tsx
+- TrekElevation.tsx
+- TrekStageCard.tsx
+
+### components/ui
+- Button.tsx
+- Card.tsx
+- Badge.tsx
+
+---
+
+## 📁 lib/
+- data.ts
+- utils.ts
+
+### /lib/treks
+- gr20.ts
+- tmb.ts
+- camino.ts
+- index.ts
+
+---
+
+## 📁 public/
+Images diverses (hero, trek banners, placeholders)
+
+---
+
+## 📁 types/
+- trek.ts
+- gear.ts
+- user.ts
+
+---
+
+## 📁 root
+- next.config.js
+- package.json
+- tailwind.config.ts
+- tsconfig.json
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] CURRENT_TASK.md
+--- DÉBUT DU CODE ---
+# 🚧 CURRENT_TASK.md  
+Tâche en cours — Jan 2025
+
+## 🎯 Objectif actuel
+Stabiliser l’architecture YETI et préparer la base solide pour que Claude (ou Cursor + Claude) puisse coder tout le projet proprement.
+
+## 🧩 Tâches
+1. **Simplifier l’arborescence Next.js**
+   - Fusionner packbuilder et inventory dans /basecamp
+   - Nettoyer /treks/[slug] (garder uniquement page.tsx)
+
+2. **Créer les pages manquantes**
+   - /basecamp/page.tsx
+   - /basecamp/packbuilder/page.tsx
+   - /basecamp/inventory/page.tsx
+
+3. **Rendre le site fonctionnel**
+   - Corriger les imports cassés
+   - Uniformiser les chemins d’accès aux treks
+   - Vérifier que chaque trek slug charge correctement
+
+4. **Préparer SherpaAI (Rule-first)**
+   - Créer `/lib/sherpa/rules.ts`
+   - Créer `/lib/sherpa/engine.ts`
+
+5. **Mettre à jour YETI_MASTER.md**  
+   - Ajouter architecture validée par le Conseil des Sages (ChatGPT + Claude + Gemini + Grok + Perplexity)
+
+## 📌 Livrable final
+Une version stable du site YETI en LOCALLY avec :  
+- GR20 / TMB / Camino consultables  
+- Basecamp fonctionnel  
+- Inventaire lisible  
+- Pack Builder affiché  
+- Architecture validée pour 5 ans  
+
+
+--- FIN DU CODE ---
+
+📁 [DOSSIER] lib
+
+📄 [FICHIER] lib\data.ts
+--- DÉBUT DU CODE ---
+// lib/data.ts
+// CORRECTION : On importe les types depuis votre fichier de définition
+import { User, Trek } from "@/types"; 
+
+// 1. Export de MOCK_USER (Corrige l'erreur dans basecamp/page.tsx)
+export const MOCK_USER: User = {
+  id: "usr_yeti_01",
+  username: "YetiExplorer",
+  email: "yeti@basecamp.com",
+  role: "user",
+  avatarUrl: "https://api.dicebear.com/9.x/avataaars/svg?seed=Felix",
+};
+
+// 2. Export de getAllTreks (Corrige l'erreur "Cannot find name Trek")
+export const getAllTreks = (): Trek[] => [
+  {
+    id: "1",
+    slug: "gr20-corse",
+    name: "GR20 Corse",
+    subtitle: "La traversée mythique",
+    description: "Le sentier de grande randonnée le plus difficile d'Europe, traversant la Corse du Nord au Sud.",
+    category: "sportif",
+    location: "Corse, France",
+    heroImage: "/images/treks/gr20.jpg",
+    stats: {
+      dist: 180,
+      dplus: 12000,
+      dminus: 12000,
+      days: 16,
+      difficulty: 5,
+      maxAltitude: 2706
+    },
+    bestSeason: ["Juin", "Juillet", "Août", "Septembre"],
+    stages: [] // Liste vide pour l'instant
+  },
+  {
+    id: "2",
+    slug: "tour-mont-blanc",
+    name: "Tour du Mont Blanc",
+    subtitle: "Le toit de l'Europe",
+    description: "Une randonnée spectaculaire autour du massif du Mont Blanc traversant trois pays.",
+    category: "modere",
+    location: "France / Italie / Suisse",
+    heroImage: "/images/treks/tmb.jpg",
+    stats: {
+      dist: 170,
+      dplus: 10000,
+      dminus: 10000,
+      days: 10,
+      difficulty: 3,
+      maxAltitude: 2665
+    },
+    bestSeason: ["Juillet", "Août", "Septembre"],
+    stages: []
+  }
+];
+--- FIN DU CODE ---
+
+📄 [FICHIER] lib\gear.ts
+--- DÉBUT DU CODE ---
+// lib/gear.ts
+import { GearItem, GearCategory, GearCategoryId } from "@/types";
+
+export const GEAR_CATEGORIES: GearCategory[] = [
+  { id: "shelter", name: "Abri", icon: "CatShelter" },
+  { id: "sleep", name: "Couchage", icon: "CatSleep" },
+  { id: "pack", name: "Portage", icon: "NavPack" },
+  { id: "clothing", name: "Vêtements", icon: "CatWear" },
+  { id: "footwear", name: "Chaussures", icon: "Modere" },
+  { id: "cooking", name: "Cuisine", icon: "CatCook" },
+  { id: "water", name: "Hydratation", icon: "CatWater" },
+  { id: "navigation", name: "Navigation", icon: "CatNav" },
+  { id: "safety", name: "Sécurité", icon: "Warning" },
+  { id: "hygiene", name: "Hygiène", icon: "Water" },
+  { id: "electronics", name: "Électronique", icon: "CatTech" },
+  { id: "misc", name: "Divers", icon: "CatMisc" },
+];
+
+export const GEAR_ITEMS: GearItem[] = [
+  { id: "nemo-hornet", name: "Tente Nemo Hornet 2P", weight: 850, brand: "Nemo", category: "shelter", categoryName: "Abri", essential: true, owned: true },
+  { id: "msr-hubba", name: "Tente MSR Hubba NX", weight: 1540, brand: "MSR", category: "shelter", categoryName: "Abri", essential: true, owned: false },
+  { id: "sac-spark", name: "Sac de couchage Spark III", weight: 750, brand: "Sea to Summit", category: "sleep", categoryName: "Couchage", essential: true, owned: true },
+  { id: "matelas-neoair", name: "Matelas NeoAir XLite", weight: 340, brand: "Thermarest", category: "sleep", categoryName: "Couchage", essential: true, owned: true },
+  { id: "osprey-exos", name: "Sac Osprey Exos 58", weight: 1100, brand: "Osprey", category: "pack", categoryName: "Portage", essential: true, owned: true },
+  { id: "veste-goretex", name: "Veste Gore-Tex", weight: 435, brand: "Arc'teryx", category: "clothing", categoryName: "Vêtements", essential: true, owned: true },
+  { id: "doudoune", name: "Doudoune Ghost Whisperer", weight: 198, brand: "Mountain Hardwear", category: "clothing", categoryName: "Vêtements", essential: true, owned: true },
+  { id: "polaire", name: "Polaire R1 Air", weight: 280, brand: "Patagonia", category: "clothing", categoryName: "Vêtements", essential: true, owned: true },
+  { id: "tshirt", name: "T-shirt Mérinos 150", weight: 140, brand: "Icebreaker", category: "clothing", categoryName: "Vêtements", essential: true, owned: true },
+  { id: "short", name: "Short randonnée", weight: 150, brand: "Patagonia", category: "clothing", categoryName: "Vêtements", essential: true, owned: true },
+  { id: "chaussures", name: "Chaussures X Ultra 4 GTX", weight: 850, brand: "Salomon", category: "footwear", categoryName: "Chaussures", essential: true, owned: true },
+  { id: "sandales", name: "Sandales Cairn 3D", weight: 340, brand: "Bedrock", category: "footwear", categoryName: "Chaussures", essential: false, owned: true },
+  { id: "rechaud", name: "Réchaud PocketRocket 2", weight: 73, brand: "MSR", category: "cooking", categoryName: "Cuisine", essential: true, owned: true },
+  { id: "popote", name: "Popote Titane 750ml", weight: 86, brand: "Toaks", category: "cooking", categoryName: "Cuisine", essential: true, owned: true },
+  { id: "gourde", name: "Gourde Nalgene 1L", weight: 180, brand: "Nalgene", category: "water", categoryName: "Hydratation", essential: true, owned: true },
+  { id: "filtre", name: "Filtre Sawyer Squeeze", weight: 85, brand: "Sawyer", category: "water", categoryName: "Hydratation", essential: true, owned: true },
+  { id: "boussole", name: "Boussole Silva Ranger", weight: 35, brand: "Silva", category: "navigation", categoryName: "Navigation", essential: true, owned: true },
+  { id: "telephone", name: "Smartphone + coque", weight: 220, brand: "Apple", category: "navigation", categoryName: "Navigation", essential: true, owned: true },
+  { id: "trousse", name: "Trousse premiers secours", weight: 180, brand: "Adventure Medical", category: "safety", categoryName: "Sécurité", essential: true, owned: true },
+  { id: "frontale", name: "Lampe frontale Actik", weight: 88, brand: "Petzl", category: "safety", categoryName: "Sécurité", essential: true, owned: true },
+  { id: "couteau", name: "Couteau Classic SD", weight: 21, brand: "Victorinox", category: "safety", categoryName: "Sécurité", essential: true, owned: true },
+  { id: "serviette", name: "Serviette microfibre", weight: 60, brand: "PackTowl", category: "hygiene", categoryName: "Hygiène", essential: true, owned: true },
+  { id: "batterie", name: "Batterie 10000mAh", weight: 185, brand: "Anker", category: "electronics", categoryName: "Électronique", essential: true, owned: true },
+  { id: "batons", name: "Bâtons Distance Carbon Z", weight: 340, brand: "Black Diamond", category: "misc", categoryName: "Divers", essential: true, owned: true },
+  { id: "lunettes", name: "Lunettes Julbo Explorer", weight: 55, brand: "Julbo", category: "misc", categoryName: "Divers", essential: true, owned: true },
+];
+
+export function getGearByCategory(categoryId: string): GearItem[] {
+  return GEAR_ITEMS.filter((item) => item.category === categoryId);
+}
+
+export function getOwnedGear(): GearItem[] {
+  return GEAR_ITEMS.filter((item) => item.owned);
+}
+
+export function searchGear(query: string): GearItem[] {
+  const q = query.toLowerCase();
+  return GEAR_ITEMS.filter((item) => item.name.toLowerCase().includes(q) || (item.brand && item.brand.toLowerCase().includes(q)));
+}
+
+export function calculateTotalWeight(items: GearItem[]): number {
+  return items.reduce((total, item) => total + item.weight, 0);
+}
+
+export function formatWeight(grams: number): string {
+  return grams >= 1000 ? `${(grams / 1000).toFixed(2)} kg` : `${grams} g`;
+}
+
+// C'est ICI que doivent être définis les seuils maintenant, car types/gear.ts est supprimé
+export const WEIGHT_THRESHOLDS = { ULTRALIGHT: 8000, OPTIMAL: 12000, HEAVY: 15000 } as const;
+
+export type WeightStatus = "ultralight" | "optimal" | "heavy" | "too_heavy";
+
+export function getWeightStatus(weight: number): WeightStatus {
+  if (weight < WEIGHT_THRESHOLDS.ULTRALIGHT) return "ultralight";
+  if (weight < WEIGHT_THRESHOLDS.OPTIMAL) return "optimal";
+  if (weight < WEIGHT_THRESHOLDS.HEAVY) return "heavy";
+  return "too_heavy";
+}
+--- FIN DU CODE ---
+
+📁 [DOSSIER] lib\treks
+
+📄 [FICHIER] lib\treks\camino.ts
+--- DÉBUT DU CODE ---
+import { Trek } from "@/types";
+
+export const CAMINO: Trek = {
+  id: "camino",
+  slug: "camino",
+  name: "CAMINO DE SANTIAGO",
+  subtitle: "Le Chemin des Étoiles",
+  description: "Plus qu'une randonnée, le Camino de Santiago est une immersion dans l'histoire européenne. Des Pyrénées à la Galice, vous traverserez des paysages variés : montagnes, vignobles, plateaux désertiques et forêts humides.",
+  category: "pelerinage",
+  location: "France / Espagne",
+  heroImage: "https://static.nationalgeographic.fr/files/styles/image_3200/public/camino-prepped-1.webp?w=1600&h=900",
+  
+  stats: {
+    dist: 780,
+    dplus: 12000,
+    dminus: 12000, // Estimé (boucle ou traversée équilibrée)
+    days: 32,
+    difficulty: 2.0,
+    maxAltitude: 1430,
+  },
+  
+  bestSeason: ["Avril", "Mai", "Septembre", "Octobre"],
+  
+  stages: [
+    {
+      id: 1,
+      code: "S01",
+      title: "Saint-Jean → Roncevaux",
+      description: "Traversée mythique des Pyrénées. Étape la plus dure du Camino.",
+      stats: { dist: 25, dplus: 1400, dminus: 600 },
+      profile: [200, 600, 1000, 1430, 950],
+      pois: [{ x: 30, label: "Orisson" }, { x: 100, label: "Roncevaux" }]
+    },
+    {
+      id: 2,
+      code: "S02",
+      title: "Roncevaux → Pamplona",
+      description: "Descente vers la Navarre. Forêts de hêtres, villages basques.",
+      stats: { dist: 65, dplus: 800, dminus: 1200 },
+      profile: [950, 800, 600, 500, 450],
+      pois: [{ x: 100, label: "Pamplona" }]
+    },
+    {
+      id: 3,
+      code: "S03",
+      title: "Pamplona → Logroño",
+      description: "Alto del Perdón avec ses sculptures de pèlerins. Entrée dans la Rioja.",
+      stats: { dist: 95, dplus: 1100, dminus: 1000 },
+      profile: [450, 780, 500, 600, 400],
+      pois: [{ x: 15, label: "Alto Perdón" }, { x: 100, label: "Logroño" }]
+    },
+    {
+      id: 4,
+      code: "S04",
+      title: "Logroño → Burgos",
+      description: "Traversée de la Rioja puis entrée en Castille.",
+      stats: { dist: 120, dplus: 1500, dminus: 1300 },
+      profile: [400, 600, 800, 900, 860],
+      pois: [{ x: 100, label: "Burgos" }]
+    },
+    {
+      id: 5,
+      code: "S05",
+      title: "Burgos → León",
+      description: "La Meseta : plateau infini de Castille. Solitude et introspection.",
+      stats: { dist: 180, dplus: 2000, dminus: 2000 },
+      profile: [860, 900, 950, 900, 850],
+      pois: [{ x: 100, label: "León" }]
+    },
+    {
+      id: 6,
+      code: "S06",
+      title: "León → O Cebreiro",
+      description: "Monts de León et entrée en Galice. Cruz de Ferro.",
+      stats: { dist: 150, dplus: 2500, dminus: 2200 },
+      profile: [850, 700, 1500, 1000, 1300],
+      pois: [{ x: 50, label: "Cruz de Ferro" }]
+    },
+    {
+      id: 7,
+      code: "S07",
+      title: "O Cebreiro → Santiago",
+      description: "Dernière ligne droite en Galice. Arrivée triomphale à la cathédrale.",
+      stats: { dist: 145, dplus: 2700, dminus: 3500 },
+      profile: [1300, 800, 500, 400, 260],
+      pois: [{ x: 100, label: "Santiago ★" }]
+    },
+  ],
+};
+--- FIN DU CODE ---
+
+📄 [FICHIER] lib\treks\gr20.ts
+--- DÉBUT DU CODE ---
+import { Trek } from "@/types";
+
+export const GR20: Trek = {
+  id: "gr20",
+  slug: "gr20-corse", // Attention : doit correspondre à l'URL que vous visitez
+  name: "GR20 CORSE",
+  subtitle: "Le Sentier Mythique",
+  description: "Considéré comme le trek le plus difficile d'Europe, le GR20 traverse la Corse en diagonale du Nord au Sud. C'est un terrain alpin, minéral, technique, où l'on 'met les mains' souvent. Une aventure brute et sauvage.",
+  category: "sportif",
+  location: "Corse, France",
+  heroImage: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070",
+  theme: "orange",
+  
+  stats: {
+    dist: 180,
+    dplus: 11000,
+    dminus: 11000,
+    days: 16,
+    difficulty: 5.0,
+    maxAltitude: 2607,
+  },
+  
+  bestSeason: ["Juin", "Juillet", "Août", "Septembre"],
+  
+  stages: [
+    {
+      id: 1,
+      code: "J01",
+      title: "Calenzana → Ortu di u Piobbu",
+      description: "Entrée directe dans le vif du sujet. 1300m de D+ pour commencer sous la chaleur. Vue mer inoubliable sur la baie de Calvi.",
+      stats: { dist: 11, dplus: 1295, dminus: 50, duration: "6h30" },
+      profile: [275, 800, 1200, 1500, 1520],
+      pois: [{ x: 100, label: "Refuge Ortu" }],
+      tags: ["Départ", "Vue Mer"]
+    },
+    {
+      id: 2,
+      code: "J02",
+      title: "Ortu di u Piobbu → Carrozzu",
+      description: "Passage de bocca (cols) techniques. Terrain très rocailleux et accidenté. Descente technique vers le refuge.",
+      stats: { dist: 8, dplus: 700, dminus: 900, duration: "7h00" },
+      profile: [1520, 1800, 2000, 1500, 1270],
+      pois: [{ x: 100, label: "Refuge Carrozzu" }],
+      tags: ["Technique", "Rocailleux"]
+    },
+    {
+      id: 3,
+      code: "J03",
+      title: "Carrozzu → Asco Stagnu",
+      description: "La célèbre passerelle de Spasimata (suspendue) puis longue montée dans les dalles vers le lac de la Muvrella.",
+      stats: { dist: 6, dplus: 800, dminus: 650, duration: "6h00" },
+      profile: [1270, 1500, 2000, 1422],
+      pois: [{ x: 20, label: "Passerelle" }, { x: 100, label: "Haut Asco" }],
+      tags: ["Passerelle", "Lac"]
+    },
+    {
+      id: 4,
+      code: "J04",
+      title: "Asco Stagnu → Tighjettu",
+      description: "L'étape reine depuis la fermeture du Cirque de la Solitude. Passage par la Pointe des Éboulis (2607m) au pied du Monte Cinto.",
+      stats: { dist: 8, dplus: 1200, dminus: 1000, duration: "8h00" },
+      profile: [1422, 2000, 2607, 2000, 1683],
+      pois: [{ x: 50, label: "Pte Eboulis (2607m)" }],
+      tags: ["Sommet", "Difficile"]
+    },
+    {
+      id: 5,
+      code: "J05",
+      title: "Tighjettu → Ciottulu di i Mori",
+      description: "Étape plus courte mais scénique. Passage au pied de la Paglia Orba, le 'Cervin Corse'.",
+      stats: { dist: 7, dplus: 600, dminus: 300, duration: "4h00" },
+      profile: [1683, 1800, 1900, 1991],
+      pois: [{ x: 100, label: "Refuge Ciottulu" }],
+      tags: ["Paglia Orba"]
+    },
+    {
+      id: 6,
+      code: "J06",
+      title: "Ciottulu → Manganu",
+      description: "Longue traversée, passage par le célèbre Lac de Nino et ses pozzines (pelouses humides avec trous d'eau). Chevaux sauvages.",
+      stats: { dist: 23, dplus: 650, dminus: 1050, duration: "8h00" },
+      profile: [1991, 1400, 1700, 1600],
+      pois: [{ x: 40, label: "Lac de Nino" }],
+      tags: ["Lac de Nino", "Pozzines"]
+    }
+  ]
+};
+--- FIN DU CODE ---
+
+📄 [FICHIER] lib\treks\index.ts
+--- DÉBUT DU CODE ---
+import { GR20 } from "./gr20";
+import { TMB } from "./tmb";
+import { CAMINO } from "./camino";
+import { Trek } from "@/types";
+
+// Registre central
+const TREKS: Record<string, Trek> = {
+  [GR20.slug]: GR20,
+  [TMB.slug]: TMB,
+  [CAMINO.slug]: CAMINO,
+};
+
+export function getTrekBySlug(slug: string): Trek | undefined {
+  return TREKS[slug];
+}
+
+export function getAllTreks(): Trek[] {
+  return Object.values(TREKS);
+}
+--- FIN DU CODE ---
+
+📄 [FICHIER] lib\treks\tmb.ts
+--- DÉBUT DU CODE ---
+import { Trek } from "@/types";
+
+export const TMB: Trek = {
+  id: "tmb",
+  slug: "tour-mont-blanc", // Attention au slug défini dans getAllTreks !
+  name: "TMB ALPINE",
+  subtitle: "Boucle Intégrale",
+  description: "Le Tour du Mont-Blanc est une boucle grandiose autour du toit de l'Europe. YETI a préparé le découpage classique en 9 étapes, optimisé pour profiter des refuges confortables et des panoramas glaciaires. Plus accessible que le GR20, mais exigeant en endurance (cols à 2500m).",
+  category: "modere",
+  location: "France / Italie / Suisse",
+  heroImage: "https://www.annecy-ville.fr/wp-content/uploads/2024/01/view-of-mont-blanc-summit-from-mont-saleve-haute-2023-11-27-04-53-45-utc.jpg",
+  theme: "orange",
+  statusBadge: "Refuges Ouverts",
+  
+  stats: {
+    dist: 163, // Correspond à totalDistance
+    dplus: 10000, // Correspond à totalElevationGain
+    dminus: 10000,
+    days: 9,
+    difficulty: 3.5,
+    maxAltitude: 2665,
+  },
+  
+  bestSeason: ["Juin", "Juillet", "Août", "Septembre"],
+  
+  stages: [
+    {
+      id: 1,
+      code: "J01",
+      title: "Les Houches → Les Contamines",
+      description: "Départ classique depuis les Houches. Montée au Col de Voza puis traversée vers Notre-Dame de la Gorge.",
+      stats: { dist: 17, dplus: 950, dminus: 800, duration: "5h30" },
+      profile: [1000, 1200, 1653, 1400, 1164],
+      pois: [{ x: 40, label: "Col de Voza" }, { x: 100, label: "Contamines" }],
+      tags: ["Départ", "Mise en jambes"]
+    },
+    {
+      id: 2,
+      code: "J02",
+      title: "Les Contamines → Les Chapieux",
+      description: "Montée progressive vers le Col du Bonhomme (2329m) puis Col de la Croix du Bonhomme (2433m).",
+      stats: { dist: 18, dplus: 1200, dminus: 900, duration: "7h30" },
+      profile: [1164, 1800, 2329, 2433, 1549],
+      pois: [{ x: 50, label: "Col Bonhomme" }, { x: 65, label: "Croix Bonhomme" }],
+      tags: ["2 Cols", "Panoramas"]
+    },
+    {
+      id: 3,
+      code: "J03",
+      title: "Les Chapieux → Courmayeur",
+      description: "Col de la Seigne (2516m) et entrée en Italie. Vue majestueuse sur le versant italien du Mont-Blanc.",
+      stats: { dist: 20, dplus: 850, dminus: 1100, duration: "8h00" },
+      profile: [1549, 2000, 2516, 1800, 1224],
+      pois: [{ x: 45, label: "Col Seigne (IT)" }, { x: 100, label: "Courmayeur" }],
+      tags: ["Italie", "Col Seigne"]
+    },
+    {
+      id: 4,
+      code: "J04",
+      title: "Courmayeur → Refuge Bonatti",
+      description: "Remontée du Val Ferret italien. Vue spectaculaire sur les Grandes Jorasses. Nuit au mythique Refuge Bonatti.",
+      stats: { dist: 14, dplus: 1100, dminus: 300, duration: "5h00" },
+      profile: [1224, 1600, 2000, 2025],
+      pois: [{ x: 100, label: "Refuge Bonatti" }],
+      tags: ["Grandes Jorasses", "Mythique"]
+    },
+    {
+      id: 5,
+      code: "J05",
+      title: "Refuge Bonatti → La Fouly",
+      description: "Grand Col Ferret (2537m) et passage en Suisse. Descente dans le Val Ferret suisse.",
+      stats: { dist: 18, dplus: 750, dminus: 1200, duration: "6h00" },
+      profile: [2025, 2300, 2537, 2000, 1593],
+      pois: [{ x: 40, label: "Gd Col Ferret (CH)" }, { x: 100, label: "La Fouly" }],
+      tags: ["Suisse", "Grand Col"]
+    },
+    {
+      id: 6,
+      code: "J06",
+      title: "La Fouly → Champex",
+      description: "Étape de liaison dans la vallée. Villages suisses typiques. Arrivée au lac de Champex.",
+      stats: { dist: 15, dplus: 600, dminus: 700, duration: "4h30" },
+      profile: [1593, 1400, 1500, 1466],
+      pois: [{ x: 100, label: "Lac Champex" }],
+      tags: ["Village Suisse", "Lac"]
+    },
+    {
+      id: 7,
+      code: "J07",
+      title: "Champex → Trient",
+      description: "Variante alpine par la Fenêtre d'Arpette (2665m) - point culminant du trek ! Vue sur le Glacier.",
+      stats: { dist: 16, dplus: 1050, dminus: 1200, duration: "7h00" },
+      profile: [1466, 2000, 2665, 1800, 1297],
+      pois: [{ x: 55, label: "Fenêtre Arpette" }],
+      tags: ["Point Culminant", "Glacier"]
+    },
+    {
+      id: 8,
+      code: "J08",
+      title: "Trient → Argentière",
+      description: "Col de Balme (2191m) et retour en France. Panorama sur la vallée de Chamonix.",
+      stats: { dist: 16, dplus: 900, dminus: 950, duration: "5h30" },
+      profile: [1297, 1800, 2191, 1700, 1252],
+      pois: [{ x: 50, label: "Col de Balme" }, { x: 100, label: "Argentière" }],
+      tags: ["France", "Vue Mont-Blanc"]
+    },
+    {
+      id: 9,
+      code: "J09",
+      title: "Argentière → Les Houches",
+      description: "Étape finale par le balcon sud. Traversée face au Mont-Blanc. Boucle bouclée !",
+      stats: { dist: 19, dplus: 600, dminus: 850, duration: "6h00" },
+      profile: [1252, 1600, 1877, 1400, 1000],
+      pois: [{ x: 40, label: "La Flégère" }, { x: 100, label: "Les Houches" }],
+      tags: ["Balcon Sud", "Final"]
+    }
+  ]
+};
+--- FIN DU CODE ---
+
+📄 [FICHIER] lib\utils.ts
+--- DÉBUT DU CODE ---
+export function cn(...classes: (string | boolean | undefined | null)[]): string {
+  return classes.filter(Boolean).join(" ");
+}
+
+export function formatNumber(num: number): string {
+  return num.toLocaleString("fr-FR");
+}
+
+export function getDifficultyColor(difficulty: number): string {
+  if (difficulty >= 4.5) return "text-red-600";
+  if (difficulty >= 4) return "text-red-500";
+  if (difficulty >= 3) return "text-orange-500";
+  if (difficulty >= 2) return "text-yellow-500";
+  return "text-green-500";
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] next.config.ts
+--- DÉBUT DU CODE ---
+import type { NextConfig } from "next";
+const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "static.nationalgeographic.fr" },
+      { protocol: "https", hostname: "www.annecy-ville.fr" },
+      { protocol: "https", hostname: "www.mongr.fr" },
+    ],
+  },
+};
+export default nextConfig;
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] package.json
+--- DÉBUT DU CODE ---
+{
+  "name": "yeti",
+  "version": "3.2.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9",
+    "eslint-config-next": "^15.0.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "typescript": "^5"
+  }
+}
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] README.md
+--- DÉBUT DU CODE ---
+# YETI V3.2 — Outdoor Trek Platform
+
+## Nouveautés V3.2
+
+- ✅ **Pas de sidebar** sur Home et Treks (navbar only)
+- ✅ **Sidebar** uniquement dans Basecamp
+- ✅ **Icônes Lucide professionnelles** (pas d'emojis)
+- ✅ **Filtres fonctionnels** : Tous, Sportif, Modéré, Pèlerinage
+- ✅ **Thème bleu** pour Camino (pèlerinage)
+- ✅ **Séparation claire** Basecamp vs Pack Builder
+- ✅ **0 erreurs TypeScript**
+
+## Installation
+
+```powershell
+cd C:\Users\mafum\Desktop\Sac_a_dos
+Remove-Item -Recurse -Force yeti -ErrorAction SilentlyContinue
+Expand-Archive -Path "$HOME\Downloads\YETI_V3.2_FINAL.zip" -DestinationPath "."
+cd yeti
+npm install --legacy-peer-deps
+npm run dev
+```
+
+Ouvrir http://localhost:3000
+
+## Structure
+
+### Pages SANS sidebar (Navbar uniquement)
+- `/` — Landing page
+- `/treks` — Catalogue avec filtres
+- `/treks/[slug]` — Détail trek (GR20, TMB, Camino)
+
+### Pages AVEC sidebar (Basecamp)
+- `/basecamp` — Dashboard personnel
+- `/basecamp/gear` — Inventaire matériel
+- `/basecamp/packs` — Packs sauvegardés
+- `/basecamp/routes` — Routes planifiées
+- `/basecamp/packbuilder` — Outil de création de pack
+
+## Catégories
+
+| Trek | Catégorie | Thème |
+|------|-----------|-------|
+| GR20 | Sportif | Orange |
+| TMB | Modéré | Orange |
+| Camino | Pèlerinage | Bleu |
+
+## Tech Stack
+
+- Next.js 15 (App Router)
+- React 19
+- Tailwind CSS v4
+- Lucide Icons
+- TypeScript
+
+## Philosophie
+
+**Basecamp** = Ton espace personnel (inventaire, packs, historique)
+**Pack Builder** = L'outil de création (optimisation pour un trek)
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] tailwind.config.js
+--- DÉBUT DU CODE ---
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ["Manrope", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
+      },
+      colors: {
+        spirit: {
+          50: "#eff6ff",
+          100: "#dbeafe",
+          500: "#3b82f6",
+          600: "#2563eb",
+          700: "#1d4ed8",
+          gold: "#fbbf24",
+        },
+      },
+    },
+  },
+  plugins: [],
+};
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] tsconfig.json
+--- DÉBUT DU CODE ---
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "paths": { "@/*": ["./*"] }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+
+--- FIN DU CODE ---
+
+📁 [DOSSIER] types
+
+📄 [FICHIER] types\index.ts
+--- DÉBUT DU CODE ---
+// types/index.ts
+
+// 📐 NOMENCLATURE OFFICIELLE YETI (Section 4.2)
+
+export type TrekCategory = "sportif" | "modere" | "pelerinage";
+export type GearCategoryId = "shelter" | "sleep" | "pack" | "clothing" | "footwear" | "cooking" | "water" | "navigation" | "safety" | "hygiene" | "electronics" | "misc";
+
+// --- UTILISATEUR ---
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  role: "admin" | "user" | "guest";
+  avatarUrl?: string;
+  experience?: "beginner" | "intermediate" | "advanced" | "expert";
+  is_premium?: boolean;
+}
+
+// --- POI & ÉTAPES ---
+export interface POI {
+  x: number; // Position en % sur le profil (0-100)
+  label: string;
+  type?: "refuge" | "col" | "eau" | "danger";
+}
+
+export interface Stage {
+  id: number;
+  code: string; // Ex: J01, S04
+  title: string; // Ex: "Les Houches → Les Contamines"
+  description?: string; // Appelé 'desc' parfois, on standardise sur description
+  stats: {
+    dist: number;   // km
+    dplus: number;  // m (D+)
+    dminus: number; // m (D-)
+    duration?: string; // Ex: "6h30"
+  };
+  profile: number[]; // Points d'altitude pour le graph
+  pois?: POI[];
+  tags?: string[]; // Pour les badges (ex: "Alpin", "Forêt")
+}
+
+// Alias pour compatibilité avec certains composants existants
+export type TrekStage = Stage; 
+
+// --- TREK ---
+export interface Trek {
+  id: string;
+  slug: string;
+  name: string;
+  subtitle?: string;
+  description: string;
+  category: TrekCategory; // 4.3 Master MD
+  location: string;
+  country?: string[]; // Ajouté pour compatibilité TrekCard
+  heroImage: string; // camelCase strict
+  statusBadge?: string; // Ex: "Ouvert", "Neige"
+  theme?: "orange" | "spirit"; // Pour le styling conditionnel
+
+  // 4.2 Stats Officielles
+  stats: {
+    dist: number;      // Total km (alias totalDistance)
+    dplus: number;     // Total D+ (alias totalElevationGain)
+    dminus: number;    // Total D-
+    days: number;      // Durée estimée (alias estimatedDays)
+    difficulty: number; // 1-5 (YETI Index)
+    maxAltitude: number;
+  };
+  
+  bestSeason: string[];
+  stages: Stage[];
+}
+
+// Alias pour compatibilité avec TrekCard qui cherche parfois "TrekData"
+export type TrekData = Trek; 
+
+// --- MATÉRIEL (GEAR) ---
+export interface GearCategory { 
+  id: GearCategoryId; 
+  name: string; 
+  icon: string; 
+  order?: number; 
+}
+
+export interface GearItem {
+  id: string;
+  name: string;
+  weight: number; // Unifié: weight en grammes
+  brand?: string;
+  category: GearCategoryId;
+  categoryName?: string;
+  essential: boolean;
+  owned: boolean;
+}
+--- FIN DU CODE ---
+
+📄 [FICHIER] types\user.ts
+--- DÉBUT DU CODE ---
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  experience: "beginner" | "intermediate" | "advanced" | "expert";
+  is_premium: boolean;
+}
+
+export const MOCK_USER: User = {
+  id: "user-001",
+  name: "Marco",
+  email: "marco@yeti.app",
+  experience: "advanced",
+  is_premium: true,
+};
+
+--- FIN DU CODE ---
+
+📄 [FICHIER] YETI_MASTER.md
+--- DÉBUT DU CODE ---
+🏔️ YETI_MASTER.md — SOURCE DE VÉRITÉ OFFICIELLE (vFinal 2025)
+
+Architecture, Vision, Standards techniques et règles métier
+
+📌 Cette version intègre les retours des 4 IA expertes : nomenclature unifiée, ajustements Basecamp, flexibilité UX contrôlée, prompts IA, structure scalable 5 ans.
+
+0. 🔥 Pourquoi ce document existe
+
+YETI n’est pas une application de randonnée.
+C’est le système de préparation le plus fiable d’Europe pour expéditions :
+
+GR20
+
+TMB
+
+Camino
+
+Via Alpina
+
+Grandes traversées premium
+
+🎯 Objectif : réduire à zéro les erreurs de préparation qui compromettent une expédition.
+
+Ce document est :
+
+la constitution technique
+
+la source de vérité
+
+la référence pour toutes les IA et tous les futurs devs
+
+Il doit évoluer :
+✔️ via amendements versionnés
+❌ jamais via improvisation
+
+1. 🧭 PRINCIPES FONDATEURS
+P1 — DATA FIRST
+
+La donnée = réalité terrain.
+L’IA = interprétation, jamais génération.
+
+Sources acceptées :
+
+GPX officiels
+
+IGN
+
+OpenTopo
+
+Refuges, Offices, Topos fiables
+
+🚫 L’IA ne fabrique jamais : altitudes, distances, profils, points d’eau.
+
+P2 — ARCHITECTURE MODULAIRE (DDD light)
+
+Domains :
+
+/treks
+
+/pack
+
+/basecamp
+
+/sherpa
+
+/geo
+
+/experts (V2)
+
+/auth (V2)
+
+Chaque domaine est :
+✔️ isolé
+✔️ testable
+✔️ évolutif
+
+P3 — SHERPA AI (Moteur Hybride)
+Layer 1 — Règles déterministes (obligatoires)
+
+Implémentées dans /lib/sherpa/rules.ts.
+
+Exemples :
+
+Poids max = 12 % du poids du randonneur
+
+Eau min 2 L si > 10 km sans point d’eau
+
+Sac confort 0°C si nuit < 5°C
+
+Exposition col si vent > 50 km/h
+
+Layer 2 — LLM
+
+Implémenté dans /lib/sherpa/engine.ts.
+
+Rôles :
+
+expliquer
+
+reformuler
+
+suggérer
+
+contextualiser météo
+
+🚫 L’IA ne remplace pas les règles.
+Si le LLM échoue → fallback = règles seules.
+
+P4 — UX/UI “MISSION CONTROL”
+
+L’identité YETI = sérieuse, précise, technique, premium.
+
+Interdits :
+
+🚫 émojis
+
+🚫 style enfantin
+
+🚫 couleur flashy
+
+Obligatoires :
+
+✔️ Layout 2 colonnes desktop (Récit / Analyse)
+
+✔️ Mobile : onglets (Récit / Analyse / Carte)
+
+✔️ Icônes lucide-react
+
+✔️ Ton expert mais rassurant, jamais militaire
+
+🔄 Flexibilité UX :
+Les modifications design sont autorisées uniquement si basées sur données utilisateur (tests A/B).
+
+P5 — ZERO REDONDANCE
+
+une donnée = un fichier
+
+une logique = un module
+
+un composant = un usage
+
+2. 🗺️ ARCHITECTURE TECHNIQUE (STRUCTURE FINALE)
+/app
+  layout.tsx
+  globals.css
+
+  /treks
+    page.tsx
+    /[slug]
+      page.tsx
+      client-tabs.tsx               ← navigation mobile
+
+  /basecamp
+    page.tsx
+    /gear                          ← inventaire utilisateur
+      page.tsx
+    /packbuilder                   ← intégré au Basecamp
+      page.tsx
+    /packs                         ← packs sauvegardés
+      page.tsx
+
+  /auth (V2)
+    login.tsx
+    callback.tsx
+
+/components
+  /ui
+  /trek
+  /pack
+  /charts
+
+/lib
+  /treks                          ← données statiques officielles
+  /gear                           ← catalogue équipement
+  /sherpa
+    rules.ts
+    engine.ts
+  /geo
+    elevation.ts
+    gpx.ts
+  utils.ts
+
+/types
+  trek.ts
+  stage.ts
+  gear.ts
+  user.ts
+  sherpa.ts
+
+/public
+  /maps
+  /images
+  sw.js                           ← PWA offline mode
+
+3. 🧩 CONCEPTS PRODUIT
+3.1 — Basecamp (l’espace personnel)
+
+Tout ce qui appartient à l’utilisateur :
+
+Inventaire
+
+Packs
+
+Packs sauvegardés
+
+Historique
+
+Préférences
+
+Dernier trek préparé
+
+3.2 — Pack Builder (outil scientifique)
+
+Objectif : optimiser le sac comme un logisticien d’expédition.
+Rôle :
+
+poids dynamique
+
+répétitions
+
+alertes Sherpa
+
+export PDF
+
+optimisation IA (V3)
+
+3.3 — Page Trek (signature YETI)
+Colonne gauche — LE RÉCIT
+
+étapes
+
+distances
+
+profils
+
+points d’intérêt
+
+Colonne droite — ANALYSE
+
+intensité
+
+risques
+
+météo
+
+recommandations Sherpa
+
+4. 📐 NOMENCLATURE OFFICIELLE (corrections validées par les IA)
+4.1 — Noms de fichiers / routes
+
+/basecamp/gear ✔️
+(et non /inventory)
+
+4.2 — Types (format concis recommandé)
+
+Claude & Perplexity recommandent de simplifier.
+
+Stages → format court
+{ dist: 12, dplus: 1500, dminus: 900 }
+
+Trek → format officiel
+stats: {
+  dist: number;
+  dplus: number;
+  days: number;
+  difficulty: number;
+}
+
+4.3 — Catégorie de trek (filtrage)
+
+Ajouter dans trek.ts :
+
+category: "sportif" | "modere" | "pelerinage"
+
+5. 🧠 SHERPA ENGINE — CONTRAT FINAL
+Entrée
+(user, pack, trek, weather)
+
+Sortie
+interface SherpaReport {
+  isSafe: boolean;
+  warnings: SherpaWarning[];
+  errors: SherpaError[];
+  suggestions: string[];
+}
+
+Règles = source officielle
+
+/lib/sherpa/rules.ts
+Toujours couvert par tests unitaires.
+
+IA = optionnelle
+
+/lib/sherpa/engine.ts
+
+6. ✨ PROMPTS OFFICIELS POUR LES IA
+
+À mettre en tête de chaque conversation Claude/Cursor :
+
+⚠️ Tu dois respecter YETI_MASTER.md.
+
+N’invente jamais structure ou data non présentes.
+
+Modifie /types si tu changes une donnée.
+
+Le Pack Builder fait partie de Basecamp.
+
+Le layout Trek = 2 colonnes desktop, onglets mobile.
+
+Sherpa = règles avant IA.
+
+Pas d’émojis, pas de styles enfantins.
+
+7. 📅 ROADMAP VALIDÉE
+V1 – Produit Fonctionnel (Q1 2025)
+
+GR20 complet
+
+Pack Builder
+
+Sherpa (règles)
+
+PWA
+
+Export PDF
+
+V2 – Comptes utilisateurs (Q2)
+
+Auth
+
+Inventaire personnalisé
+
+Packs sauvegardés
+
+V3 – IA Avancée (Q3)
+
+Camino + TMB
+
+Sherpa explicatif
+
+Packs optimisés
+
+V4 – Marketplace Experts (Q4)
+
+Guides certifiés
+
+Packs premium
+
+Sessions payantes
+
+8. 🦄 Vision 2030
+
+YETI devient :
+le référentiel technique de préparation outdoor en Europe.
+Le Michelin des expéditions.
+Sans bruit social.
+Sans bullshit.
+Juste : la vérité terrain + l’expertise + la rigueur.
+
+🎉 Ce document est désormais la version PRO FINALE
+
+Validé par :
+✔️ Claude
+✔️ Gemini
+✔️ Perplexity
+✔️ Grok
+✔️ ChatGPT
+--- FIN DU CODE ---

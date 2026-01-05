@@ -1,0 +1,2311 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>YETI — Your European Trek Intelligence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            yeti: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              300: '#fdba74',
+              400: '#fb923c',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; }
+    
+    /* Glass effect */
+    .glass { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+    .glass-dark { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background: rgba(28, 25, 23, 0.8); }
+    
+    /* Gradients */
+    .gradient-text { background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .gradient-border { background: linear-gradient(135deg, #f97316, #ea580c); }
+    
+    /* Animations */
+    .card-hover { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15); }
+    
+    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
+    .animate-float { animation: float 4s ease-in-out infinite; }
+    
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+    .animate-shimmer { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); background-size: 200% 100%; animation: shimmer 2s infinite; }
+    
+    /* Navigation */
+    .nav-item { position: relative; transition: all 0.2s ease; }
+    .nav-item.active { background: linear-gradient(90deg, rgba(249, 115, 22, 0.1) 0%, transparent 100%); }
+    .nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 60%; background: linear-gradient(180deg, #f97316, #ea580c); border-radius: 0 4px 4px 0; }
+    .nav-item:hover:not(.active) { background: rgba(245, 245, 244, 0.5); }
+    
+    /* Routes */
+    .route { display: none; opacity: 0; transition: opacity 0.3s ease; }
+    .route.active { display: block; opacity: 1; }
+    
+    /* Score ring */
+    .score-gradient { stroke: url(#scoreGradient); }
+    
+    /* Timeline */
+    .timeline-item::before { content: ''; position: absolute; left: 31px; top: 64px; bottom: -16px; width: 2px; background: linear-gradient(180deg, #e5e5e5 0%, transparent 100%); }
+    .timeline-item:last-child::before { display: none; }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+    
+    /* Focus states */
+    input:focus, select:focus, button:focus { outline: none; }
+    input:focus, select:focus { box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15); }
+    
+    /* Badge pulse */
+    .badge-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .7; } }
+    
+    /* 3D Pack Builder Styles */
+    .compartment { transition: all 0.3s ease; cursor: pointer; }
+    .compartment:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .compartment.drag-over { box-shadow: 0 0 0 2px #f97316, 0 0 20px rgba(249, 115, 22, 0.3); background: rgba(249, 115, 22, 0.05) !important; }
+    .fill-indicator { transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    .pack-btn.active { border-color: #f97316 !important; background: #fff7ed !important; }
+    .gear-item { transition: all 0.2s ease; cursor: grab; }
+    .gear-item:active { cursor: grabbing; }
+    .gear-item.selected { border-color: #22c55e !important; background: #f0fdf4 !important; }
+  </style>
+</head>
+<body class="min-h-screen bg-stone-50 text-stone-900 antialiased">
+
+<!-- ============================================================== -->
+<!-- LANDING PAGE -->
+<!-- ============================================================== -->
+<div id="landingPage">
+  
+  <!-- Navigation Landing -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-white/80 glass border-b border-stone-200/50">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-baseline gap-2 select-none group">
+        <span class="text-2xl font-black tracking-tighter uppercase">YETI</span>
+        <span class="w-2 h-2 bg-orange-600 group-hover:rotate-45 transition-transform duration-300"></span>
+      </a>
+      <div class="hidden md:flex items-center gap-8 text-sm font-semibold text-stone-600">
+        <a href="#features" class="hover:text-stone-900 transition">Fonctionnalités</a>
+        <a href="#how" class="hover:text-stone-900 transition">Comment ça marche</a>
+        <a href="#pricing" class="hover:text-stone-900 transition">Tarifs</a>
+        <a href="#creators" class="hover:text-stone-900 transition">Créateurs</a>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="hidden sm:block px-4 py-2 text-sm font-semibold text-stone-600 hover:text-stone-900 transition">
+          Connexion
+        </button>
+        <button onclick="openApp()" class="px-5 py-2.5 rounded-full bg-stone-900 text-white text-sm font-bold hover:bg-stone-800 transition shadow-lg shadow-stone-900/20">
+          Ouvrir l'app
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="relative min-h-screen overflow-hidden bg-stone-950 text-white pt-16">
+    <div class="absolute inset-0">
+      <img class="w-full h-full object-cover opacity-50" 
+           src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2400&auto=format&fit=crop" 
+           alt="Montagne"/>
+      <div class="absolute inset-0 bg-gradient-to-b from-stone-950/60 via-stone-950/80 to-stone-950"></div>
+    </div>
+
+    <div class="relative z-10 max-w-6xl mx-auto px-6 pt-24 pb-32">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold uppercase tracking-widest mb-8 glass">
+        <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+        Your European Trek Intelligence
+      </div>
+
+      <h1 class="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9]">
+        <span class="block">20h de recherche.</span>
+        <span class="block mt-2">Ou <span class="gradient-text">30 minutes</span></span>
+        <span class="block mt-2 text-stone-500">avec YETI.</span>
+      </h1>
+
+      <p class="mt-8 text-xl text-stone-300 max-w-2xl leading-relaxed">
+        Choisis ton trek. Récupère une config validée terrain. Génère ton dossier complet.
+        <span class="text-white font-semibold">Les randonneurs sérieux préparent comme des pros.</span>
+      </p>
+
+      <div class="mt-10 flex flex-col sm:flex-row gap-4">
+        <button onclick="openApp()" class="h-14 px-8 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-black tracking-tight transition shadow-[0_0_60px_-15px_rgba(249,115,22,0.5)] flex items-center justify-center gap-3">
+          <span>Créer mon premier projet</span>
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </button>
+        <a href="#how" class="h-14 px-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold glass transition flex items-center justify-center">
+          Voir comment ça marche
+        </a>
+      </div>
+
+      <!-- Stats -->
+      <div class="mt-24 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="p-6 rounded-2xl bg-white/5 border border-white/10 glass card-hover">
+          <div class="text-4xl font-black">70%</div>
+          <div class="mt-2 text-sm text-stone-400">des randonneurs partent mal équipés</div>
+        </div>
+        <div class="p-6 rounded-2xl bg-white/5 border border-white/10 glass card-hover">
+          <div class="text-4xl font-black">10h+</div>
+          <div class="mt-2 text-sm text-stone-400">perdues en recherche moyenne</div>
+        </div>
+        <div class="p-6 rounded-2xl bg-white/5 border border-white/10 glass card-hover">
+          <div class="text-4xl font-black">40%</div>
+          <div class="mt-2 text-sm text-stone-400">de retours sacs mal adaptés</div>
+        </div>
+        <div class="p-6 rounded-2xl bg-gradient-to-br from-orange-600/20 to-orange-500/10 border border-orange-500/20 card-hover">
+          <div class="text-4xl font-black text-orange-400">0→1</div>
+          <div class="mt-2 text-sm text-orange-300">plateforme qui résout tout</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2">
+      <div class="w-6 h-10 rounded-full border-2 border-white/30 flex items-start justify-center p-1">
+        <div class="w-1.5 h-3 rounded-full bg-white/50 animate-bounce"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section id="how" class="py-24 bg-white">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold uppercase tracking-widest mb-4">
+          Comment ça marche
+        </div>
+        <h2 class="text-4xl md:text-5xl font-black tracking-tight">
+          De l'idée au départ en <span class="gradient-text">3 étapes</span>
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+          <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-lg shadow-orange-500/30">1</div>
+          <h3 class="text-xl font-black mb-3">Choisis ton trek</h3>
+          <p class="text-stone-600">GR20, TMB, Camino... Sélectionne ta destination et tes dates. YETI récupère les données terrain.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-lg shadow-orange-500/30">2</div>
+          <h3 class="text-xl font-black mb-3">Clone une config pro</h3>
+          <p class="text-stone-600">Récupère un pack validé par la communauté. Adapte-le à ton profil, ton budget, ta morphologie.</p>
+        </div>
+        <div class="text-center">
+          <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-lg shadow-orange-500/30">3</div>
+          <h3 class="text-xl font-black mb-3">Score 100% et pars</h3>
+          <p class="text-stone-600">Sherpa analyse ton pack × météo × terrain. Résous les alertes, exporte ton dossier, pars serein.</p>
+        </div>
+      </div>
+
+      <div class="mt-16 text-center">
+        <button onclick="openApp()" class="h-14 px-10 rounded-full bg-stone-900 hover:bg-stone-800 text-white font-black transition">
+          Essayer gratuitement
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-24 bg-stone-100">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-100 text-orange-600 text-xs font-bold uppercase tracking-widest mb-4">
+          Fonctionnalités
+        </div>
+        <h2 class="text-4xl md:text-5xl font-black tracking-tight">
+          Ce que les autres ne font pas
+        </h2>
+      </div>
+
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="p-8 rounded-3xl bg-white border border-stone-200 shadow-sm card-hover">
+          <div class="w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl mb-6">🎛️</div>
+          <h3 class="text-xl font-black mb-2">Mission Control</h3>
+          <p class="text-stone-600">Dashboard contextuel qui évolue selon J-X. Tu vois exactement où tu en es et quoi faire.</p>
+        </div>
+
+        <div class="p-8 rounded-3xl bg-white border border-stone-200 shadow-sm card-hover">
+          <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-2xl mb-6">⛈️</div>
+          <h3 class="text-xl font-black mb-2">Weather Intelligence</h3>
+          <p class="text-stone-600">Météo croisée avec ton équipement. "Ton duvet sera limite J3 à 2400m."</p>
+        </div>
+
+        <div class="p-8 rounded-3xl bg-white border border-stone-200 shadow-sm card-hover">
+          <div class="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl mb-6">🧬</div>
+          <h3 class="text-xl font-black mb-2">Clone & Adapt</h3>
+          <p class="text-stone-600">Clone une config validée terrain et adapte-la automatiquement à ton profil.</p>
+        </div>
+
+        <div class="p-8 rounded-3xl bg-white border border-stone-200 shadow-sm card-hover">
+          <div class="w-14 h-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-2xl mb-6">📅</div>
+          <h3 class="text-xl font-black mb-2">Timeline Auto</h3>
+          <p class="text-stone-600">Tâches générées automatiquement : J-30 planif, J-15 test, J-7 météo, J-1 check final.</p>
+        </div>
+
+        <div class="p-8 rounded-3xl bg-white border border-stone-200 shadow-sm card-hover">
+          <div class="w-14 h-14 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-2xl mb-6">🎯</div>
+          <h3 class="text-xl font-black mb-2">Analyse Sherpa</h3>
+          <p class="text-stone-600">Score de préparation + alertes contextuelles. Pas juste "attention", mais "voici la solution".</p>
+        </div>
+
+        <div class="p-8 rounded-3xl bg-white border border-stone-200 shadow-sm card-hover">
+          <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mb-6">👥</div>
+          <h3 class="text-xl font-black mb-2">Split Mode</h3>
+          <p class="text-stone-600">Mode groupe avec répartition intelligente du matériel et checklist par personne.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="py-24 bg-white">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="text-center mb-16">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-600 text-xs font-bold uppercase tracking-widest mb-4">
+          Tarifs
+        </div>
+        <h2 class="text-4xl md:text-5xl font-black tracking-tight">
+          Simple et transparent
+        </h2>
+        <p class="mt-4 text-xl text-stone-500">Gratuit pour préparer. Payant pour l'intelligence avancée.</p>
+      </div>
+
+      <div class="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+        <div class="p-6 rounded-3xl bg-stone-50 border border-stone-200">
+          <div class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Gratuit</div>
+          <div class="text-4xl font-black">0€</div>
+          <div class="text-sm text-stone-500 mb-6">Pour commencer</div>
+          <ul class="space-y-3 text-sm">
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Pack Builder complet</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> 3 projets actifs</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Export liste TXT</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Communauté</li>
+          </ul>
+        </div>
+
+        <div class="p-6 rounded-3xl bg-white border-2 border-orange-200 shadow-xl relative">
+          <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-orange-600 text-white text-xs font-bold">Populaire</div>
+          <div class="text-xs font-bold uppercase tracking-widest text-orange-600 mb-2">Diagnostic</div>
+          <div class="text-4xl font-black">7€</div>
+          <div class="text-sm text-stone-500 mb-6">par projet</div>
+          <ul class="space-y-3 text-sm">
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Tout le gratuit +</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Analyse Sherpa complète</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Weather Intelligence</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Export PDF</li>
+          </ul>
+          <button class="mt-6 w-full py-3 rounded-xl bg-orange-600 text-white font-bold hover:bg-orange-500 transition">Choisir</button>
+        </div>
+
+        <div class="p-6 rounded-3xl bg-white border border-stone-200 shadow-sm">
+          <div class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Groupe</div>
+          <div class="text-4xl font-black">12€</div>
+          <div class="text-sm text-stone-500 mb-6">par projet</div>
+          <ul class="space-y-3 text-sm">
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Jusqu'à 6 personnes</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Répartition auto</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Export par membre</li>
+            <li class="flex items-center gap-2"><span class="text-emerald-500">✓</span> Sync temps réel</li>
+          </ul>
+          <button class="mt-6 w-full py-3 rounded-xl bg-stone-900 text-white font-bold hover:bg-stone-800 transition">Choisir</button>
+        </div>
+
+        <div class="p-6 rounded-3xl bg-stone-900 text-white">
+          <div class="text-xs font-bold uppercase tracking-widest text-orange-400 mb-2">YETI Pass</div>
+          <div class="text-4xl font-black">29€</div>
+          <div class="text-sm text-stone-400 mb-6">par an</div>
+          <ul class="space-y-3 text-sm">
+            <li class="flex items-center gap-2"><span class="text-orange-400">✓</span> Tout illimité</li>
+            <li class="flex items-center gap-2"><span class="text-orange-400">✓</span> Projets illimités</li>
+            <li class="flex items-center gap-2"><span class="text-orange-400">✓</span> Treks en avant-première</li>
+            <li class="flex items-center gap-2"><span class="text-orange-400">✓</span> Badge Supporter</li>
+          </ul>
+          <button class="mt-6 w-full py-3 rounded-xl bg-orange-600 text-white font-bold hover:bg-orange-500 transition">S'abonner</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Final -->
+  <section class="py-24 bg-stone-950 text-white">
+    <div class="max-w-4xl mx-auto px-6 text-center">
+      <h2 class="text-4xl md:text-6xl font-black tracking-tight">
+        Prêt à préparer<br/>
+        <span class="gradient-text">comme un pro ?</span>
+      </h2>
+      <p class="mt-6 text-xl text-stone-400 max-w-2xl mx-auto">
+        Rejoins les randonneurs qui préparent intelligemment.
+      </p>
+      <div class="mt-10">
+        <button onclick="openApp()" class="h-14 px-10 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-black transition shadow-[0_0_60px_-15px_rgba(249,115,22,0.5)]">
+          Créer mon premier projet — Gratuit
+        </button>
+      </div>
+      <p class="mt-6 text-sm text-stone-500">Pas de carte bancaire • Export gratuit • Données sécurisées</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-12 bg-stone-950 border-t border-stone-800">
+    <div class="max-w-6xl mx-auto px-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-baseline gap-2">
+          <span class="text-xl font-black tracking-tighter uppercase text-white">YETI</span>
+          <span class="w-2 h-2 bg-orange-600"></span>
+        </div>
+        <p class="text-sm text-stone-500">© 2025 YETI. Your European Trek Intelligence.</p>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ============================================================== -->
+<!-- APPLICATION -->
+<!-- ============================================================== -->
+<div id="appContainer" class="hidden">
+<div class="flex min-h-screen">
+
+  <!-- ========== SIDEBAR ========== -->
+  <aside id="sidebar" class="hidden lg:flex flex-col w-72 bg-white border-r border-stone-200 fixed h-full z-40">
+    
+    <!-- Logo + Status -->
+    <div class="h-16 px-5 flex items-center justify-between border-b border-stone-100">
+      <a href="#" class="flex items-baseline gap-2 select-none group">
+        <span class="text-xl font-black tracking-tighter uppercase">YETI</span>
+        <span class="w-2 h-2 bg-orange-600 group-hover:rotate-45 transition-transform duration-300"></span>
+      </a>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span class="text-xs font-semibold text-stone-500">Online</span>
+      </div>
+    </div>
+
+    <!-- Active Project Card -->
+    <div class="p-4">
+      <div class="p-4 rounded-2xl bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 text-white relative overflow-hidden">
+        <div class="absolute top-0 right-0 w-32 h-32 bg-orange-600/10 rounded-full blur-2xl"></div>
+        <div class="relative">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-stone-400">Projet actif</span>
+            <span class="px-2 py-0.5 rounded-full bg-orange-600 text-[10px] font-bold badge-pulse">J-23</span>
+          </div>
+          <div class="font-black text-lg leading-tight">GR20 Nord→Sud</div>
+          <div class="text-xs text-stone-400 mt-1">15 juin 2025 • 12 jours • Solo</div>
+          
+          <!-- Mini Score -->
+          <div class="mt-4 flex items-center gap-4">
+            <div class="relative w-14 h-14">
+              <svg class="w-14 h-14 -rotate-90" viewBox="0 0 56 56">
+                <circle cx="28" cy="28" r="24" stroke="#404040" stroke-width="4" fill="none"/>
+                <circle cx="28" cy="28" r="24" stroke="#22c55e" stroke-width="4" fill="none" 
+                        stroke-dasharray="150.8" stroke-dashoffset="22.6" stroke-linecap="round"/>
+              </svg>
+              <span class="absolute inset-0 flex items-center justify-center text-lg font-black">85</span>
+            </div>
+            <div>
+              <div class="text-xs text-stone-500">Score Sherpa</div>
+              <div class="text-sm font-bold text-emerald-400">Prêt à 85%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 px-3 overflow-y-auto">
+      <div class="text-[10px] font-bold uppercase tracking-widest text-stone-400 px-3 py-3">Préparer</div>
+      
+      <button class="nav-item active w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-700 flex items-center gap-3 mb-1" data-route="mission">
+        <span class="text-lg">🎛️</span>
+        <span class="flex-1">Mission Control</span>
+        <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+      </button>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="timeline">
+        <span class="text-lg">📅</span>
+        <span class="flex-1">Timeline</span>
+        <span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-[10px] font-bold">3</span>
+      </button>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="packbuilder">
+        <span class="text-lg">🎒</span>
+        <span class="flex-1">Pack Builder</span>
+      </button>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="sherpa">
+        <span class="text-lg">🎯</span>
+        <span class="flex-1">Analyse Sherpa</span>
+        <span class="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-[10px] font-bold">2</span>
+      </button>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="weather">
+        <span class="text-lg">⛈️</span>
+        <span class="flex-1">Weather Intel</span>
+      </button>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="stages">
+        <span class="text-lg">🗺️</span>
+        <span class="flex-1">Étapes & POI</span>
+      </button>
+
+      <div class="text-[10px] font-bold uppercase tracking-widest text-stone-400 px-3 py-3 mt-4">Explorer</div>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="treks">
+        <span class="text-lg">🏔️</span>
+        <span class="flex-1">Treks</span>
+      </button>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="community">
+        <span class="text-lg">👥</span>
+        <span class="flex-1">Communauté</span>
+      </button>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="clone">
+        <span class="text-lg">🧬</span>
+        <span class="flex-1">Clone & Adapt</span>
+      </button>
+
+      <div class="text-[10px] font-bold uppercase tracking-widest text-stone-400 px-3 py-3 mt-4">Mon Espace</div>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="refuge">
+        <span class="text-lg">🏠</span>
+        <span class="flex-1">Mon Refuge</span>
+      </button>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="projects">
+        <span class="text-lg">📋</span>
+        <span class="flex-1">Mes Projets</span>
+        <span class="px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-[10px] font-bold">3</span>
+      </button>
+      
+      <button class="nav-item w-full text-left px-4 py-3 rounded-xl font-semibold text-stone-600 flex items-center gap-3 mb-1" data-route="progression">
+        <span class="text-lg">📈</span>
+        <span class="flex-1">Progression</span>
+      </button>
+    </nav>
+
+    <!-- User -->
+    <div class="p-4 border-t border-stone-100">
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <div class="w-11 h-11 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-white font-black shadow-lg shadow-orange-500/30">M</div>
+          <div class="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white border-2 border-white flex items-center justify-center text-xs shadow">⛰️</div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-sm">Marco</div>
+          <div class="text-xs text-stone-500">Trekkeur • 68% → Guide</div>
+        </div>
+        <button class="p-2 rounded-xl hover:bg-stone-100 transition text-stone-400 hover:text-stone-600">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========== MAIN CONTENT ========== -->
+  <main class="flex-1 lg:ml-72 min-h-screen bg-stone-50">
+    
+    <!-- Header -->
+    <header class="sticky top-0 z-30 h-16 bg-white/90 glass border-b border-stone-200">
+      <div class="h-full px-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <button id="mobileMenuBtn" class="lg:hidden p-2 rounded-xl border border-stone-200 hover:bg-stone-50 transition">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <div>
+            <h1 id="pageTitle" class="text-xl font-black">Mission Control</h1>
+            <p id="pageSubtitle" class="text-xs text-stone-500">Vue stratégique de ta préparation</p>
+          </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+          <div class="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-100 to-orange-50 border border-orange-200">
+            <span class="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+            <span class="text-sm font-bold text-orange-700">J-23</span>
+          </div>
+          
+          <button class="relative p-2.5 rounded-xl border border-stone-200 hover:bg-stone-50 transition">
+            <svg class="w-5 h-5 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">2</span>
+          </button>
+          
+          <button class="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-stone-900 text-white font-bold text-sm hover:bg-stone-800 transition shadow-sm">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            Nouveau projet
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <div class="p-6">
+
+      <!-- ==================== MISSION CONTROL ==================== -->
+      <section class="route active" id="route-mission">
+        
+        <!-- Alert Banner -->
+        <div class="mb-6 p-5 rounded-2xl bg-gradient-to-r from-red-500 via-red-500 to-orange-500 text-white flex items-center justify-between shadow-lg shadow-red-500/20">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl animate-pulse">⚠️</div>
+            <div>
+              <div class="font-bold text-lg">2 alertes critiques</div>
+              <div class="text-sm text-white/80">Duvet insuffisant • Capacité eau étape 4</div>
+            </div>
+          </div>
+          <button class="px-5 py-2.5 rounded-xl bg-white text-red-600 font-bold text-sm hover:bg-red-50 transition shadow-sm" onclick="setRoute('sherpa')">
+            Résoudre maintenant →
+          </button>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold uppercase tracking-widest text-stone-400">Countdown</span>
+              <span class="text-2xl">📅</span>
+            </div>
+            <div class="text-4xl font-black text-stone-900">J-23</div>
+            <div class="text-xs text-stone-500 mt-1">15 juin 2025</div>
+          </div>
+          
+          <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold uppercase tracking-widest text-stone-400">Base Weight</span>
+              <span class="text-2xl">⚖️</span>
+            </div>
+            <div class="text-4xl font-black">7.2<span class="text-xl text-stone-400">kg</span></div>
+            <div class="text-xs text-emerald-600 font-semibold mt-1">✓ Sous objectif</div>
+          </div>
+          
+          <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold uppercase tracking-widest text-stone-400">Tasks</span>
+              <span class="text-2xl">✅</span>
+            </div>
+            <div class="text-4xl font-black">7<span class="text-xl text-stone-400">/12</span></div>
+            <div class="text-xs text-orange-600 font-semibold mt-1">5 restantes</div>
+          </div>
+          
+          <div class="p-5 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/20 card-hover">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold uppercase tracking-widest text-emerald-100">Score</span>
+              <span class="text-2xl">🎯</span>
+            </div>
+            <div class="text-4xl font-black">85<span class="text-xl opacity-70">%</span></div>
+            <div class="text-xs text-emerald-100 mt-1">+12 pts cette semaine</div>
+          </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Left Column - 2/3 -->
+          <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Project Hero Card -->
+            <div class="rounded-3xl overflow-hidden bg-stone-900 text-white relative shadow-xl">
+              <div class="absolute inset-0">
+                <img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200" class="w-full h-full object-cover opacity-30" alt="GR20"/>
+                <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-900/70 to-stone-900/30"></div>
+              </div>
+              <div class="relative p-8">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-3 py-1.5 rounded-full bg-orange-600 text-xs font-bold uppercase shadow-lg shadow-orange-600/30">En préparation</span>
+                    <span class="px-3 py-1.5 rounded-full bg-white/10 glass text-xs font-semibold">12 jours</span>
+                    <span class="px-3 py-1.5 rounded-full bg-white/10 glass text-xs font-semibold">Solo</span>
+                  </div>
+                  <button class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 glass transition">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                  </button>
+                </div>
+                
+                <h2 class="text-4xl font-black tracking-tight">GR20 — Nord → Sud</h2>
+                <p class="text-stone-300 mt-2 text-lg">Traversée intégrale de la Corse. Le plus beau trek d'Europe.</p>
+                
+                <div class="mt-8 grid grid-cols-4 gap-6 py-6 border-y border-white/10">
+                  <div>
+                    <div class="text-xs text-stone-500 uppercase font-bold tracking-wider">Distance</div>
+                    <div class="text-2xl font-black mt-1">180 km</div>
+                  </div>
+                  <div>
+                    <div class="text-xs text-stone-500 uppercase font-bold tracking-wider">D+ Total</div>
+                    <div class="text-2xl font-black mt-1">12 500m</div>
+                  </div>
+                  <div>
+                    <div class="text-xs text-stone-500 uppercase font-bold tracking-wider">Alt. max</div>
+                    <div class="text-2xl font-black mt-1">2 706m</div>
+                  </div>
+                  <div>
+                    <div class="text-xs text-stone-500 uppercase font-bold tracking-wider">Étapes</div>
+                    <div class="text-2xl font-black mt-1">12</div>
+                  </div>
+                </div>
+
+                <div class="mt-6 flex gap-3">
+                  <button class="flex-1 py-3.5 rounded-xl bg-white text-stone-900 font-bold hover:bg-stone-100 transition flex items-center justify-center gap-2" onclick="setRoute('packbuilder')">
+                    <span>🎒</span> Pack Builder
+                  </button>
+                  <button class="flex-1 py-3.5 rounded-xl bg-white/10 glass text-white font-bold hover:bg-white/20 transition flex items-center justify-center gap-2" onclick="setRoute('sherpa')">
+                    <span>🎯</span> Analyse Sherpa
+                  </button>
+                  <button class="flex-1 py-3.5 rounded-xl bg-white/10 glass text-white font-bold hover:bg-white/20 transition flex items-center justify-center gap-2" onclick="setRoute('stages')">
+                    <span>🗺️</span> Étapes
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Score Breakdown -->
+            <div class="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <div class="flex items-center justify-between mb-6">
+                <div>
+                  <h3 class="font-black text-lg">Décomposition du score</h3>
+                  <p class="text-xs text-stone-500 mt-0.5">Analyse Sherpa en temps réel</p>
+                </div>
+                <button class="text-sm font-semibold text-orange-600 hover:text-orange-700 transition">Voir détails →</button>
+              </div>
+              
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 card-hover">
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="text-2xl">🎒</span>
+                    <span class="text-2xl font-black text-emerald-600">92%</span>
+                  </div>
+                  <div class="font-bold text-sm">Équipement</div>
+                  <div class="text-xs text-stone-500 mt-1">34 items validés</div>
+                </div>
+                
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 card-hover">
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="text-2xl">⚖️</span>
+                    <span class="text-2xl font-black text-emerald-600">88%</span>
+                  </div>
+                  <div class="font-bold text-sm">Poids</div>
+                  <div class="text-xs text-stone-500 mt-1">7.2kg / 8kg obj.</div>
+                </div>
+                
+                <div class="p-4 rounded-xl bg-orange-50 border border-orange-200 card-hover">
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="text-2xl">⛈️</span>
+                    <span class="text-2xl font-black text-orange-600">72%</span>
+                  </div>
+                  <div class="font-bold text-sm">Météo</div>
+                  <div class="text-xs text-orange-600 font-semibold mt-1">1 alerte</div>
+                </div>
+                
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 card-hover">
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="text-2xl">📍</span>
+                    <span class="text-2xl font-black text-emerald-600">85%</span>
+                  </div>
+                  <div class="font-bold text-sm">Logistique</div>
+                  <div class="text-xs text-stone-500 mt-1">3/5 refuges</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Weather Preview -->
+            <div class="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl">⛈️</div>
+                  <div>
+                    <h3 class="font-black">Weather Intelligence</h3>
+                    <p class="text-xs text-stone-500">Prévisions croisées avec ton équipement</p>
+                  </div>
+                </div>
+                <button class="text-sm font-semibold text-orange-600 hover:text-orange-700 transition" onclick="setRoute('weather')">Détails →</button>
+              </div>
+              
+              <div class="grid grid-cols-7 gap-2 mb-4">
+                <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-100 card-hover">
+                  <div class="text-xs text-stone-500 font-bold">J1</div>
+                  <div class="text-2xl my-2">☀️</div>
+                  <div class="text-sm font-black">22°</div>
+                  <div class="text-[10px] text-emerald-600 font-bold mt-1">OK</div>
+                </div>
+                <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-100 card-hover">
+                  <div class="text-xs text-stone-500 font-bold">J2</div>
+                  <div class="text-2xl my-2">⛅</div>
+                  <div class="text-sm font-black">18°</div>
+                  <div class="text-[10px] text-emerald-600 font-bold mt-1">OK</div>
+                </div>
+                <div class="text-center p-3 rounded-xl bg-red-50 border border-red-200 card-hover">
+                  <div class="text-xs text-stone-500 font-bold">J3</div>
+                  <div class="text-2xl my-2">🌧️</div>
+                  <div class="text-sm font-black">12°</div>
+                  <div class="text-[10px] text-red-600 font-bold mt-1">Alerte</div>
+                </div>
+                <div class="text-center p-3 rounded-xl bg-orange-50 border border-orange-200 card-hover">
+                  <div class="text-xs text-stone-500 font-bold">J4</div>
+                  <div class="text-2xl my-2">⛈️</div>
+                  <div class="text-sm font-black">8°</div>
+                  <div class="text-[10px] text-orange-600 font-bold mt-1">Risque</div>
+                </div>
+                <div class="text-center p-3 rounded-xl bg-emerald-50 border border-emerald-100 card-hover">
+                  <div class="text-xs text-stone-500 font-bold">J5</div>
+                  <div class="text-2xl my-2">☀️</div>
+                  <div class="text-sm font-black">20°</div>
+                  <div class="text-[10px] text-emerald-600 font-bold mt-1">OK</div>
+                </div>
+                <div class="text-center p-3 rounded-xl bg-stone-50 border border-stone-200 card-hover">
+                  <div class="text-xs text-stone-500 font-bold">J6</div>
+                  <div class="text-2xl my-2">☀️</div>
+                  <div class="text-sm font-black">21°</div>
+                  <div class="text-[10px] text-stone-400 font-bold mt-1">—</div>
+                </div>
+                <div class="text-center p-3 rounded-xl bg-stone-50 border border-stone-200 card-hover">
+                  <div class="text-xs text-stone-500 font-bold">J7</div>
+                  <div class="text-2xl my-2">⛅</div>
+                  <div class="text-sm font-black">19°</div>
+                  <div class="text-[10px] text-stone-400 font-bold mt-1">—</div>
+                </div>
+              </div>
+
+              <div class="p-4 rounded-xl bg-red-50 border border-red-200">
+                <div class="flex items-start gap-3">
+                  <span class="text-lg">🔴</span>
+                  <div>
+                    <div class="font-bold text-red-800">J3-J4 : Conditions difficiles en altitude</div>
+                    <p class="text-sm text-red-700 mt-1">
+                      <strong>Impact :</strong> Ton duvet (+5°C) insuffisant. Nuit à 2400m avec -2°C ressenti.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column - 1/3 -->
+          <div class="space-y-4">
+            
+            <!-- Quick Actions -->
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <h4 class="font-bold text-sm text-stone-400 uppercase tracking-widest mb-4">Actions prioritaires</h4>
+              <div class="space-y-2">
+                <button class="w-full p-4 rounded-xl bg-red-50 border border-red-200 text-left hover:bg-red-100 transition flex items-center gap-3 card-hover" onclick="setRoute('sherpa')">
+                  <span class="w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center font-bold shadow-lg shadow-red-500/30">!</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-bold text-sm text-red-800">Résoudre alertes</div>
+                    <div class="text-xs text-red-600">2 critiques</div>
+                  </div>
+                  <svg class="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+                
+                <button class="w-full p-4 rounded-xl bg-stone-50 border border-stone-200 text-left hover:bg-stone-100 transition flex items-center gap-3 card-hover" onclick="setRoute('timeline')">
+                  <span class="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center font-bold shadow-lg shadow-orange-500/30">📋</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-bold text-sm">Checklist J-23</div>
+                    <div class="text-xs text-stone-500">3 tâches aujourd'hui</div>
+                  </div>
+                  <svg class="w-5 h-5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+                
+                <button class="w-full p-4 rounded-xl bg-stone-50 border border-stone-200 text-left hover:bg-stone-100 transition flex items-center gap-3 card-hover">
+                  <span class="w-10 h-10 rounded-xl bg-stone-400 text-white flex items-center justify-center font-bold">📤</span>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-bold text-sm">Exporter dossier</div>
+                    <div class="text-xs text-stone-500">PDF complet</div>
+                  </div>
+                  <svg class="w-5 h-5 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Timeline Mini -->
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="font-bold">Timeline</h4>
+                <button class="text-xs font-semibold text-orange-600 hover:text-orange-700" onclick="setRoute('timeline')">Tout voir →</button>
+              </div>
+              <div class="space-y-3">
+                <div class="relative timeline-item flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center font-bold text-xs shrink-0 border-2 border-orange-200">J-23</div>
+                  <div class="flex-1 pt-2">
+                    <div class="font-semibold text-sm">Aujourd'hui</div>
+                    <div class="text-xs text-stone-500">Réserver refuge Asco</div>
+                  </div>
+                </div>
+                <div class="relative timeline-item flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center font-bold text-xs shrink-0">J-15</div>
+                  <div class="flex-1 pt-2">
+                    <div class="font-semibold text-sm">Dans 8 jours</div>
+                    <div class="text-xs text-stone-500">Test pack complet</div>
+                  </div>
+                </div>
+                <div class="relative flex items-start gap-3">
+                  <div class="w-10 h-10 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center font-bold text-xs shrink-0">J-7</div>
+                  <div class="flex-1 pt-2">
+                    <div class="font-semibold text-sm">Dans 16 jours</div>
+                    <div class="text-xs text-stone-500">Check météo finale</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Configs similaires -->
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="font-bold">Configs validées</h4>
+                <button class="text-xs font-semibold text-orange-600 hover:text-orange-700" onclick="setRoute('clone')">Voir tout →</button>
+              </div>
+              <div class="space-y-3">
+                <div class="p-3 rounded-xl bg-stone-50 border border-stone-200 cursor-pointer hover:bg-stone-100 transition card-hover">
+                  <div class="flex items-center gap-3 mb-2">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xs font-bold">JL</div>
+                    <div class="flex-1">
+                      <div class="font-bold text-sm">Pack UL Juin</div>
+                      <div class="text-xs text-stone-500">@jeanluc • 🔥 Éclaireur</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-bold">6.1kg base</span>
+                    <span class="text-emerald-600 font-semibold">47 validations ✓</span>
+                  </div>
+                </div>
+                
+                <div class="p-3 rounded-xl bg-stone-50 border border-stone-200 cursor-pointer hover:bg-stone-100 transition card-hover">
+                  <div class="flex items-center gap-3 mb-2">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white flex items-center justify-center text-xs font-bold">SM</div>
+                    <div class="flex-1">
+                      <div class="font-bold text-sm">Pack Confort</div>
+                      <div class="text-xs text-stone-500">@sophie • 🧭 Guide</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-bold">8.4kg base</span>
+                    <span class="text-emerald-600 font-semibold">31 validations ✓</span>
+                  </div>
+                </div>
+              </div>
+              
+              <button class="w-full mt-4 py-3 rounded-xl bg-stone-900 text-white text-sm font-bold hover:bg-stone-800 transition" onclick="setRoute('clone')">
+                🧬 Explorer les configs
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TIMELINE ==================== -->
+      <section class="route" id="route-timeline">
+        <div class="max-w-4xl mx-auto">
+          <div class="text-center mb-10">
+            <h2 class="text-3xl font-black">Timeline de Préparation</h2>
+            <p class="text-stone-500 mt-2">Tâches auto-générées selon ton trek et ta date de départ</p>
+          </div>
+
+          <div class="space-y-6">
+            
+            <!-- J-30 -->
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-emerald-500/30">J-30</div>
+                <div class="flex-1">
+                  <div class="font-black text-xl">Phase Planification</div>
+                  <div class="text-sm text-stone-500">Il y a 7 jours • 4/4 complétées</div>
+                </div>
+                <span class="px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold">✓ Terminé</span>
+              </div>
+              <div class="ml-20 space-y-2">
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm">✓</span>
+                  <span class="font-semibold">Choisir les dates</span>
+                  <span class="ml-auto text-xs text-stone-500">15-27 juin 2025</span>
+                </div>
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm">✓</span>
+                  <span class="font-semibold">Créer le projet YETI</span>
+                </div>
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm">✓</span>
+                  <span class="font-semibold">Sélectionner variante Nord→Sud</span>
+                </div>
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm">✓</span>
+                  <span class="font-semibold">Définir objectif base weight (8kg)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- J-23 (Aujourd'hui) -->
+            <div class="relative">
+              <div class="flex items-center gap-4 mb-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-orange-500/30 badge-pulse">J-23</div>
+                <div class="flex-1">
+                  <div class="font-black text-xl">Phase Équipement</div>
+                  <div class="text-sm text-stone-500">Aujourd'hui • 2/5 complétées</div>
+                </div>
+                <span class="px-4 py-2 rounded-full bg-orange-100 text-orange-700 text-sm font-bold">En cours</span>
+              </div>
+              <div class="ml-20 space-y-2">
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm">✓</span>
+                  <span class="font-semibold">Importer inventaire existant</span>
+                </div>
+                <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm">✓</span>
+                  <span class="font-semibold">Cloner config de @jeanluc</span>
+                </div>
+                <div class="p-4 rounded-xl bg-orange-50 border border-orange-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-orange-400 flex items-center justify-center"></span>
+                  <div class="flex-1">
+                    <div class="font-semibold">Résoudre alerte duvet</div>
+                    <div class="text-xs text-orange-600 font-semibold">Critique : duvet insuffisant pour J3-J4</div>
+                  </div>
+                  <button class="px-4 py-2 rounded-lg bg-orange-600 text-white text-xs font-bold hover:bg-orange-500 transition">Résoudre</button>
+                </div>
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300 flex items-center justify-center"></span>
+                  <div class="flex-1">
+                    <div class="font-semibold">Commander équipement manquant</div>
+                    <div class="text-xs text-stone-500">Duvet -5°C recommandé</div>
+                  </div>
+                </div>
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300 flex items-center justify-center"></span>
+                  <div class="flex-1">
+                    <div class="font-semibold">Réserver refuges critiques</div>
+                    <div class="text-xs text-stone-500">Asco, Petra Piana restants</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- J-15 -->
+            <div class="relative opacity-70">
+              <div class="flex items-center gap-4 mb-4">
+                <div class="w-16 h-16 rounded-2xl bg-stone-200 text-stone-500 flex items-center justify-center font-black text-lg">J-15</div>
+                <div class="flex-1">
+                  <div class="font-black text-xl">Phase Test</div>
+                  <div class="text-sm text-stone-500">Dans 8 jours • 0/3</div>
+                </div>
+                <span class="px-4 py-2 rounded-full bg-stone-100 text-stone-500 text-sm font-bold">À venir</span>
+              </div>
+              <div class="ml-20 space-y-2">
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300"></span>
+                  <span class="font-semibold">Tester pack complet en rando locale</span>
+                </div>
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300"></span>
+                  <span class="font-semibold">Vérifier confort du sac avec charge réelle</span>
+                </div>
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300"></span>
+                  <span class="font-semibold">Ajuster pack si nécessaire</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- J-7 -->
+            <div class="relative opacity-50">
+              <div class="flex items-center gap-4 mb-4">
+                <div class="w-16 h-16 rounded-2xl bg-stone-200 text-stone-500 flex items-center justify-center font-black text-lg">J-7</div>
+                <div class="flex-1">
+                  <div class="font-black text-xl">Phase Finale</div>
+                  <div class="text-sm text-stone-500">Dans 16 jours</div>
+                </div>
+              </div>
+              <div class="ml-20 space-y-2">
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300"></span>
+                  <span class="font-semibold">Check météo définitive</span>
+                </div>
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300"></span>
+                  <span class="font-semibold">Confirmer tous les refuges</span>
+                </div>
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300"></span>
+                  <span class="font-semibold">Générer dossier final PDF</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- J-1 -->
+            <div class="relative opacity-40">
+              <div class="flex items-center gap-4 mb-4">
+                <div class="w-16 h-16 rounded-2xl bg-stone-200 text-stone-500 flex items-center justify-center font-black text-lg">J-1</div>
+                <div class="flex-1">
+                  <div class="font-black text-xl">Veille de départ</div>
+                  <div class="text-sm text-stone-500">Dans 22 jours</div>
+                </div>
+              </div>
+              <div class="ml-20 space-y-2">
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300"></span>
+                  <span class="font-semibold">Checklist finale pré-départ</span>
+                </div>
+                <div class="p-4 rounded-xl bg-white border border-stone-200 flex items-center gap-3">
+                  <span class="w-6 h-6 rounded-full border-2 border-stone-300"></span>
+                  <span class="font-semibold">Télécharger cartes offline</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== PACK BUILDER ==================== -->
+      <section class="route" id="route-packbuilder">
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          
+          <!-- LEFT: Gear Catalogue -->
+          <div class="xl:col-span-4 space-y-4">
+            <div class="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <div class="flex items-center gap-3 mb-4">
+                <select id="categoryFilter" class="flex-1 px-4 py-2.5 rounded-xl border border-stone-200 text-sm font-semibold bg-white">
+                  <option value="all">Toutes catégories</option>
+                  <option value="abri">🏕️ Abri</option>
+                  <option value="couchage">😴 Couchage</option>
+                  <option value="cuisine">🍳 Cuisine</option>
+                  <option value="hydratation">💧 Eau</option>
+                  <option value="vetements">👕 Vêtements</option>
+                  <option value="electronique">📱 Électronique</option>
+                  <option value="securite">🩹 Sécurité</option>
+                </select>
+              </div>
+              <input type="text" id="searchGear" placeholder="Rechercher un item..." class="w-full px-4 py-2.5 rounded-xl border border-stone-200 text-sm"/>
+            </div>
+            <div id="gearList" class="space-y-2 max-h-[calc(100vh-320px)] overflow-y-auto pr-1"></div>
+          </div>
+
+          <!-- CENTER: 3D Viewer -->
+          <div class="xl:col-span-5">
+            <div class="sticky top-24 space-y-4">
+              <!-- 3D Canvas -->
+              <div class="relative rounded-3xl overflow-hidden bg-gradient-to-br from-stone-100 to-stone-200 shadow-xl" style="height: 420px;">
+                <div id="three3d" class="w-full h-full" style="background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 24px;"></div>
+                
+                <!-- Loader -->
+                <div id="loader3d" class="absolute inset-0 bg-white/80 glass flex items-center justify-center">
+                  <div class="text-center">
+                    <div class="w-16 h-16 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin mx-auto mb-4"></div>
+                    <p class="text-sm font-semibold text-stone-600">Chargement du modèle 3D...</p>
+                    <div class="mt-3 w-48 h-2 bg-stone-200 rounded-full overflow-hidden mx-auto">
+                      <div id="loaderProgressBar" class="h-full bg-orange-500 rounded-full transition-all" style="width: 0%"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="absolute top-4 left-4 flex gap-2">
+                  <button onclick="rotateModel(-1)" class="w-10 h-10 rounded-xl bg-white/80 glass border border-white/50 flex items-center justify-center hover:bg-white transition shadow-sm">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                  </button>
+                  <button onclick="rotateModel(1)" class="w-10 h-10 rounded-xl bg-white/80 glass border border-white/50 flex items-center justify-center hover:bg-white transition shadow-sm">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                  </button>
+                  <button onclick="resetCamera()" class="w-10 h-10 rounded-xl bg-white/80 glass border border-white/50 flex items-center justify-center hover:bg-white transition shadow-sm">
+                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                  </button>
+                </div>
+
+                <div class="absolute bottom-4 left-4 right-4 flex items-end justify-between">
+                  <div class="bg-white/90 glass rounded-xl px-4 py-3 shadow-sm"><p class="text-xs text-stone-500">Sac sélectionné</p><p class="font-bold text-stone-800" id="selectedPackName">Sac Bleu Artisanal</p></div>
+                  <div class="bg-white/90 glass rounded-xl px-4 py-3 shadow-sm text-right"><p class="text-xs text-stone-500">Charge max</p><p class="font-bold text-stone-800"><span id="maxLoad">12</span> kg</p></div>
+                </div>
+              </div>
+
+              <!-- Pack Selection -->
+              <div class="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+                <h4 class="font-bold text-sm mb-3">Changer de sac</h4>
+                <div class="grid grid-cols-3 gap-2">
+                  <button onclick="selectPack('sac-bleu')" class="pack-btn p-3 rounded-xl border-2 border-orange-300 bg-orange-50 text-center transition hover:border-orange-400" data-pack="sac-bleu"><div class="text-2xl mb-1">🔵</div><div class="text-xs font-bold">Sac Bleu</div><div class="text-[10px] text-stone-500">45L • 1.3kg</div></button>
+                  <button onclick="selectPack('osprey-talon-vert')" class="pack-btn p-3 rounded-xl border-2 border-stone-200 bg-white text-center transition hover:border-stone-300" data-pack="osprey-talon-vert"><div class="text-2xl mb-1">🟢</div><div class="text-xs font-bold">Talon Vert</div><div class="text-[10px] text-stone-500">33L • 0.9kg</div></button>
+                  <button onclick="selectPack('osprey-renn-rouge')" class="pack-btn p-3 rounded-xl border-2 border-stone-200 bg-white text-center transition hover:border-stone-300" data-pack="osprey-renn-rouge"><div class="text-2xl mb-1">🔴</div><div class="text-xs font-bold">Renn Rouge</div><div class="text-[10px] text-stone-500">50L • 1.5kg</div></button>
+                </div>
+              </div>
+
+              <!-- Compartments -->
+              <div class="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm">
+                <h4 class="font-bold text-sm mb-3">Répartition dans le sac</h4>
+                <div class="flex gap-3">
+                  <div class="flex-1">
+                    <div class="compartment relative h-40 rounded-xl border-2 border-stone-300 bg-gradient-to-t from-stone-100 to-white overflow-hidden" ondragover="allowDrop(event)" ondrop="dropItem(event, 'main')">
+                      <div class="fill-indicator absolute bottom-0 left-0 right-0 bg-gradient-to-t from-orange-400 to-orange-300 opacity-80 transition-all duration-500" id="mainFill" style="height: 0%"></div>
+                      <div class="absolute inset-0 flex items-center justify-center"><div class="text-center z-10"><div class="text-2xl font-black text-stone-700" id="mainVolume">0L</div><div class="text-xs text-stone-500" id="mainCapacity">/ 38L</div></div></div>
+                      <div class="absolute top-2 left-2 px-2 py-1 rounded-lg bg-white/80 text-[10px] font-bold text-stone-600">Principal</div>
+                    </div>
+                  </div>
+                  <div class="w-20 space-y-2">
+                    <div class="compartment relative h-[76px] rounded-xl border-2 border-stone-300 bg-gradient-to-t from-stone-100 to-white overflow-hidden" ondragover="allowDrop(event)" ondrop="dropItem(event, 'top')">
+                      <div class="fill-indicator absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-400 to-blue-300 opacity-80 transition-all duration-500" id="topFill" style="height: 0%"></div>
+                      <div class="absolute inset-0 flex items-center justify-center"><span class="text-xs font-bold text-stone-600 z-10">Top</span></div>
+                    </div>
+                    <div class="compartment relative h-[76px] rounded-xl border-2 border-stone-300 bg-gradient-to-t from-stone-100 to-white overflow-hidden" ondragover="allowDrop(event)" ondrop="dropItem(event, 'bottom')">
+                      <div class="fill-indicator absolute bottom-0 left-0 right-0 bg-gradient-to-t from-emerald-400 to-emerald-300 opacity-80 transition-all duration-500" id="bottomFill" style="height: 0%"></div>
+                      <div class="absolute inset-0 flex items-center justify-center"><span class="text-xs font-bold text-stone-600 z-10">Bas</span></div>
+                    </div>
+                  </div>
+                </div>
+                <p class="text-xs text-stone-400 mt-3 text-center">💡 Glisse les items vers les compartiments</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- RIGHT: Pack Summary -->
+          <div class="xl:col-span-3 space-y-4">
+            <div class="sticky top-24 space-y-4">
+              <div class="p-6 rounded-2xl bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 text-white shadow-xl">
+                <div class="flex items-center justify-between mb-5"><h3 class="font-black text-lg">Mon Pack</h3><span class="px-3 py-1 rounded-full bg-white/10 text-xs font-bold" id="itemCount">0 items</span></div>
+                <div class="mb-5">
+                  <div class="flex items-center justify-between text-sm mb-2"><span class="text-stone-400">Base Weight</span><span class="font-black text-xl" id="baseWeight">0 kg</span></div>
+                  <div class="h-3 rounded-full bg-white/10 overflow-hidden"><div id="weightBar" class="h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+                  <div class="flex items-center justify-between mt-2 text-xs text-stone-500"><span>Objectif : <span id="targetWeight">8</span>kg</span><span id="weightStatus" class="text-emerald-400 font-semibold"></span></div>
+                </div>
+                <div class="mb-5">
+                  <div class="flex items-center justify-between text-sm mb-2"><span class="text-stone-400">Volume utilisé</span><span class="font-black text-xl" id="totalVolume">0 L</span></div>
+                  <div class="h-3 rounded-full bg-white/10 overflow-hidden"><div id="volumeBar" class="h-full bg-gradient-to-r from-blue-400 to-blue-500 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+                  <div class="text-xs text-stone-500 mt-1">Capacité : <span id="packCapacity">48</span>L</div>
+                </div>
+                <div class="pt-5 border-t border-white/10">
+                  <div class="flex items-center justify-between mb-4"><span class="text-stone-400">Total départ</span><span class="text-3xl font-black" id="totalWeight">0 kg</span></div>
+                  <p class="text-xs text-stone-500 mb-4">Inclut eau (2L) + nourriture (3kg)</p>
+                  <div class="flex items-center justify-between"><span class="text-stone-400">Budget</span><span class="text-xl font-black text-emerald-400" id="totalBudget">€0</span></div>
+                </div>
+                <div class="mt-6 grid grid-cols-2 gap-3">
+                  <button onclick="exportPack()" class="py-3 rounded-xl bg-white text-stone-900 font-bold text-sm hover:bg-stone-100 transition">Exporter</button>
+                  <button class="py-3 rounded-xl bg-orange-600 text-white font-bold text-sm hover:bg-orange-500 transition" onclick="setRoute('sherpa')">Analyser →</button>
+                </div>
+              </div>
+              <div class="p-4 rounded-2xl bg-white border border-stone-200 shadow-sm max-h-64 overflow-y-auto">
+                <div class="flex items-center justify-between mb-3"><h4 class="font-bold text-sm">Dans le pack</h4><button onclick="clearPack()" class="text-xs text-red-500 hover:text-red-700">Vider tout</button></div>
+                <div id="packedItemsList" class="space-y-2"><div class="text-center py-6 text-stone-400"><div class="text-3xl mb-2">🎒</div><p class="text-sm">Ton sac est vide</p></div></div>
+              </div>
+              <div id="alertsPanel" class="hidden p-4 rounded-2xl bg-orange-50 border border-orange-200">
+                <div class="flex items-center gap-2 mb-2"><span class="text-orange-600">⚠️</span><span class="font-bold text-sm text-orange-800">Alertes</span></div>
+                <div id="alertsList" class="space-y-2 text-sm text-orange-700"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== SHERPA ==================== -->
+      <section class="route" id="route-sherpa">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Score Hero -->
+            <div class="p-8 rounded-3xl bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 text-white shadow-xl relative overflow-hidden">
+              <div class="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl"></div>
+              <div class="relative flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-3">Score de préparation</div>
+                  <div class="flex items-baseline gap-3">
+                    <span class="text-7xl font-black">85</span>
+                    <span class="text-3xl text-stone-500">/100</span>
+                  </div>
+                  <p class="text-stone-400 mt-3 text-lg">Presque prêt. <span class="text-orange-400 font-semibold">2 points critiques</span> à résoudre.</p>
+                </div>
+                <div class="relative w-36 h-36">
+                  <svg class="w-36 h-36 -rotate-90" viewBox="0 0 144 144">
+                    <defs>
+                      <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#22c55e"/>
+                        <stop offset="100%" stop-color="#16a34a"/>
+                      </linearGradient>
+                    </defs>
+                    <circle cx="72" cy="72" r="64" stroke="#404040" stroke-width="8" fill="none"/>
+                    <circle cx="72" cy="72" r="64" stroke="url(#scoreGradient)" stroke-width="8" fill="none" 
+                            stroke-dasharray="402.1" stroke-dashoffset="60.3" stroke-linecap="round"/>
+                  </svg>
+                  <div class="absolute inset-0 flex items-center justify-center">
+                    <span class="text-5xl">🎯</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mt-8 grid grid-cols-4 gap-4">
+                <div class="p-4 rounded-xl bg-white/5">
+                  <div class="text-xs text-stone-500 mb-1">Équipement</div>
+                  <div class="text-2xl font-black text-emerald-400">92%</div>
+                </div>
+                <div class="p-4 rounded-xl bg-white/5">
+                  <div class="text-xs text-stone-500 mb-1">Poids</div>
+                  <div class="text-2xl font-black text-emerald-400">88%</div>
+                </div>
+                <div class="p-4 rounded-xl bg-white/5">
+                  <div class="text-xs text-stone-500 mb-1">Météo</div>
+                  <div class="text-2xl font-black text-orange-400">72%</div>
+                </div>
+                <div class="p-4 rounded-xl bg-white/5">
+                  <div class="text-xs text-stone-500 mb-1">Logistique</div>
+                  <div class="text-2xl font-black text-emerald-400">85%</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Alertes -->
+            <div class="space-y-4">
+              <h3 class="font-black text-xl">Alertes & Recommandations</h3>
+              
+              <div class="p-6 rounded-2xl bg-red-50 border border-red-200 card-hover">
+                <div class="flex items-start gap-4">
+                  <div class="w-14 h-14 rounded-2xl bg-red-500 text-white flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-red-500/30">🔴</div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <span class="font-black text-lg text-red-800">Duvet insuffisant</span>
+                      <span class="px-2 py-0.5 rounded-full bg-red-200 text-red-700 text-xs font-bold">Critique</span>
+                    </div>
+                    <p class="text-sm text-red-700">
+                      Ton Cumulus X-Lite 400 (confort +5°C) est <strong>limite pour J3-J4</strong> où les nuits à 2400m sont prévues entre -2°C et +3°C. Risque d'hypothermie.
+                    </p>
+                    <div class="mt-4 p-4 rounded-xl bg-white border border-red-100">
+                      <div class="text-xs font-bold text-stone-500 uppercase tracking-wider mb-3">Solution recommandée</div>
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                          <div class="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center text-xl">😴</div>
+                          <div>
+                            <div class="font-bold">Cumulus X-Lite 300 (-5°C)</div>
+                            <div class="text-xs text-stone-500">520g • €410 • +30g vs actuel</div>
+                          </div>
+                        </div>
+                        <button class="px-5 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-500 transition shadow-sm">Remplacer</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 rounded-2xl bg-orange-50 border border-orange-200 card-hover">
+                <div class="flex items-start gap-4">
+                  <div class="w-14 h-14 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-orange-500/30">🟠</div>
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <span class="font-black text-lg text-orange-800">Capacité eau — Étape 4</span>
+                      <span class="px-2 py-0.5 rounded-full bg-orange-200 text-orange-700 text-xs font-bold">Attention</span>
+                    </div>
+                    <p class="text-sm text-orange-700">
+                      L'étape Asco → Tighjettu (6h, 1200m D+) n'a <strong>aucune source fiable en été</strong>. Avec 2L de capacité, risque de déshydratation.
+                    </p>
+                    <div class="mt-4 flex gap-3">
+                      <button class="px-4 py-2 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-500 transition">+ Poche 1L (48g)</button>
+                      <button class="px-4 py-2 rounded-xl bg-white border border-orange-200 text-orange-700 text-sm font-bold hover:bg-orange-50 transition">Départ tôt noté</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 card-hover">
+                <div class="flex items-start gap-4">
+                  <div class="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-2xl shrink-0 shadow-lg shadow-emerald-500/30">🟢</div>
+                  <div class="flex-1">
+                    <div class="font-black text-lg text-emerald-800 mb-2">Équipement globalement cohérent</div>
+                    <p class="text-sm text-emerald-700">
+                      Ton pack couvre <strong>92% des besoins</strong> pour un GR20 en juin. Base weight de 7.2kg = excellent pour ce trek technique.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="space-y-4">
+            
+            <div class="p-6 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-xl shadow-orange-500/20">
+              <div class="text-xs font-bold uppercase tracking-widest text-orange-100 mb-2">Dossier de préparation</div>
+              <div class="text-2xl font-black mb-2">Export complet</div>
+              <p class="text-sm text-orange-100 mb-5">PDF avec checklist, alertes, étapes, météo et contacts utiles.</p>
+              <button class="w-full py-3.5 rounded-xl bg-white text-orange-600 font-bold hover:bg-orange-50 transition shadow-sm">
+                Générer le dossier — 7€
+              </button>
+              <p class="mt-3 text-xs text-orange-200 text-center">ou inclus avec YETI Pass</p>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <h4 class="font-bold mb-4">Partager cette config</h4>
+              <div class="p-3 rounded-xl bg-stone-50 border border-stone-200 flex items-center gap-2 mb-3">
+                <input type="text" value="yeti.app/c/gr20-marco-jun25" readonly class="flex-1 bg-transparent text-sm font-mono text-stone-600 outline-none truncate"/>
+                <button class="px-3 py-1.5 rounded-lg bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition">Copier</button>
+              </div>
+              <div class="flex gap-2">
+                <button class="flex-1 py-2.5 rounded-xl bg-stone-100 text-sm font-semibold hover:bg-stone-200 transition">Twitter</button>
+                <button class="flex-1 py-2.5 rounded-xl bg-stone-100 text-sm font-semibold hover:bg-stone-200 transition">WhatsApp</button>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <h4 class="font-bold mb-4">Comparer avec</h4>
+              <div class="space-y-2">
+                <button class="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-left hover:bg-stone-100 transition">
+                  <div class="font-semibold text-sm">Pack UL de @jeanluc</div>
+                  <div class="text-xs text-stone-500">6.1kg • 47 validations</div>
+                </button>
+                <button class="w-full p-3 rounded-xl bg-stone-50 border border-stone-200 text-left hover:bg-stone-100 transition">
+                  <div class="font-semibold text-sm">Ma config TMB 2024</div>
+                  <div class="text-xs text-stone-500">7.8kg • Validée terrain</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== PLACEHOLDER ROUTES ==================== -->
+      <section class="route" id="route-weather">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 space-y-6">
+            <div class="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <h3 class="font-black text-xl mb-6">Prévisions 12 jours — GR20</h3>
+              <div class="grid grid-cols-6 gap-3">
+                <div class="text-center p-4 rounded-2xl bg-emerald-50 border border-emerald-200 card-hover"><div class="text-sm font-bold text-stone-600 mb-2">Lun 15</div><div class="text-4xl my-3">☀️</div><div class="text-2xl font-black">22°</div><div class="text-xs text-stone-500 mt-1">12° min</div><div class="mt-3 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">✓ Parfait</div></div>
+                <div class="text-center p-4 rounded-2xl bg-emerald-50 border border-emerald-200 card-hover"><div class="text-sm font-bold text-stone-600 mb-2">Mar 16</div><div class="text-4xl my-3">⛅</div><div class="text-2xl font-black">18°</div><div class="text-xs text-stone-500 mt-1">10° min</div><div class="mt-3 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">✓ OK</div></div>
+                <div class="text-center p-4 rounded-2xl bg-red-50 border-2 border-red-300 card-hover ring-2 ring-red-400"><div class="text-sm font-bold text-red-600 mb-2">Mer 17</div><div class="text-4xl my-3">🌧️</div><div class="text-2xl font-black">12°</div><div class="text-xs text-stone-500 mt-1">3° min</div><div class="mt-3 px-2 py-1 rounded-full bg-red-200 text-red-700 text-[10px] font-bold">⚠️ Alerte</div></div>
+                <div class="text-center p-4 rounded-2xl bg-orange-50 border border-orange-300 card-hover"><div class="text-sm font-bold text-orange-600 mb-2">Jeu 18</div><div class="text-4xl my-3">⛈️</div><div class="text-2xl font-black">8°</div><div class="text-xs text-stone-500 mt-1">-2° min</div><div class="mt-3 px-2 py-1 rounded-full bg-orange-200 text-orange-700 text-[10px] font-bold">⚠️ Risque</div></div>
+                <div class="text-center p-4 rounded-2xl bg-emerald-50 border border-emerald-200 card-hover"><div class="text-sm font-bold text-stone-600 mb-2">Ven 19</div><div class="text-4xl my-3">☀️</div><div class="text-2xl font-black">20°</div><div class="text-xs text-stone-500 mt-1">8° min</div><div class="mt-3 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">✓ OK</div></div>
+                <div class="text-center p-4 rounded-2xl bg-emerald-50 border border-emerald-200 card-hover"><div class="text-sm font-bold text-stone-600 mb-2">Sam 20</div><div class="text-4xl my-3">☀️</div><div class="text-2xl font-black">21°</div><div class="text-xs text-stone-500 mt-1">10° min</div><div class="mt-3 px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">✓ OK</div></div>
+              </div>
+            </div>
+            <div class="p-6 rounded-2xl bg-red-50 border-2 border-red-300">
+              <div class="flex items-start gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-red-500 text-white flex items-center justify-center text-3xl shadow-lg shadow-red-500/30">🌧️</div>
+                <div class="flex-1">
+                  <h4 class="font-black text-xl text-red-800">J3 (Mer 17) — Conditions critiques</h4>
+                  <p class="text-red-700 mt-2">Perturbation atlantique avec pluies continues et chute des températures. Nuit au refuge de Ciottulu à 2000m.</p>
+                  <div class="mt-4 grid grid-cols-3 gap-4">
+                    <div class="p-3 rounded-xl bg-white"><div class="text-xs text-stone-500">Température nuit</div><div class="text-xl font-black text-red-600">+3°C</div><div class="text-xs text-red-500">ressenti -2°C</div></div>
+                    <div class="p-3 rounded-xl bg-white"><div class="text-xs text-stone-500">Précipitations</div><div class="text-xl font-black">85%</div><div class="text-xs text-stone-500">15-20mm</div></div>
+                    <div class="p-3 rounded-xl bg-white"><div class="text-xs text-stone-500">Vent</div><div class="text-xl font-black">45 km/h</div><div class="text-xs text-stone-500">rafales 65</div></div>
+                  </div>
+                  <div class="mt-4 p-4 rounded-xl bg-white border border-red-200">
+                    <div class="font-bold text-red-800 mb-2">⚠️ Impact sur ton équipement</div>
+                    <p class="text-sm text-red-700">Ton duvet Cumulus X-Lite 400 (confort +5°C) sera <strong>insuffisant</strong>. Température ressentie à -2°C = risque d'hypothermie nocturne.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm">
+              <h4 class="font-bold mb-4">Croisement météo × équipement</h4>
+              <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 rounded-xl bg-red-50 border border-red-200"><div class="flex items-center gap-2"><span>😴</span><span class="text-sm font-semibold">Duvet</span></div><span class="text-red-600 font-bold text-sm">Insuffisant</span></div>
+                <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200"><div class="flex items-center gap-2"><span>🧥</span><span class="text-sm font-semibold">Veste pluie</span></div><span class="text-emerald-600 font-bold text-sm">✓ OK</span></div>
+                <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200"><div class="flex items-center gap-2"><span>🏕️</span><span class="text-sm font-semibold">Abri</span></div><span class="text-emerald-600 font-bold text-sm">✓ OK</span></div>
+                <div class="flex items-center justify-between p-3 rounded-xl bg-orange-50 border border-orange-200"><div class="flex items-center gap-2"><span>💧</span><span class="text-sm font-semibold">Eau J4</span></div><span class="text-orange-600 font-bold text-sm">Attention</span></div>
+              </div>
+            </div>
+            <div class="p-5 rounded-2xl bg-blue-50 border border-blue-200">
+              <div class="flex items-center gap-3 mb-3"><span class="text-2xl">💡</span><span class="font-bold text-blue-800">Conseil YETI</span></div>
+              <p class="text-sm text-blue-700">Pour J3-J4, prévois de réserver au refuge plutôt que bivouac. Les conditions seront difficiles en extérieur.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="route" id="route-stages">
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <div><h2 class="text-2xl font-black">12 Étapes — GR20 Nord→Sud</h2><p class="text-stone-500 mt-1">180 km • 12 500m D+ • 15-27 juin 2025</p></div>
+            <div class="flex gap-2"><button class="px-4 py-2 rounded-xl bg-stone-900 text-white text-sm font-bold">Liste</button><button class="px-4 py-2 rounded-xl bg-stone-100 text-stone-600 text-sm font-bold">Carte</button></div>
+          </div>
+          <div class="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm">
+            <h4 class="font-bold mb-4">Profil d'élévation</h4>
+            <div class="relative h-32">
+              <svg class="w-full h-full" viewBox="0 0 800 100" preserveAspectRatio="none">
+                <defs><linearGradient id="elevGradStages" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#f97316" stop-opacity="0.3"/><stop offset="100%" stop-color="#f97316" stop-opacity="0.05"/></linearGradient></defs>
+                <path fill="url(#elevGradStages)" stroke="#f97316" stroke-width="2" d="M0,80 L50,70 L100,50 L150,60 L200,30 L250,45 L300,20 L350,35 L400,15 L450,25 L500,40 L550,30 L600,35 L650,25 L700,40 L750,50 L800,60 L800,100 L0,100 Z"/>
+              </svg>
+              <div class="absolute bottom-0 left-0 text-xs text-stone-500">Calenzana</div>
+              <div class="absolute bottom-0 left-1/2 -translate-x-1/2 text-xs text-stone-500 font-bold text-orange-600">Monte Cinto 2706m</div>
+              <div class="absolute bottom-0 right-0 text-xs text-stone-500">Conca</div>
+            </div>
+          </div>
+          <div class="grid gap-4">
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-emerald-500/30">1</div>
+                <div class="flex-1"><div class="flex items-center gap-2"><h4 class="font-black">Calenzana → Ortu di u Piobbu</h4><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Facile</span></div><div class="flex items-center gap-4 mt-1 text-sm text-stone-500"><span>12 km</span><span>•</span><span>+1350m D+</span><span>•</span><span>6-7h</span><span>•</span><span>Refuge 1520m</span></div></div>
+                <div class="text-right"><div class="text-xs text-stone-500">J1 - Lun 15</div><div class="flex items-center gap-1 mt-1"><span class="text-lg">☀️</span><span class="font-bold">22°</span></div></div>
+              </div>
+              <div class="mt-4 flex items-center gap-3"><span class="px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">💧 Source à 5km</span><span class="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">🏠 Refuge réservé</span></div>
+            </div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-emerald-500/30">2</div>
+                <div class="flex-1"><div class="flex items-center gap-2"><h4 class="font-black">Ortu di u Piobbu → Carrozzu</h4><span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">Moyen</span></div><div class="flex items-center gap-4 mt-1 text-sm text-stone-500"><span>8 km</span><span>•</span><span>+850m D+</span><span>•</span><span>5-6h</span><span>•</span><span>Refuge 1270m</span></div></div>
+                <div class="text-right"><div class="text-xs text-stone-500">J2 - Mar 16</div><div class="flex items-center gap-1 mt-1"><span class="text-lg">⛅</span><span class="font-bold">18°</span></div></div>
+              </div>
+            </div>
+            <div class="p-5 rounded-2xl bg-red-50 border-2 border-red-300 shadow-sm card-hover cursor-pointer">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-red-500/30">3</div>
+                <div class="flex-1"><div class="flex items-center gap-2"><h4 class="font-black">Carrozzu → Ascu Stagnu</h4><span class="px-2 py-0.5 rounded-full bg-red-200 text-red-700 text-xs font-bold">Difficile</span><span class="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-bold">⚠️ Alerte météo</span></div><div class="flex items-center gap-4 mt-1 text-sm text-stone-500"><span>6 km</span><span>•</span><span>+900m D+</span><span>•</span><span>6-7h</span><span>•</span><span>Refuge 1422m</span></div></div>
+                <div class="text-right"><div class="text-xs text-red-600 font-bold">J3 - Mer 17</div><div class="flex items-center gap-1 mt-1"><span class="text-lg">🌧️</span><span class="font-bold text-red-600">12°</span></div></div>
+              </div>
+              <div class="mt-4 p-3 rounded-xl bg-white border border-red-200"><p class="text-sm text-red-700"><strong>⚠️ Attention :</strong> Passage câblé de la Spasimata. Conditions difficiles prévues. Ton duvet sera insuffisant cette nuit.</p></div>
+            </div>
+            <div class="p-5 rounded-2xl bg-orange-50 border-2 border-orange-300 shadow-sm card-hover cursor-pointer">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-orange-500/30">4</div>
+                <div class="flex-1"><div class="flex items-center gap-2"><h4 class="font-black">Ascu Stagnu → Tighjettu</h4><span class="px-2 py-0.5 rounded-full bg-red-200 text-red-700 text-xs font-bold">Très difficile</span><span class="px-2 py-0.5 rounded-full bg-orange-500 text-white text-xs font-bold">💧 Eau</span></div><div class="flex items-center gap-4 mt-1 text-sm text-stone-500"><span>10 km</span><span>•</span><span>+1200m D+</span><span>•</span><span>8-9h</span><span>•</span><span>Bergerie 1683m</span></div></div>
+                <div class="text-right"><div class="text-xs text-orange-600 font-bold">J4 - Jeu 18</div><div class="flex items-center gap-1 mt-1"><span class="text-lg">⛈️</span><span class="font-bold text-orange-600">8°</span></div></div>
+              </div>
+              <div class="mt-4 p-3 rounded-xl bg-white border border-orange-200"><p class="text-sm text-orange-700"><strong>💧 Attention eau :</strong> Aucune source fiable sur cette étape en été. Prévois 3L minimum ou départ à 5h.</p></div>
+            </div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-lg shadow-emerald-500/30">5</div>
+                <div class="flex-1"><div class="flex items-center gap-2"><h4 class="font-black">Tighjettu → Ciottulu di i Mori</h4><span class="px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs font-bold">Moyen</span></div><div class="flex items-center gap-4 mt-1 text-sm text-stone-500"><span>8 km</span><span>•</span><span>+700m D+</span><span>•</span><span>5-6h</span><span>•</span><span>Refuge 2000m</span></div></div>
+                <div class="text-right"><div class="text-xs text-stone-500">J5 - Ven 19</div><div class="flex items-center gap-1 mt-1"><span class="text-lg">☀️</span><span class="font-bold">20°</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="route" id="route-treks">
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <div><h2 class="text-2xl font-black">Catalogue Treks</h2><p class="text-stone-500 mt-1">Les grands classiques européens</p></div>
+            <div class="flex gap-2">
+              <select class="px-4 py-2 rounded-xl border border-stone-200 text-sm font-semibold bg-white"><option>Tous les pays</option><option>🇫🇷 France</option><option>🇮🇹 Italie</option><option>🇨🇭 Suisse</option><option>🇪🇸 Espagne</option></select>
+              <select class="px-4 py-2 rounded-xl border border-stone-200 text-sm font-semibold bg-white"><option>Toutes difficultés</option><option>Facile</option><option>Moyen</option><option>Difficile</option></select>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="rounded-3xl overflow-hidden bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="relative h-48"><img src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600" class="w-full h-full object-cover" alt=""/><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div><div class="absolute bottom-4 left-4 right-4 text-white"><div class="flex items-center gap-2 mb-2"><span class="px-2 py-1 rounded-full bg-red-500 text-xs font-bold">Difficile</span><span class="px-2 py-1 rounded-full bg-white/20 glass text-xs font-semibold">🇫🇷 Corse</span></div><h3 class="text-xl font-black">GR20</h3></div></div>
+              <div class="p-5"><p class="text-sm text-stone-600 mb-4">Le plus beau et le plus difficile des sentiers de grande randonnée européens.</p><div class="flex items-center justify-between text-sm"><div class="flex gap-4"><span class="font-bold">180 km</span><span class="text-stone-400">12-16 jours</span></div><span class="text-orange-600 font-bold">+12 500m</span></div></div>
+            </div>
+            <div class="rounded-3xl overflow-hidden bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="relative h-48"><img src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600" class="w-full h-full object-cover" alt=""/><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div><div class="absolute bottom-4 left-4 right-4 text-white"><div class="flex items-center gap-2 mb-2"><span class="px-2 py-1 rounded-full bg-orange-500 text-xs font-bold">Moyen</span><span class="px-2 py-1 rounded-full bg-white/20 glass text-xs font-semibold">🇫🇷🇮🇹🇨🇭</span></div><h3 class="text-xl font-black">Tour du Mont-Blanc</h3></div></div>
+              <div class="p-5"><p class="text-sm text-stone-600 mb-4">Boucle mythique autour du plus haut sommet des Alpes à travers 3 pays.</p><div class="flex items-center justify-between text-sm"><div class="flex gap-4"><span class="font-bold">170 km</span><span class="text-stone-400">10-12 jours</span></div><span class="text-orange-600 font-bold">+10 000m</span></div></div>
+            </div>
+            <div class="rounded-3xl overflow-hidden bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="relative h-48"><img src="https://images.unsplash.com/photo-1551632811-561732d1e306?w=600" class="w-full h-full object-cover" alt=""/><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div><div class="absolute bottom-4 left-4 right-4 text-white"><div class="flex items-center gap-2 mb-2"><span class="px-2 py-1 rounded-full bg-emerald-500 text-xs font-bold">Facile</span><span class="px-2 py-1 rounded-full bg-white/20 glass text-xs font-semibold">🇪🇸</span></div><h3 class="text-xl font-black">Camino de Santiago</h3></div></div>
+              <div class="p-5"><p class="text-sm text-stone-600 mb-4">Le pèlerinage le plus célèbre d'Europe, de Saint-Jean-Pied-de-Port à Santiago.</p><div class="flex items-center justify-between text-sm"><div class="flex gap-4"><span class="font-bold">800 km</span><span class="text-stone-400">30-35 jours</span></div><span class="text-orange-600 font-bold">+11 000m</span></div></div>
+            </div>
+            <div class="rounded-3xl overflow-hidden bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="relative h-48"><img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600" class="w-full h-full object-cover" alt=""/><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div><div class="absolute bottom-4 left-4 right-4 text-white"><div class="flex items-center gap-2 mb-2"><span class="px-2 py-1 rounded-full bg-orange-500 text-xs font-bold">Moyen</span><span class="px-2 py-1 rounded-full bg-white/20 glass text-xs font-semibold">🇫🇷</span></div><h3 class="text-xl font-black">Tour du Queyras</h3></div></div>
+              <div class="p-5"><p class="text-sm text-stone-600 mb-4">Circuit sauvage dans le parc naturel du Queyras, lacs d'altitude et villages perchés.</p><div class="flex items-center justify-between text-sm"><div class="flex gap-4"><span class="font-bold">120 km</span><span class="text-stone-400">7-9 jours</span></div><span class="text-orange-600 font-bold">+7 500m</span></div></div>
+            </div>
+            <div class="rounded-3xl overflow-hidden bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="relative h-48"><img src="https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600" class="w-full h-full object-cover" alt=""/><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div><div class="absolute bottom-4 left-4 right-4 text-white"><div class="flex items-center gap-2 mb-2"><span class="px-2 py-1 rounded-full bg-red-500 text-xs font-bold">Difficile</span><span class="px-2 py-1 rounded-full bg-white/20 glass text-xs font-semibold">🇮🇹</span></div><h3 class="text-xl font-black">Alta Via 1 - Dolomites</h3></div></div>
+              <div class="p-5"><p class="text-sm text-stone-600 mb-4">Traversée spectaculaire des Dolomites italiennes, paysages à couper le souffle.</p><div class="flex items-center justify-between text-sm"><div class="flex gap-4"><span class="font-bold">120 km</span><span class="text-stone-400">10-12 jours</span></div><span class="text-orange-600 font-bold">+6 500m</span></div></div>
+            </div>
+            <div class="rounded-3xl overflow-hidden bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="relative h-48"><img src="https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=600" class="w-full h-full object-cover" alt=""/><div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div><div class="absolute bottom-4 left-4 right-4 text-white"><div class="flex items-center gap-2 mb-2"><span class="px-2 py-1 rounded-full bg-emerald-500 text-xs font-bold">Facile</span><span class="px-2 py-1 rounded-full bg-white/20 glass text-xs font-semibold">🇫🇷</span></div><h3 class="text-xl font-black">GR34 - Côtes d'Armor</h3></div></div>
+              <div class="p-5"><p class="text-sm text-stone-600 mb-4">Sentier des douaniers le long des côtes bretonnes, accessible à tous.</p><div class="flex items-center justify-between text-sm"><div class="flex gap-4"><span class="font-bold">400 km</span><span class="text-stone-400">15-20 jours</span></div><span class="text-orange-600 font-bold">+5 000m</span></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="route" id="route-community">
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <div><h2 class="text-2xl font-black">Communauté</h2><p class="text-stone-500 mt-1">Configs validées par des randonneurs expérimentés</p></div>
+            <select class="px-4 py-2 rounded-xl border border-stone-200 text-sm font-semibold bg-white"><option>Tous les treks</option><option>GR20</option><option>TMB</option><option>Camino</option></select>
+          </div>
+          <div class="p-6 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+            <h3 class="font-black text-lg mb-4">🔥 Top Créateurs ce mois</h3>
+            <div class="grid grid-cols-5 gap-4">
+              <div class="text-center"><div class="w-16 h-16 rounded-full bg-white/20 mx-auto mb-2 flex items-center justify-center text-2xl font-black">JL</div><div class="font-bold text-sm">@jeanluc</div><div class="text-xs text-orange-100">🔥 Éclaireur</div></div>
+              <div class="text-center"><div class="w-16 h-16 rounded-full bg-white/20 mx-auto mb-2 flex items-center justify-center text-2xl font-black">SM</div><div class="font-bold text-sm">@sophie</div><div class="text-xs text-orange-100">🧭 Guide</div></div>
+              <div class="text-center"><div class="w-16 h-16 rounded-full bg-white/20 mx-auto mb-2 flex items-center justify-center text-2xl font-black">PD</div><div class="font-bold text-sm">@pierre</div><div class="text-xs text-orange-100">🧭 Guide</div></div>
+              <div class="text-center"><div class="w-16 h-16 rounded-full bg-white/20 mx-auto mb-2 flex items-center justify-center text-2xl font-black">ML</div><div class="font-bold text-sm">@marie</div><div class="text-xs text-orange-100">⛰️ Trekkeur</div></div>
+              <div class="text-center"><div class="w-16 h-16 rounded-full bg-white/20 mx-auto mb-2 flex items-center justify-center text-2xl font-black">TH</div><div class="font-bold text-sm">@thomas</div><div class="text-xs text-orange-100">⛰️ Trekkeur</div></div>
+            </div>
+          </div>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer" onclick="setRoute('clone')">
+              <div class="flex items-center gap-4 mb-4"><div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-xl font-black">JL</div><div class="flex-1"><div class="font-black text-lg">Pack UL GR20 Juin</div><div class="text-sm text-stone-500">@jeanluc • 🔥 Éclaireur • GR20</div></div><div class="text-right"><div class="text-2xl font-black text-emerald-600">6.1kg</div><div class="text-xs text-stone-500">base weight</div></div></div>
+              <div class="flex items-center gap-3 mb-4"><span class="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">✓ 47 validations</span><span class="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold">34 items</span><span class="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold">€1,847</span></div>
+              <p class="text-sm text-stone-600">Config ultralight optimisée pour le GR20 en juin. Testé et validé sur le terrain.</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer" onclick="setRoute('clone')">
+              <div class="flex items-center gap-4 mb-4"><div class="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white flex items-center justify-center text-xl font-black">SM</div><div class="flex-1"><div class="font-black text-lg">Pack Confort GR20</div><div class="text-sm text-stone-500">@sophie • 🧭 Guide • GR20</div></div><div class="text-right"><div class="text-2xl font-black text-emerald-600">8.4kg</div><div class="text-xs text-stone-500">base weight</div></div></div>
+              <div class="flex items-center gap-3 mb-4"><span class="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">✓ 31 validations</span><span class="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold">42 items</span><span class="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold">€2,150</span></div>
+              <p class="text-sm text-stone-600">Pour ceux qui préfèrent le confort. Plus lourd mais plus agréable au quotidien.</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer" onclick="setRoute('clone')">
+              <div class="flex items-center gap-4 mb-4"><div class="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white flex items-center justify-center text-xl font-black">PD</div><div class="flex-1"><div class="font-black text-lg">TMB Budget</div><div class="text-sm text-stone-500">@pierre • 🧭 Guide • TMB</div></div><div class="text-right"><div class="text-2xl font-black text-emerald-600">7.8kg</div><div class="text-xs text-stone-500">base weight</div></div></div>
+              <div class="flex items-center gap-3 mb-4"><span class="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">✓ 28 validations</span><span class="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold">38 items</span><span class="px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">€890</span></div>
+              <p class="text-sm text-stone-600">Pack orienté budget avec un excellent rapport qualité/prix/poids.</p>
+            </div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer" onclick="setRoute('clone')">
+              <div class="flex items-center gap-4 mb-4"><div class="w-14 h-14 rounded-full bg-gradient-to-br from-pink-500 to-pink-600 text-white flex items-center justify-center text-xl font-black">ML</div><div class="flex-1"><div class="font-black text-lg">Camino Frances</div><div class="text-sm text-stone-500">@marie • ⛰️ Trekkeur • Camino</div></div><div class="text-right"><div class="text-2xl font-black text-emerald-600">5.2kg</div><div class="text-xs text-stone-500">base weight</div></div></div>
+              <div class="flex items-center gap-3 mb-4"><span class="px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">✓ 52 validations</span><span class="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold">28 items</span><span class="px-3 py-1.5 rounded-full bg-stone-100 text-stone-600 text-xs font-semibold">€1,120</span></div>
+              <p class="text-sm text-stone-600">Pack minimaliste pour le Camino. Hébergements en albergues, pas besoin de tente.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="route" id="route-clone">
+        <div class="max-w-4xl mx-auto space-y-6">
+          <div class="text-center mb-8"><h2 class="text-3xl font-black">Clone & Adapt</h2><p class="text-stone-500 mt-2">Clone une config validée et adapte-la à ton profil</p></div>
+          <div class="p-6 rounded-3xl bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300">
+            <div class="flex items-center gap-4 mb-4"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center text-2xl font-black shadow-lg shadow-blue-500/30">JL</div><div class="flex-1"><div class="font-black text-xl">Pack UL GR20 Juin</div><div class="text-sm text-stone-600">@jeanluc • 🔥 Éclaireur</div></div><div class="text-right"><div class="text-3xl font-black text-blue-600">6.1kg</div><div class="text-xs text-stone-500">47 validations terrain</div></div></div>
+            <div class="flex items-center gap-3"><span class="px-3 py-1.5 rounded-full bg-blue-200 text-blue-800 text-xs font-bold">GR20 Nord→Sud</span><span class="px-3 py-1.5 rounded-full bg-blue-200 text-blue-800 text-xs font-bold">Juin 2024</span><span class="px-3 py-1.5 rounded-full bg-blue-200 text-blue-800 text-xs font-bold">Solo</span></div>
+          </div>
+          <div class="p-6 rounded-2xl bg-white border border-stone-200 shadow-sm">
+            <h3 class="font-black text-lg mb-6">Adapter à mon profil</h3>
+            <div class="grid md:grid-cols-2 gap-6">
+              <div><label class="block text-sm font-bold text-stone-600 mb-2">Mon budget max</label><input type="text" value="2000" class="w-full px-4 py-3 rounded-xl border border-stone-200 text-lg font-bold"/><p class="text-xs text-stone-500 mt-1">Config originale : 1,847€</p></div>
+              <div><label class="block text-sm font-bold text-stone-600 mb-2">Objectif base weight</label><input type="text" value="8" class="w-full px-4 py-3 rounded-xl border border-stone-200 text-lg font-bold"/><p class="text-xs text-stone-500 mt-1">Config originale : 6.1kg</p></div>
+              <div><label class="block text-sm font-bold text-stone-600 mb-2">Ma morphologie</label><select class="w-full px-4 py-3 rounded-xl border border-stone-200"><option>Standard (170-180cm, 70-80kg)</option><option>Petit gabarit</option><option>Grand gabarit</option></select></div>
+              <div><label class="block text-sm font-bold text-stone-600 mb-2">Priorité</label><select class="w-full px-4 py-3 rounded-xl border border-stone-200"><option>Équilibré</option><option>Poids minimal</option><option>Budget minimal</option><option>Confort maximal</option></select></div>
+            </div>
+            <div class="mt-6"><label class="block text-sm font-bold text-stone-600 mb-2">Équipement que je possède déjà</label><textarea class="w-full px-4 py-3 rounded-xl border border-stone-200 h-24" placeholder="Ex: Tente Nemo Hornet, sac Osprey Exos 48..."></textarea></div>
+          </div>
+          <div class="p-6 rounded-2xl bg-emerald-50 border-2 border-emerald-300">
+            <div class="flex items-center justify-between mb-4"><h3 class="font-black text-lg text-emerald-800">Aperçu de l'adaptation</h3><span class="px-3 py-1.5 rounded-full bg-emerald-200 text-emerald-800 text-sm font-bold">3 substitutions suggérées</span></div>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between p-3 rounded-xl bg-white"><div class="flex items-center gap-3"><span>😴</span><span class="font-semibold">Sac de couchage</span></div><span class="text-emerald-600 font-bold">Gardé (Cumulus X-Lite)</span></div>
+              <div class="flex items-center justify-between p-3 rounded-xl bg-white"><div class="flex items-center gap-3"><span>🏕️</span><span class="font-semibold">Tente</span></div><span class="text-blue-600 font-bold">→ Ta Nemo Hornet</span></div>
+              <div class="flex items-center justify-between p-3 rounded-xl bg-white"><div class="flex items-center gap-3"><span>🎒</span><span class="font-semibold">Sac à dos</span></div><span class="text-blue-600 font-bold">→ Ton Osprey Exos</span></div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-emerald-200 flex items-center justify-between"><div><div class="text-sm text-emerald-700">Nouveau base weight estimé</div><div class="text-2xl font-black text-emerald-800">6.8 kg</div></div><div><div class="text-sm text-emerald-700">Budget restant à acheter</div><div class="text-2xl font-black text-emerald-800">€847</div></div></div>
+          </div>
+          <button class="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black text-lg hover:from-orange-600 hover:to-orange-700 transition shadow-lg shadow-orange-500/30">🧬 Cloner et adapter cette config</button>
+        </div>
+      </section>
+
+      <section class="route" id="route-refuge">
+        <div class="space-y-6">
+          <div class="flex items-center justify-between"><div><h2 class="text-2xl font-black">Mon Refuge</h2><p class="text-stone-500 mt-1">Ton inventaire personnel</p></div><button class="px-5 py-2.5 rounded-xl bg-stone-900 text-white font-bold text-sm hover:bg-stone-800 transition flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Ajouter un item</button></div>
+          <div class="grid grid-cols-4 gap-4">
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm"><div class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Total items</div><div class="text-3xl font-black">47</div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm"><div class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Valeur totale</div><div class="text-3xl font-black text-emerald-600">€3,240</div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm"><div class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Poids total</div><div class="text-3xl font-black">12.4kg</div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm"><div class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Catégories</div><div class="text-3xl font-black">8</div></div>
+          </div>
+          <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer"><div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-2xl">🏕️</div><div><div class="font-bold">Abri</div><div class="text-xs text-stone-500">3 items</div></div></div><div class="text-sm"><span class="font-bold">2.1 kg</span><span class="text-stone-400"> • €890</span></div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer"><div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center text-2xl">😴</div><div><div class="font-bold">Couchage</div><div class="text-xs text-stone-500">4 items</div></div></div><div class="text-sm"><span class="font-bold">1.8 kg</span><span class="text-stone-400"> • €720</span></div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer"><div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-2xl">🍳</div><div><div class="font-bold">Cuisine</div><div class="text-xs text-stone-500">6 items</div></div></div><div class="text-sm"><span class="font-bold">0.6 kg</span><span class="text-stone-400"> • €180</span></div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer"><div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center text-2xl">💧</div><div><div class="font-bold">Eau</div><div class="text-xs text-stone-500">4 items</div></div></div><div class="text-sm"><span class="font-bold">0.4 kg</span><span class="text-stone-400"> • €110</span></div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer"><div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center text-2xl">👕</div><div><div class="font-bold">Vêtements</div><div class="text-xs text-stone-500">12 items</div></div></div><div class="text-sm"><span class="font-bold">2.8 kg</span><span class="text-stone-400"> • €840</span></div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer"><div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 rounded-xl bg-yellow-100 flex items-center justify-center text-2xl">📱</div><div><div class="font-bold">Électronique</div><div class="text-xs text-stone-500">5 items</div></div></div><div class="text-sm"><span class="font-bold">0.8 kg</span><span class="text-stone-400"> • €620</span></div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer"><div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center text-2xl">🩹</div><div><div class="font-bold">Sécurité</div><div class="text-xs text-stone-500">8 items</div></div></div><div class="text-sm"><span class="font-bold">0.5 kg</span><span class="text-stone-400"> • €95</span></div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer"><div class="flex items-center gap-3 mb-3"><div class="w-12 h-12 rounded-xl bg-stone-100 flex items-center justify-center text-2xl">🎒</div><div><div class="font-bold">Portage</div><div class="text-xs text-stone-500">3 items</div></div></div><div class="text-sm"><span class="font-bold">3.4 kg</span><span class="text-stone-400"> • €540</span></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="route" id="route-projects">
+        <div class="space-y-6">
+          <div class="flex items-center justify-between"><div><h2 class="text-2xl font-black">Mes Projets</h2><p class="text-stone-500 mt-1">Historique de tes préparations</p></div><button class="px-5 py-2.5 rounded-xl bg-orange-600 text-white font-bold text-sm hover:bg-orange-500 transition flex items-center gap-2"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Nouveau projet</button></div>
+          <div class="space-y-4">
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-orange-50 to-orange-100 border-2 border-orange-300 shadow-sm">
+              <div class="flex items-center gap-4">
+                <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center text-3xl shadow-lg shadow-orange-500/30">🏔️</div>
+                <div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 rounded-full bg-orange-500 text-white text-xs font-bold">En cours</span><span class="px-2 py-0.5 rounded-full bg-orange-200 text-orange-800 text-xs font-bold">J-23</span></div><h3 class="font-black text-xl">GR20 Nord→Sud</h3><p class="text-sm text-stone-600">15-27 juin 2025 • 12 jours • Solo</p></div>
+                <div class="text-right"><div class="text-4xl font-black text-orange-600">85%</div><div class="text-xs text-stone-500">Score Sherpa</div></div>
+              </div>
+            </div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center text-2xl">✓</div>
+                <div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Terminé</span></div><h3 class="font-bold text-lg">Tour du Mont-Blanc</h3><p class="text-sm text-stone-500">Août 2024 • 10 jours • En couple</p></div>
+                <div class="text-right"><div class="text-2xl font-black text-emerald-600">100%</div><div class="text-xs text-emerald-600 font-semibold">✓ Validé terrain</div></div>
+              </div>
+            </div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer">
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center text-2xl">✓</div>
+                <div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">Terminé</span></div><h3 class="font-bold text-lg">Tour du Queyras</h3><p class="text-sm text-stone-500">Juillet 2024 • 7 jours • Solo</p></div>
+                <div class="text-right"><div class="text-2xl font-black text-emerald-600">100%</div><div class="text-xs text-emerald-600 font-semibold">✓ Validé terrain</div></div>
+              </div>
+            </div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm card-hover cursor-pointer opacity-60">
+              <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-stone-100 flex items-center justify-center text-2xl">💭</div>
+                <div class="flex-1"><div class="flex items-center gap-2 mb-1"><span class="px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 text-xs font-bold">Brouillon</span></div><h3 class="font-bold text-lg">Alta Via 1 - Dolomites</h3><p class="text-sm text-stone-500">Prévu été 2026</p></div>
+                <div class="text-right"><div class="text-2xl font-black text-stone-400">0%</div><div class="text-xs text-stone-500">Non commencé</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="route" id="route-progression">
+        <div class="max-w-4xl mx-auto space-y-8">
+          <div class="text-center"><h2 class="text-3xl font-black">Ma Progression</h2><p class="text-stone-500 mt-2">Évolue de Randonneur à Pionnier</p></div>
+          <div class="p-8 rounded-3xl bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 text-white shadow-xl">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-6"><div class="w-24 h-24 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center text-5xl shadow-lg shadow-orange-500/30">⛰️</div><div><div class="text-xs font-bold uppercase tracking-widest text-stone-400 mb-1">Niveau actuel</div><div class="text-4xl font-black">Trekkeur</div><div class="text-stone-400 mt-1">2 treks validés • 350 km parcourus</div></div></div>
+              <div class="text-right"><div class="text-6xl font-black text-orange-400">68%</div><div class="text-stone-400">vers Guide</div></div>
+            </div>
+            <div class="mt-8"><div class="h-4 rounded-full bg-white/10 overflow-hidden"><div class="h-full bg-gradient-to-r from-orange-400 to-orange-500 rounded-full transition-all" style="width:68%"></div></div><div class="flex items-center justify-between mt-2 text-xs text-stone-500"><span>⛰️ Trekkeur</span><span>🧭 Guide</span></div></div>
+          </div>
+          <div class="grid grid-cols-5 gap-4">
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm text-center card-hover"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-stone-400 to-stone-500 mx-auto mb-3 flex items-center justify-center text-3xl shadow-lg">🥾</div><div class="font-black">Randonneur</div><div class="text-xs text-emerald-600 font-semibold mt-1">✓ Débloqué</div></div>
+            <div class="p-5 rounded-2xl bg-orange-50 border-2 border-orange-300 shadow-sm text-center badge-pulse"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 mx-auto mb-3 flex items-center justify-center text-3xl shadow-lg shadow-orange-500/30">⛰️</div><div class="font-black text-orange-700">Trekkeur</div><div class="text-xs text-orange-600 font-semibold mt-1">Niveau actuel</div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm text-center opacity-50 grayscale"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 mx-auto mb-3 flex items-center justify-center text-3xl">🧭</div><div class="font-black">Guide</div><div class="text-xs text-stone-500 mt-1">3 treks requis</div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm text-center opacity-50 grayscale"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-red-600 mx-auto mb-3 flex items-center justify-center text-3xl">🔥</div><div class="font-black">Éclaireur</div><div class="text-xs text-stone-500 mt-1">5 treks + configs</div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm text-center opacity-50 grayscale"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 mx-auto mb-3 flex items-center justify-center text-3xl">⭐</div><div class="font-black">Pionnier</div><div class="text-xs text-stone-500 mt-1">Elite YETI</div></div>
+          </div>
+          <div class="grid grid-cols-4 gap-4">
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm text-center"><div class="text-3xl font-black">2</div><div class="text-sm text-stone-500">Treks validés</div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm text-center"><div class="text-3xl font-black">350 km</div><div class="text-sm text-stone-500">Parcourus</div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm text-center"><div class="text-3xl font-black">17 500m</div><div class="text-sm text-stone-500">D+ cumulé</div></div>
+            <div class="p-5 rounded-2xl bg-white border border-stone-200 shadow-sm text-center"><div class="text-3xl font-black">0</div><div class="text-sm text-stone-500">Configs partagées</div></div>
+          </div>
+          <div class="p-6 rounded-2xl bg-blue-50 border border-blue-200">
+            <h4 class="font-black text-lg text-blue-800 mb-4">Pour atteindre Guide 🧭</h4>
+            <div class="space-y-3">
+              <div class="flex items-center gap-3"><span class="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm">✓</span><span>Compléter 2 treks</span></div>
+              <div class="flex items-center gap-3"><span class="w-6 h-6 rounded-full border-2 border-blue-400"></span><span>Compléter le GR20 (en cours)</span></div>
+              <div class="flex items-center gap-3"><span class="w-6 h-6 rounded-full border-2 border-stone-300"></span><span>Partager 1 config validée terrain</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+</div>
+
+<!-- ============================================================== -->
+<!-- SCRIPTS -->
+<!-- ============================================================== -->
+<script>
+// Open App
+function openApp() {
+  document.getElementById('landingPage').classList.add('hidden');
+  document.getElementById('appContainer').classList.remove('hidden');
+  setRoute('mission');
+}
+
+// Navigation
+const navItems = document.querySelectorAll('.nav-item');
+const routes = document.querySelectorAll('.route');
+const pageTitle = document.getElementById('pageTitle');
+const pageSubtitle = document.getElementById('pageSubtitle');
+
+const routeTitles = {
+  'mission': { title: 'Mission Control', subtitle: 'Vue stratégique de ta préparation' },
+  'timeline': { title: 'Timeline', subtitle: 'Tâches organisées par phase J-X' },
+  'packbuilder': { title: 'Pack Builder', subtitle: 'Construis ton pack optimal' },
+  'sherpa': { title: 'Analyse Sherpa', subtitle: 'Score et recommandations personnalisées' },
+  'weather': { title: 'Weather Intelligence', subtitle: 'Météo croisée avec ton équipement' },
+  'stages': { title: 'Étapes & POI', subtitle: 'Détail par étape avec infos terrain' },
+  'treks': { title: 'Treks', subtitle: 'Catalogue des treks européens' },
+  'community': { title: 'Communauté', subtitle: 'Configs validées et créateurs' },
+  'clone': { title: 'Clone & Adapt', subtitle: 'Clone et personnalise une config' },
+  'refuge': { title: 'Mon Refuge', subtitle: 'Ton inventaire personnel' },
+  'projects': { title: 'Mes Projets', subtitle: 'Historique de tes préparations' },
+  'progression': { title: 'Progression', subtitle: 'Ton évolution sur YETI' }
+};
+
+function setRoute(routeName) {
+  // Update nav active state
+  navItems.forEach(item => {
+    item.classList.remove('active');
+    if (item.dataset.route === routeName) {
+      item.classList.add('active');
+    }
+  });
+  
+  // Update route visibility
+  routes.forEach(route => {
+    route.classList.remove('active');
+    if (route.id === 'route-' + routeName) {
+      route.classList.add('active');
+    }
+  });
+  
+  // Update header
+  const info = routeTitles[routeName];
+  if (info && pageTitle && pageSubtitle) {
+    pageTitle.textContent = info.title;
+    pageSubtitle.textContent = info.subtitle;
+  }
+  
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Initialize nav click handlers
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const route = item.dataset.route;
+    if (route) setRoute(route);
+  });
+});
+
+// Smooth scroll for landing page
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (href.startsWith('#') && href.length > 1) {
+      e.preventDefault();
+      const target = document.querySelector(href);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  });
+});
+
+// ============================================================
+// PACK BUILDER 3D - DATA & STATE
+// ============================================================
+
+// URLs des modèles 3D GLB (Dropbox direct links)
+const PACK_MODELS = {
+  bleu: "https://dl.dropboxusercontent.com/scl/fi/k2sj30djixl45wte5994v/sac-a-dos-bleu.glb?rlkey=ok13nsdhs9rcl4its46xfiqy1&dl=1",
+  vert: "https://dl.dropboxusercontent.com/scl/fi/mr33npkuf9dob8r65qnra/OSPREY-TALON-BACKPACK-vert.glb?rlkey=7x46b7fo0q5q1rn8rs5ks8n73&st=4hd3q0gx&dl=1",
+  rouge: "https://dl.dropboxusercontent.com/scl/fi/ieovmkvt68i2fxcdzexge/OSPREY-RENN-HIKING-rouge.glb?rlkey=q1rwsi5g6cl1jn5mjrum0o86x&st=a2o6anuf&dl=1"
+};
+
+const GEAR_ITEMS = [
+  { id: 1, name: "Tente Nemo Hornet 2P", brand: "Nemo", weight: 0.85, volume: 3.5, price: 420, category: "abri", emoji: "🏕️" },
+  { id: 2, name: "Tarp Ultralight 3x3", brand: "Sea to Summit", weight: 0.40, volume: 1.5, price: 90, category: "abri", emoji: "🏕️" },
+  { id: 3, name: "MSR Hubba Hubba NX", brand: "MSR", weight: 1.54, volume: 4.5, price: 480, category: "abri", emoji: "⛺" },
+  { id: 10, name: "Cumulus X-Lite 400", brand: "Cumulus", weight: 0.58, volume: 4.0, price: 380, category: "couchage", emoji: "😴" },
+  { id: 11, name: "Cumulus X-Lite 300", brand: "Cumulus", weight: 0.52, volume: 3.5, price: 410, category: "couchage", emoji: "😴", recommended: true },
+  { id: 12, name: "Matelas NeoAir XLite", brand: "Thermarest", weight: 0.35, volume: 1.0, price: 220, category: "couchage", emoji: "🛏️" },
+  { id: 13, name: "Oreiller Aeros UL", brand: "Sea to Summit", weight: 0.06, volume: 0.3, price: 45, category: "couchage", emoji: "💤" },
+  { id: 20, name: "Réchaud MSR PocketRocket", brand: "MSR", weight: 0.073, volume: 0.2, price: 55, category: "cuisine", emoji: "🔥" },
+  { id: 21, name: "Popote Toaks 750ml", brand: "Toaks", weight: 0.12, volume: 0.8, price: 35, category: "cuisine", emoji: "🍳" },
+  { id: 22, name: "Cartouche gaz 230g", brand: "MSR", weight: 0.37, volume: 0.5, price: 9, category: "cuisine", emoji: "🔥" },
+  { id: 23, name: "Spork Titanium", brand: "Light My Fire", weight: 0.02, volume: 0.05, price: 8, category: "cuisine", emoji: "🥄" },
+  { id: 30, name: "Filtre Katadyn BeFree", brand: "Katadyn", weight: 0.063, volume: 0.6, price: 42, category: "hydratation", emoji: "💧", recommended: true },
+  { id: 31, name: "Gourde Nalgene 1L", brand: "Nalgene", weight: 0.18, volume: 1.0, price: 16, category: "hydratation", emoji: "🍶" },
+  { id: 32, name: "Poche Osprey 2L", brand: "Osprey", weight: 0.15, volume: 0.2, price: 35, category: "hydratation", emoji: "💧" },
+  { id: 40, name: "Veste Arc'teryx Beta LT", brand: "Arc'teryx", weight: 0.31, volume: 1.0, price: 450, category: "vetements", emoji: "🧥" },
+  { id: 41, name: "Doudoune Cerium SL", brand: "Arc'teryx", weight: 0.21, volume: 1.5, price: 380, category: "vetements", emoji: "🧥" },
+  { id: 42, name: "Pantalon Trek 100", brand: "Forclaz", weight: 0.28, volume: 0.8, price: 40, category: "vetements", emoji: "👖" },
+  { id: 43, name: "T-shirt Mérinos 150", brand: "Icebreaker", weight: 0.15, volume: 0.3, price: 80, category: "vetements", emoji: "👕" },
+  { id: 44, name: "Buff Original", brand: "Buff", weight: 0.04, volume: 0.1, price: 22, category: "vetements", emoji: "🧣" },
+  { id: 50, name: "Lampe Petzl Actik Core", brand: "Petzl", weight: 0.099, volume: 0.2, price: 75, category: "electronique", emoji: "💡" },
+  { id: 51, name: "Batterie Anker 10000mAh", brand: "Anker", weight: 0.19, volume: 0.3, price: 30, category: "electronique", emoji: "🔋" },
+  { id: 52, name: "Garmin inReach Mini 2", brand: "Garmin", weight: 0.1, volume: 0.1, price: 400, category: "electronique", emoji: "📡" },
+  { id: 60, name: "Trousse secours", brand: "Deuter", weight: 0.28, volume: 0.5, price: 25, category: "securite", emoji: "🩹" },
+  { id: 61, name: "Couverture survie SOL", brand: "SOL", weight: 0.12, volume: 0.2, price: 35, category: "securite", emoji: "🆘" },
+  { id: 62, name: "Sifflet urgence", brand: "Fox 40", weight: 0.01, volume: 0.02, price: 8, category: "securite", emoji: "📢" },
+];
+
+const PACKS = {
+  'sac-bleu': { name: 'Sac Bleu Artisanal', brand: 'Artisanal', capacity: 45, weight: 1.30, maxLoad: 12, model3d: PACK_MODELS.bleu },
+  'osprey-talon-vert': { name: 'Osprey Talon 33 (Vert)', brand: 'Osprey', capacity: 33, weight: 0.92, maxLoad: 11, model3d: PACK_MODELS.vert },
+  'osprey-renn-rouge': { name: 'Osprey Renn 50 (Rouge)', brand: 'Osprey', capacity: 50, weight: 1.45, maxLoad: 14, model3d: PACK_MODELS.rouge }
+};
+
+const packState = {
+  selectedPack: 'sac-bleu',
+  packedItems: [],
+  targetWeight: 8
+};
+
+// ============================================================
+// THREE.JS MANAGER - Optimisé pour GLB
+// ============================================================
+
+const ThreeManager = {
+  scene: null,
+  camera: null,
+  renderer: null,
+  controls: null,
+  currentModel: null,
+  animationId: null,
+  isAnimating: false,
+  needsRender: true,
+  initialized: false,
+  
+  init() {
+    const container = document.getElementById('three3d');
+    if (!container || this.initialized) return;
+    
+    // Remove existing canvas if any
+    const existingCanvas = container.querySelector('canvas');
+    if (existingCanvas) existingCanvas.remove();
+    
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    
+    // Scene
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0xf1f5f9);
+    
+    // Camera
+    this.camera = new THREE.PerspectiveCamera(50, w / h, 0.1, 1000);
+    this.camera.position.set(0, 5, 25);
+    
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    this.renderer.setSize(w, h);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    container.insertBefore(this.renderer.domElement, container.firstChild);
+    
+    // Controls
+    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+    this.controls.minDistance = 8;
+    this.controls.maxDistance = 45;
+    this.controls.enablePan = false;
+    this.controls.addEventListener('change', () => { this.needsRender = true; });
+    
+    // Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    this.scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    directionalLight.position.set(10, 12, 8);
+    this.scene.add(directionalLight);
+    
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    fillLight.position.set(-10, 5, -8);
+    this.scene.add(fillLight);
+    
+    this.initialized = true;
+    this.startAnimation();
+    
+    // Load default model
+    this.loadModel(PACKS[packState.selectedPack].model3d);
+    
+    // Resize handler
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => this.onResize(), 150);
+    });
+  },
+  
+  loadModel(url) {
+    const loader3d = document.getElementById('loader3d');
+    const progressBar = document.getElementById('loaderProgressBar');
+    
+    if (loader3d) loader3d.style.display = 'flex';
+    if (progressBar) progressBar.style.width = '0%';
+    
+    const loader = new THREE.GLTFLoader();
+    loader.load(url,
+      (gltf) => {
+        this.disposeModel();
+        this.currentModel = gltf.scene;
+        
+        // Center and scale model
+        const box = new THREE.Box3().setFromObject(this.currentModel);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        const scale = 18 / Math.max(size.x, size.y, size.z);
+        
+        this.currentModel.scale.setScalar(scale);
+        this.currentModel.position.sub(center.multiplyScalar(scale));
+        this.scene.add(this.currentModel);
+        this.needsRender = true;
+        
+        if (loader3d) loader3d.style.display = 'none';
+        console.log('✅ Modèle 3D chargé:', url.split('/').pop().split('?')[0]);
+      },
+      (xhr) => {
+        if (xhr.lengthComputable && progressBar) {
+          const pct = (xhr.loaded / xhr.total) * 100;
+          progressBar.style.width = pct + '%';
+        }
+      },
+      (error) => {
+        console.error('❌ Erreur chargement 3D:', error);
+        if (loader3d) {
+          loader3d.innerHTML = `
+            <div class="text-center text-stone-500 p-4">
+              <p class="text-sm mb-2">Erreur de chargement</p>
+              <button onclick="ThreeManager.loadModel(PACKS[packState.selectedPack].model3d)" 
+                      class="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600">
+                Réessayer
+              </button>
+            </div>`;
+        }
+      }
+    );
+  },
+  
+  disposeModel() {
+    if (this.currentModel) {
+      this.currentModel.traverse((child) => {
+        if (child.isMesh) {
+          if (child.geometry) child.geometry.dispose();
+          if (child.material) {
+            if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+            else child.material.dispose();
+          }
+        }
+      });
+      this.scene.remove(this.currentModel);
+      this.currentModel = null;
+    }
+  },
+  
+  startAnimation() {
+    if (this.isAnimating) return;
+    this.isAnimating = true;
+    this.animate();
+  },
+  
+  animate() {
+    if (!this.isAnimating) return;
+    this.animationId = requestAnimationFrame(() => this.animate());
+    if (this.controls) this.controls.update();
+    if (this.needsRender && this.renderer && this.scene && this.camera) {
+      this.renderer.render(this.scene, this.camera);
+      this.needsRender = false;
+    }
+  },
+  
+  onResize() {
+    const container = document.getElementById('three3d');
+    if (!container || !this.camera || !this.renderer) return;
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+    this.needsRender = true;
+  },
+  
+  rotate(direction) {
+    if (this.currentModel) {
+      this.currentModel.rotation.y += direction * Math.PI / 4;
+      this.needsRender = true;
+    }
+  },
+  
+  resetCamera() {
+    if (this.camera && this.controls) {
+      this.camera.position.set(0, 5, 25);
+      this.controls.reset();
+      this.needsRender = true;
+    }
+  }
+};
+
+// Global 3D control functions
+function rotateModel(dir) { ThreeManager.rotate(dir); }
+function resetCamera() { ThreeManager.resetCamera(); }
+
+// ============================================================
+// PACK BUILDER UI FUNCTIONS
+// ============================================================
+
+function renderGearList() {
+  const container = document.getElementById('gearList');
+  if (!container) return;
+  
+  const searchTerm = (document.getElementById('searchGear')?.value || '').toLowerCase();
+  const category = document.getElementById('categoryFilter')?.value || 'all';
+  
+  let filtered = GEAR_ITEMS.filter(item => {
+    const matchCat = category === 'all' || item.category === category;
+    const matchSearch = item.name.toLowerCase().includes(searchTerm) || item.brand.toLowerCase().includes(searchTerm);
+    return matchCat && matchSearch;
+  });
+  
+  container.innerHTML = filtered.map(item => {
+    const isAdded = packState.packedItems.some(p => p.id === item.id);
+    const recBadge = item.recommended ? '<span class="ml-1 px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[10px] rounded-full font-bold">Recommandé</span>' : '';
+    return `
+      <div class="p-4 rounded-xl bg-white border ${isAdded ? 'border-emerald-300 bg-emerald-50' : 'border-stone-200'} shadow-sm card-hover cursor-pointer gear-item" 
+           draggable="true" 
+           ondragstart="dragItem(event, ${item.id})" 
+           onclick="toggleItem(${item.id})">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl ${isAdded ? 'bg-emerald-100' : 'bg-stone-100'} flex items-center justify-center text-2xl shrink-0">${item.emoji}</div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold text-sm truncate">${item.name}${recBadge}</div>
+            <div class="text-xs text-stone-500">${item.brand}</div>
+            <div class="flex items-center gap-3 mt-1 text-xs">
+              <span class="font-bold">${item.weight}kg</span>
+              <span class="text-stone-300">•</span>
+              <span>${item.volume}L</span>
+              <span class="text-stone-300">•</span>
+              <span class="text-emerald-600 font-bold">${item.price}€</span>
+            </div>
+          </div>
+          <button class="w-10 h-10 rounded-xl ${isAdded ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-orange-500 hover:text-white'} flex items-center justify-center transition-all">
+            ${isAdded ? '✓' : '+'}
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderPackedItems() {
+  const container = document.getElementById('packedItemsList');
+  if (!container) return;
+  
+  if (packState.packedItems.length === 0) {
+    container.innerHTML = '<div class="text-center py-6 text-stone-400"><div class="text-3xl mb-2">🎒</div><p class="text-sm">Ton sac est vide</p><p class="text-xs mt-1">Clique sur un item pour l\'ajouter</p></div>';
+    return;
+  }
+  
+  container.innerHTML = packState.packedItems.map(item => `
+    <div class="flex items-center gap-3 p-3 bg-stone-50 rounded-xl group hover:bg-stone-100 transition">
+      <span class="text-lg">${item.emoji}</span>
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-sm truncate">${item.name}</div>
+        <div class="text-xs text-stone-500">${item.weight}kg • ${item.volume}L</div>
+      </div>
+      <button onclick="event.stopPropagation(); removeItem(${item.id})" 
+              class="opacity-0 group-hover:opacity-100 w-8 h-8 rounded-lg bg-red-100 text-red-500 flex items-center justify-center hover:bg-red-200 transition">
+        ×
+      </button>
+    </div>`).join('');
+}
+
+function updateStats() {
+  const pack = PACKS[packState.selectedPack];
+  const baseWeight = packState.packedItems.reduce((sum, item) => sum + item.weight, 0) + pack.weight;
+  const totalVolume = packState.packedItems.reduce((sum, item) => sum + item.volume, 0);
+  const totalBudget = packState.packedItems.reduce((sum, item) => sum + item.price, 0);
+  const totalWeight = baseWeight + 5;
+  
+  const el = (id) => document.getElementById(id);
+  if (el('baseWeight')) el('baseWeight').textContent = baseWeight.toFixed(2) + ' kg';
+  if (el('totalVolume')) el('totalVolume').textContent = totalVolume.toFixed(1) + ' L';
+  if (el('totalWeight')) el('totalWeight').textContent = totalWeight.toFixed(1) + ' kg';
+  if (el('totalBudget')) el('totalBudget').textContent = '€' + totalBudget;
+  if (el('itemCount')) el('itemCount').textContent = packState.packedItems.length + ' items';
+  if (el('packCapacity')) el('packCapacity').textContent = pack.capacity;
+  
+  const weightPercent = Math.min((baseWeight / packState.targetWeight) * 100, 100);
+  const volumePercent = Math.min((totalVolume / pack.capacity) * 100, 100);
+  
+  if (el('weightBar')) {
+    el('weightBar').style.width = weightPercent + '%';
+    el('weightBar').className = baseWeight > packState.targetWeight 
+      ? 'h-full bg-gradient-to-r from-red-400 to-red-500 rounded-full transition-all duration-500'
+      : 'h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full transition-all duration-500';
+  }
+  
+  if (el('volumeBar')) el('volumeBar').style.width = volumePercent + '%';
+  
+  const weightStatus = el('weightStatus');
+  if (weightStatus) {
+    if (baseWeight > packState.targetWeight) {
+      weightStatus.textContent = '+' + (baseWeight - packState.targetWeight).toFixed(2) + 'kg';
+      weightStatus.className = 'text-red-400 font-semibold';
+    } else {
+      weightStatus.textContent = '-' + (packState.targetWeight - baseWeight).toFixed(2) + 'kg';
+      weightStatus.className = 'text-emerald-400 font-semibold';
+    }
+  }
+  
+  // Compartment fills
+  const mainCapacity = pack.capacity * 0.8;
+  const mainFillPct = Math.min((totalVolume / mainCapacity) * 100, 100);
+  if (el('mainFill')) el('mainFill').style.height = mainFillPct + '%';
+  if (el('mainVolume')) el('mainVolume').textContent = totalVolume.toFixed(1) + 'L';
+  if (el('mainCapacity')) el('mainCapacity').textContent = '/ ' + mainCapacity.toFixed(0) + 'L';
+  if (el('topFill')) el('topFill').style.height = Math.min(mainFillPct * 0.8, 100) + '%';
+  if (el('bottomFill')) el('bottomFill').style.height = Math.min(mainFillPct * 0.5, 100) + '%';
+  
+  checkAlerts(baseWeight, totalVolume, pack);
+}
+
+function checkAlerts(baseWeight, totalVolume, pack) {
+  const alertsPanel = document.getElementById('alertsPanel');
+  const alertsList = document.getElementById('alertsList');
+  if (!alertsPanel || !alertsList) return;
+  
+  const alerts = [];
+  if (baseWeight > packState.targetWeight) alerts.push('⚠️ Poids dépasse l\'objectif de ' + packState.targetWeight + 'kg');
+  if (totalVolume > pack.capacity * 0.9) alerts.push('📦 Volume proche de la capacité max');
+  if (baseWeight + 5 > pack.maxLoad) alerts.push('🔴 Charge totale dépasse le max du sac (' + pack.maxLoad + 'kg)');
+  
+  if (alerts.length > 0) {
+    alertsPanel.classList.remove('hidden');
+    alertsList.innerHTML = alerts.map(a => '<p class="text-sm">' + a + '</p>').join('');
+  } else {
+    alertsPanel.classList.add('hidden');
+  }
+}
+
+function toggleItem(itemId) {
+  const idx = packState.packedItems.findIndex(p => p.id === itemId);
+  if (idx > -1) {
+    packState.packedItems.splice(idx, 1);
+  } else {
+    const item = GEAR_ITEMS.find(g => g.id === itemId);
+    if (item) packState.packedItems.push({ ...item });
+  }
+  updateAll();
+}
+
+function removeItem(itemId) {
+  packState.packedItems = packState.packedItems.filter(p => p.id !== itemId);
+  updateAll();
+}
+
+function clearPack() {
+  if (packState.packedItems.length === 0) return;
+  if (confirm('Vider tout le sac ?')) {
+    packState.packedItems = [];
+    updateAll();
+  }
+}
+
+function selectPack(packId) {
+  packState.selectedPack = packId;
+  const pack = PACKS[packId];
+  
+  // Update UI buttons
+  document.querySelectorAll('.pack-btn').forEach(btn => {
+    btn.classList.remove('border-orange-300', 'bg-orange-50');
+    btn.classList.add('border-stone-200', 'bg-white');
+    if (btn.dataset.pack === packId) {
+      btn.classList.remove('border-stone-200', 'bg-white');
+      btn.classList.add('border-orange-300', 'bg-orange-50');
+    }
+  });
+  
+  // Update info displays
+  document.getElementById('selectedPackName').textContent = pack.name;
+  document.getElementById('maxLoad').textContent = pack.maxLoad;
+  
+  // Load 3D model
+  if (ThreeManager.initialized && pack.model3d) {
+    ThreeManager.loadModel(pack.model3d);
+  }
+  
+  updateStats();
+}
+
+function exportPack() {
+  const pack = PACKS[packState.selectedPack];
+  let txt = '═══════════════════════════════════════\n';
+  txt += '          YETI PACK EXPORT\n';
+  txt += '═══════════════════════════════════════\n\n';
+  txt += '📅 Date: ' + new Date().toLocaleDateString('fr-FR') + '\n';
+  txt += '🎒 Sac: ' + pack.name + ' (' + pack.capacity + 'L)\n\n';
+  txt += '───────────────────────────────────────\n';
+  txt += '      ÉQUIPEMENT (' + packState.packedItems.length + ' items)\n';
+  txt += '───────────────────────────────────────\n\n';
+  packState.packedItems.forEach(item => {
+    txt += item.emoji + ' ' + item.name + '\n';
+    txt += '   └─ ' + item.weight + 'kg • ' + item.volume + 'L • ' + item.price + '€\n\n';
+  });
+  const bw = packState.packedItems.reduce((s, i) => s + i.weight, 0) + pack.weight;
+  const budget = packState.packedItems.reduce((s, i) => s + i.price, 0);
+  txt += '───────────────────────────────────────\n';
+  txt += '              TOTAUX\n';
+  txt += '───────────────────────────────────────\n\n';
+  txt += '⚖️  Base Weight: ' + bw.toFixed(2) + 'kg\n';
+  txt += '🎒 Total départ: ' + (bw + 5).toFixed(1) + 'kg\n';
+  txt += '💰 Budget: ' + budget + '€\n\n';
+  txt += '═══════════════════════════════════════\n';
+  
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'yeti-pack-' + new Date().toISOString().slice(0,10) + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// Drag & Drop
+function dragItem(e, itemId) {
+  e.dataTransfer.setData('itemId', itemId.toString());
+  e.dataTransfer.effectAllowed = 'copy';
+}
+
+function allowDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function dropItem(e, compartment) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const itemId = parseInt(e.dataTransfer.getData('itemId'));
+  if (!packState.packedItems.some(p => p.id === itemId)) {
+    const item = GEAR_ITEMS.find(g => g.id === itemId);
+    if (item) {
+      packState.packedItems.push({ ...item, compartment });
+      updateAll();
+    }
+  }
+}
+
+function updateAll() {
+  renderGearList();
+  renderPackedItems();
+  updateStats();
+}
+
+// Initialize Pack Builder
+function initPackBuilder() {
+  console.log('🎒 Initializing Pack Builder 3D...');
+  renderGearList();
+  renderPackedItems();
+  updateStats();
+  
+  // Initialize 3D after small delay
+  setTimeout(() => {
+    ThreeManager.init();
+  }, 200);
+  
+  // Setup event listeners
+  const searchInput = document.getElementById('searchGear');
+  const categorySelect = document.getElementById('categoryFilter');
+  if (searchInput) searchInput.addEventListener('input', renderGearList);
+  if (categorySelect) categorySelect.addEventListener('change', renderGearList);
+  
+  // Compartment drag events
+  document.querySelectorAll('.compartment').forEach(c => {
+    c.addEventListener('dragleave', (e) => e.currentTarget.classList.remove('drag-over'));
+  });
+}
+
+// Override setRoute for Pack Builder initialization
+const _origSetRoute = typeof setRoute === 'function' ? setRoute : null;
+if (_origSetRoute) {
+  setRoute = function(routeName) {
+    _origSetRoute(routeName);
+    if (routeName === 'packbuilder') {
+      initPackBuilder();
+    }
+  };
+}
+
+// Also init on page load if Pack Builder is active
+window.addEventListener('load', () => {
+  const pb = document.getElementById('route-packbuilder');
+  if (pb && pb.classList.contains('active')) {
+    initPackBuilder();
+  }
+});
+</script>
+
+</body>
+</html>

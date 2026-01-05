@@ -1,0 +1,1850 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backpack Planner â€” Complet V5</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        * { font-family: 'Outfit', sans-serif; }
+        .mono { font-family: 'Space Mono', monospace; }
+
+        :root {
+            --primary: #2C5E50;
+            --primary-light: #E6F4F1;
+            --accent: #E67E22;
+            --bg-gradient-start: #f8fafc;
+            --bg-gradient-end: #e2e8f0;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            min-height: 100vh;
+            color: #1e293b;
+            padding-bottom: 100px;
+        }
+
+        .fixed-header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+            padding-bottom: 0.5rem;
+        }
+
+        .glass-card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.8);
+            box-shadow: 0 4px 20px -4px rgba(0,0,0,0.05);
+            border-radius: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary:hover { background: #1e4036; transform: translateY(-1px); }
+
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        .btn-accent:hover { background: #d35400; transform: translateY(-1px); }
+
+        .btn-blue {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+        }
+        .btn-blue:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+        .sortable-ghost { opacity: 0.4; background-color: #dbeafe !important; }
+        .sortable-chosen { box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3); }
+        .sortable-drag { opacity: 0.9; }
+
+        #canvas-container {
+            background: radial-gradient(circle at center, #f1f5f9 0%, #e2e8f0 100%);
+            border-radius: 1rem;
+            position: relative;
+            overflow: hidden;
+            min-height: 280px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-content-large { max-width: 1200px; width: 95%; max-height: 85vh; min-height: 800px; }
+
+        /* Category filter pills */
+        .category-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 2rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            white-space: nowrap;
+        }
+        .category-pill.active {
+            background: #1e293b !important;
+            color: white !important;
+        }
+        .category-pill:not(.active):hover {
+            transform: scale(1.02);
+        }
+
+        /* Equipment item card - Style comme l'image */
+        .equip-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+            cursor: grab;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .equip-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            border-radius: 4px 0 0 4px;
+        }
+        .equip-item[data-cat="abri"]::before { background: #22c55e; }
+        .equip-item[data-cat="couchage"]::before { background: #f97316; }
+        .equip-item[data-cat="vetements"]::before { background: #3b82f6; }
+        .equip-item[data-cat="cuisine"]::before { background: #eab308; }
+        .equip-item[data-cat="hygiene"]::before { background: #ec4899; }
+        .equip-item[data-cat="securite"]::before { background: #ef4444; }
+        .equip-item[data-cat="electronique"]::before { background: #06b6d4; }
+        .equip-item[data-cat="divers"]::before { background: #8b5cf6; }
+        .equip-item[data-cat="custom"]::before { background: #64748b; }
+
+        .equip-item:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+        .equip-item:active { cursor: grabbing; }
+        .equip-item.selected {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-color: #3b82f6;
+        }
+
+        .equip-img {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.5rem;
+            object-fit: contain;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .equip-price {
+            font-weight: 700;
+            color: #22c55e;
+            font-size: 0.9rem;
+        }
+
+        .equip-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        .equip-btn.add {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .equip-btn.add:hover {
+            background: #3b82f6;
+            color: white;
+        }
+        .equip-btn.selected {
+            background: #22c55e;
+            color: white;
+        }
+        .equip-btn.remove {
+            background: #fee2e2;
+            color: #ef4444;
+        }
+        .equip-btn.remove:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Pack item in bag */
+        .pack-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            background: white;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            cursor: grab;
+            transition: all 0.2s;
+        }
+        .pack-item:hover {
+            border-color: #10b981;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+        }
+
+        /* Navigation tabs */
+        .nav-tabs { border-bottom: 2px solid #e2e8f0; }
+        .nav-tab {
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            font-weight: 600;
+            color: #64748b;
+        }
+        .nav-tab:hover { color: var(--primary); }
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Trip stats compact */
+        .trip-stat-compact {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.6rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .trip-stat-compact .icon { width: 18px; height: 18px; }
+        .trip-stat-compact .value { font-weight: 700; font-size: 1rem; color: #1e293b; }
+        .trip-stat-compact .unit { font-size: 0.65rem; color: #64748b; }
+
+        .season-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.2rem 0.5rem;
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            color: white;
+            border-radius: 0.375rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        .source-link {
+            font-size: 0.6rem;
+            color: #94a3b8;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.15rem;
+        }
+        .source-link:hover { color: var(--primary); }
+
+        #elevationChartContainer { position: relative; width: 100%; height: 140px; }
+        #elevationChart { width: 100% !important; height: 100% !important; }
+
+        /* Account menu sidebar */
+        .account-sidebar {
+            width: 220px;
+            border-right: 1px solid #e2e8f0;
+            padding-right: 1rem;
+        }
+        .account-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+        .account-menu-item:hover { background: #f1f5f9; color: #1e293b; }
+        .account-menu-item.active { background: #ecfdf5; color: #059669; font-weight: 600; }
+        .account-section-title {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 0.75rem 0.4rem;
+        }
+        /* 3D viewer */
+        .view-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 0.5rem;
+            padding: 0.25rem;
+            display: flex;
+            gap: 0.25rem;
+        }
+        .view-toggle button {
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            transition: all 0.2s;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        .view-toggle button.active { background: var(--primary); color: white; }
+        .view-toggle button:not(.active) { color: #64748b; }
+        .view-toggle button:hover:not(.active) { background: #f1f5f9; }
+
+        .youtube-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: none;
+        }
+        .youtube-container.active { display: block; }
+        .youtube-container iframe { border-radius: 0.5rem; }
+
+        /* Destination cards */
+        .destination-card {
+            cursor: pointer;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        .destination-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        .destination-card img { transition: transform 0.3s; }
+        .destination-card:hover img { transform: scale(1.05); }
+
+        /* Basecamp tabs */
+        .basecamp-tab {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .basecamp-tab:hover {
+            color: #10b981;
+            background: #f0fdf4;
+        }
+        .basecamp-tab.active {
+            color: #10b981;
+            border-bottom-color: #10b981;
+        }
+        .basecamp-content {
+            display: none;
+        }
+        .basecamp-content.active {
+            display: block;
+        }
+
+        /* Form inputs */
+        .form-input {
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.35rem;
+        }
+    </style>
+</head>
+<body class="p-2 md:p-6 max-w-[1600px] mx-auto">
+
+    <!-- HEADER FIXE -->
+    <div class="fixed-header">
+        <header class="mb-3">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-3 gap-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl flex items-center justify-center text-white shadow-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-tight text-slate-800">Backpack Planner</h1>
+                        <p class="text-xs text-slate-500 font-medium">PrÃ©pare ton sac sans stress et sans kilos en trop</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="App.export.copyToWhatsApp()" class="btn-accent text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"></path></svg> WhatsApp
+                    </button>
+                    <div class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition cursor-pointer" onclick="App.ui.openAccountSettings('profile')">
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-sm">MF</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <div class="glass-card">
+                <div class="nav-tabs flex">
+                    <div class="nav-tab active" onclick="App.ui.switchTab('planner')">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="backpack" class="w-4 h-4"></i>
+                            <span>Planificateur</span>
+                        </div>
+                    </div>
+                    <div class="nav-tab" onclick="App.ui.switchTab('basecamp')">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="warehouse" class="w-4 h-4"></i>
+                            <span>Basecamp</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+    </div>
+    <!-- CONTENU SCROLLABLE -->
+    <div id="scrollableContent">
+        <!-- Planner Tab Content -->
+        <div id="plannerTab" class="tab-content active">
+            <div class="glass-card p-4 border-l-4 border-emerald-500 mb-4">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-3 items-end">
+                    <div class="lg:col-span-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Type de sortie</label>
+                        <div class="flex gap-2">
+                            <select id="scenarioSelect" onchange="App.ui.handleScenarioChange(this.value)" class="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-medium outline-none">
+                                <option value="custom">PersonnalisÃ©</option>
+                                <option value="tmb" selected>Tour Mont-Blanc (4j)</option>
+                                <option value="queyras">Tour du Queyras (6j)</option>
+                                <option value="auvergne">Volcans d'Auvergne (5j)</option>
+                                <option value="gr20">GR20 TronÃ§on (3j)</option>
+                            </select>
+                            <button onclick="App.ui.openDestinationsModal()" class="btn-primary text-sm p-2" title="Destinations">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-3 grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Saison</label>
+                            <select id="seasonSelect" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-medium outline-none">
+                                <option value="ete">Ã‰tÃ©</option>
+                                <option value="printemps">Printemps / Automne</option>
+                                <option value="hiver">Hiver</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Adultes</label>
+                            <input type="number" id="nbAdults" value="1" min="1" max="10" onchange="App.group.updateMembers()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-center font-mono focus:ring-2 focus:ring-emerald-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Enfants</label>
+                            <input type="number" id="nbChildren" value="0" min="0" max="10" onchange="App.group.updateMembers()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm text-center font-mono focus:ring-2 focus:ring-emerald-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trip Summary -->
+                <div id="tripSummary" class="mt-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-xl">
+                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-3">
+                        <div class="lg:col-span-2">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-bold text-sm text-slate-800" id="tripNameDisplay">Tour du Mont-Blanc</h4>
+                                <span class="season-badge">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m8 3 4 8 5-5 5 15H2L8 3z"></path></svg>
+                                    <span id="tripSeasonDisplay">Juil./Sept.</span>
+                                </span>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-2 mb-2">
+                                <div class="trip-stat-compact">
+                                    <svg class="icon text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line></svg>
+                                    <span class="value" id="tripDaysDisplay">4</span>
+                                    <span class="unit">j</span>
+                                </div>
+                                <div class="trip-stat-compact">
+                                    <svg class="icon text-blue-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                    <span class="value" id="tripKmDisplay">80</span>
+                                    <span class="unit">km</span>
+                                </div>
+                                <div class="trip-stat-compact">
+                                    <svg class="icon text-orange-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 11l-5-5-5 5"></path><path d="M17 18l-5-5-5 5"></path></svg>
+                                    <span class="value" id="tripDeniveleDisplay">6000</span>
+                                    <span class="unit">m D+</span>
+                                </div>
+                            </div>
+
+                            <div class="text-xs text-slate-600 bg-white/70 p-2 rounded-lg mb-2">
+                                <div class="flex items-center gap-1 mb-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                                    <span class="font-semibold text-emerald-700">Refuges</span>
+                                </div>
+                                <p class="text-slate-500 leading-tight text-[10px]" id="tripRefugeInfo">Moins de nourriture Ã  emporter grÃ¢ce aux refuges gardÃ©s.</p>
+                            </div>
+
+                            <div class="flex flex-wrap gap-2">
+                                <a href="https://gr-go.fr" target="_blank" class="source-link">ðŸ“ GR-GO.fr</a>
+                                <a href="https://www.tmb-guide.com/refuges-france/" target="_blank" class="source-link">ðŸ“ TMB Guide</a>
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-3">
+                            <div class="bg-white p-2 rounded-lg shadow-sm">
+                                <h5 class="text-[10px] font-bold text-slate-500 uppercase mb-1">Profil d'Ã©lÃ©vation</h5>
+                                <div id="elevationChartContainer">
+                                    <canvas id="elevationChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Main Content - Planner Tab -->
+        <div id="plannerContent" class="tab-content active">
+            <main class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                <!-- CATALOGUE / Ã‰QUIPEMENT -->
+                <section class="lg:col-span-3 flex flex-col gap-3">
+                    <div class="glass-card flex flex-col" style="height: calc(100vh - 340px); min-height: 450px;">
+                        <div class="p-3 border-b border-slate-100">
+                            <div class="flex items-center justify-between mb-2">
+                                <h2 class="font-bold text-base text-slate-700 flex items-center gap-2">
+                                    <span class="w-6 h-6 bg-blue-500 text-white rounded-lg flex items-center justify-center text-xs font-bold">3</span>
+                                    Ã‰quipement
+                                </h2>
+                                <button onclick="App.ui.openCustomItemModal()" class="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                    Perso
+                                </button>
+                            </div>
+                            <div class="relative mb-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.34-4.34"></path></svg>
+                                <input type="text" id="librarySearch" placeholder="Rechercher un objet..." oninput="App.library.filter(this.value)" class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-blue-400">
+                            </div>
+                            <div class="flex gap-1.5 overflow-x-auto custom-scroll pb-1" id="categoryFilters"></div>
+                        </div>
+
+                        <div id="libraryList" class="flex-1 overflow-y-auto custom-scroll p-2 space-y-2"></div>
+
+                        <div class="p-3 border-t border-slate-100">
+                            <button onclick="App.ai.generateList()" class="btn-blue text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18m0-18l4 4m-4-4l-4 4"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                GÃ©nÃ©rer une liste IA
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CONTENU DU SAC -->
+                <section class="lg:col-span-5 flex flex-col gap-3">
+                    <div class="glass-card flex flex-col bg-slate-50/50" style="height: calc(100vh - 340px); min-height: 450px;">
+                        <div class="p-3 border-b border-slate-100 bg-white rounded-t-2xl shadow-sm z-10">
+                            <div class="flex justify-between items-center">
+                                <h2 class="font-bold text-lg text-slate-800 flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-emerald-600"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path></svg>
+                                    Contenu du sac
+                                </h2>
+                                <span class="text-xs text-slate-400" id="packItemCount">0 objets</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2 text-xs text-slate-500 bg-yellow-50 p-2 rounded border border-yellow-100">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-yellow-600"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                                Glissez les objets depuis l'Ã©quipement ici
+                            </div>
+                        </div>
+
+                        <div id="packList" class="flex-1 overflow-y-auto custom-scroll p-3 space-y-2 min-h-[150px]"></div>
+
+                        <div class="p-3 border-t border-slate-100 bg-white rounded-b-2xl">
+                            <div class="mb-3">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Sac utilisÃ©</label>
+                                <select id="packSelect" onchange="App.pack.selectPack(this.value)" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-medium outline-none"></select>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden relative">
+                                <div id="volumeBar" class="bg-blue-500 h-3.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                <span id="volumeText" class="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-slate-600">0 L / 50 L</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- STATS & 3D -->
+                <section class="lg:col-span-4 flex flex-col gap-3">
+                    <div class="glass-card p-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Poids Total</h3>
+                        <div class="flex items-end gap-2 mb-2">
+                            <span id="totalWeightDisplay" class="text-4xl font-bold text-slate-800 tracking-tight">0.0</span>
+                            <span class="text-lg font-medium text-slate-500 mb-1">kg</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-1">
+                            <div id="weightBar" class="h-full bg-emerald-500 transition-all duration-500 rounded-full" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-[9px] text-slate-400 font-mono">
+                            <span>0</span>
+                            <span>Objectif: <span id="targetWeightDisplay">15</span>kg</span>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-4">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">RÃ©partition</h3>
+                        <div id="groupNames" class="space-y-2 mb-3 p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                            <div class="flex items-center gap-2 text-sm">
+                                <div class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-xs">MF</div>
+                                <span class="text-slate-700 text-xs">Marco</span>
+                                <span class="ml-auto text-slate-400 text-[10px]">Porteur</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-1 overflow-hidden min-h-[260px] relative">
+                        <div class="view-toggle">
+                            <button onclick="App.three3d.switchView('3d')" id="btn3d" class="active" title="Vue 3D">
+                                <i data-lucide="box" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="App.three3d.switchView('video')" id="btnVideo" title="Tutoriel">
+                                <i data-lucide="play-circle" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        
+                        <div id="canvas-container" class="w-full h-full min-h-[260px]"></div>
+                        
+                        <div id="youtube-container" class="youtube-container w-full h-full p-2">
+                            <iframe width="100%" height="100%" src="https://www.youtube.com/embed/mt3BYnXgvKU" title="Tutorial" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+        <!-- Basecamp Tab Content -->
+        <div id="basecampContent" class="tab-content">
+            <div class="glass-card p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-800">ðŸ•ï¸ Basecamp - Mon Garage</h2>
+                        <p class="text-slate-500 text-sm mt-1">GÃ©rez votre inventaire personnel et vos sacs prÃ©parÃ©s</p>
+                    </div>
+                    <button onclick="App.basecamp.toggleView()" class="btn-primary text-sm" id="basecampViewToggle">
+                        ðŸ“Š Vue statistiques
+                    </button>
+                </div>
+
+                <!-- Tabs Basecamp -->
+                <div class="flex gap-2 mb-6 border-b border-slate-200">
+                    <button onclick="App.basecamp.switchTab('inventory')" class="basecamp-tab active" data-tab="inventory">
+                        ðŸ“¦ Mon Inventaire
+                    </button>
+                    <button onclick="App.basecamp.switchTab('saved')" class="basecamp-tab" data-tab="saved">
+                        ðŸ’¼ Sacs SauvegardÃ©s
+                    </button>
+                    <button onclick="App.basecamp.switchTab('history')" class="basecamp-tab" data-tab="history">
+                        ðŸ“œ Historique Treks
+                    </button>
+                </div>
+
+                <!-- Inventory Tab -->
+                <div id="basecampInventory" class="basecamp-content active">
+                    <div class="mb-4 flex justify-between items-center">
+                        <div class="text-sm text-slate-600">
+                            <span class="font-semibold" id="ownedCount">0</span> Ã©quipements possÃ©dÃ©s sur 
+                            <span class="font-semibold" id="totalCount">0</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="App.basecamp.markAllOwned()" class="text-xs px-3 py-1 border border-emerald-500 text-emerald-700 rounded hover:bg-emerald-50">
+                                âœ“ Tout marquer
+                            </button>
+                            <button onclick="App.basecamp.clearAllOwned()" class="text-xs px-3 py-1 border border-slate-300 text-slate-600 rounded hover:bg-slate-50">
+                                âœ— Tout effacer
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="inventoryGrid"></div>
+                </div>
+
+                <!-- Saved Packs Tab -->
+                <div id="basecampSaved" class="basecamp-content hidden">
+                    <div class="mb-4 flex justify-between items-center">
+                        <p class="text-sm text-slate-600">Sauvegardez vos configurations de sac pour les rÃ©utiliser facilement</p>
+                        <button onclick="App.basecamp.saveCurrentPack()" class="btn-primary text-sm">
+                            ðŸ’¾ Sauvegarder le sac actuel
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="savedPacksGrid"></div>
+                </div>
+
+                <!-- History Tab -->
+                <div id="basecampHistory" class="basecamp-content hidden">
+                    <div class="mb-4 flex justify-between items-center">
+                        <p class="text-sm text-slate-600">Vos treks passÃ©s et futurs</p>
+                        <button onclick="App.basecamp.addTrek()" class="btn-primary text-sm">
+                            âž• Ajouter un trek
+                        </button>
+                    </div>
+                    <div class="space-y-3" id="trekHistoryList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- MODALS -->
+
+    <!-- Modal Destinations -->
+    <div id="destinationsModal" class="modal hidden">
+        <div class="modal-content modal-content-large">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-slate-800">Premiers treks ciblÃ©s</h3>
+                <button onclick="App.ui.closeDestinationsModal()" class="text-slate-400 hover:text-red-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="x" class="lucide lucide-x w-6 h-6"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                </button>
+            </div>
+
+            <p class="text-sm text-slate-600 mb-8">Phase 2 : 6 circuits emblÃ©matiques pour progresser en randonnÃ©e</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8" id="destinationsGrid"></div>
+
+            <div class="flex justify-end pt-6 border-t border-slate-100 mt-8">
+                <button onclick="App.ui.closeDestinationsModal()" class="btn-primary text-sm">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Account Settings avec menu complet -->
+    <div id="accountModal" class="modal hidden">
+        <div class="modal-content modal-content-large" style="max-width: 900px;">
+            <div class="flex justify-between items-center mb-4 pb-4 border-b">
+                <h3 class="text-xl font-bold text-slate-800">âš™ï¸ ParamÃ¨tres du compte</h3>
+                <button onclick="App.ui.closeAccountSettings()" class="text-slate-400 hover:text-red-500 text-2xl">&times;</button>
+            </div>
+            
+            <div class="flex gap-6">
+                <!-- Sidebar Menu -->
+                <div class="account-sidebar">
+                    <div class="account-section-title">Mon Compte</div>
+                    <div class="account-menu-item active" onclick="App.account.showSection('profile')">
+                        <i data-lucide="user" class="w-4 h-4"></i> Profil
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('subscription')">
+                        <i data-lucide="credit-card" class="w-4 h-4"></i> Abonnement
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('billing')">
+                        <i data-lucide="receipt" class="w-4 h-4"></i> Facturation
+                    </div>
+                    
+                    <div class="account-section-title">PrÃ©fÃ©rences</div>
+                    <div class="account-menu-item" onclick="App.account.showSection('notifications')">
+                        <i data-lucide="bell" class="w-4 h-4"></i> Notifications
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('language')">
+                        <i data-lucide="globe" class="w-4 h-4"></i> Langue
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('units')">
+                        <i data-lucide="ruler" class="w-4 h-4"></i> UnitÃ©s & Mesures
+                    </div>
+                    
+                    <div class="account-section-title">DonnÃ©es</div>
+                    <div class="account-menu-item" onclick="App.account.showSection('export')">
+                        <i data-lucide="download" class="w-4 h-4"></i> Export donnÃ©es
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('import')">
+                        <i data-lucide="upload" class="w-4 h-4"></i> Import donnÃ©es
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('sync')">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Synchronisation
+                    </div>
+                    
+                    <div class="account-section-title">SÃ©curitÃ©</div>
+                    <div class="account-menu-item" onclick="App.account.showSection('password')">
+                        <i data-lucide="lock" class="w-4 h-4"></i> Mot de passe
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('2fa')">
+                        <i data-lucide="shield" class="w-4 h-4"></i> Double auth (2FA)
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('sessions')">
+                        <i data-lucide="smartphone" class="w-4 h-4"></i> Sessions actives
+                    </div>
+                    
+                    <div class="account-section-title">LÃ©gal</div>
+                    <div class="account-menu-item" onclick="App.account.showSection('privacy')">
+                        <i data-lucide="eye" class="w-4 h-4"></i> ConfidentialitÃ©
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('rgpd')">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> RGPD
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('terms')">
+                        <i data-lucide="scroll" class="w-4 h-4"></i> CGU
+                    </div>
+                    
+                    <div class="account-section-title">Support</div>
+                    <div class="account-menu-item" onclick="App.account.showSection('help')">
+                        <i data-lucide="help-circle" class="w-4 h-4"></i> Centre d'aide
+                    </div>
+                    <div class="account-menu-item" onclick="App.account.showSection('feedback')">
+                        <i data-lucide="message-square" class="w-4 h-4"></i> Feedback
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t">
+                        <div class="account-menu-item text-red-500" onclick="App.reset()">
+                            <i data-lucide="log-out" class="w-4 h-4"></i> DÃ©connexion
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Content Area -->
+                <div class="flex-1" id="accountContent">
+                    <div id="section-profile">
+                        <h4 class="text-lg font-bold text-slate-800 mb-4">ðŸ‘¤ Profil</h4>
+                        <div class="flex items-center gap-4 mb-6 p-4 bg-slate-50 rounded-xl">
+                            <div class="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-xl">MF</div>
+                            <div>
+                                <div class="font-semibold text-slate-800">Marco Fumagalli</div>
+                                <div class="text-sm text-slate-500"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="abc6cad9c8c4ebced3cac6dbc7ce85c8c4c6">[email&#160;protected]</a></div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 mt-1">â­ Premium</span>
+                            </div>
+                            <button class="ml-auto btn-primary text-sm">Modifier</button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="form-label">Nom complet</label>
+                                <input type="text" value="Marco Fumagalli" class="form-input">
+                            </div>
+                            <div>
+                                <label class="form-label">Email</label>
+                                <input type="email" value="marco@example.com" class="form-input">
+                            </div>
+                            <div>
+                                <label class="form-label">TÃ©lÃ©phone</label>
+                                <input type="tel" value="+33 6 12 34 56 78" class="form-input">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal Custom Item -->
+    <div id="customItemModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800">âž• Ajouter un Ã©quipement personnalisÃ©</h3>
+                <button onclick="App.ui.closeCustomItemModal()" class="text-slate-400 hover:text-red-500 text-2xl">&times;</button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="form-label">Nom de l'Ã©quipement *</label>
+                    <input type="text" id="customItemName" placeholder="Ex: Gourde perso" class="form-input">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label">Poids (kg) *</label>
+                        <input type="number" id="customItemWeight" step="0.01" min="0" placeholder="0.5" class="form-input">
+                    </div>
+                    <div>
+                        <label class="form-label">Prix (â‚¬)</label>
+                        <input type="number" id="customItemPrice" step="1" min="0" placeholder="50" class="form-input">
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Dimensions (L x l x H en cm)</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="number" id="customItemL" step="1" min="0" placeholder="L" class="form-input text-center">
+                        <input type="number" id="customItemW" step="1" min="0" placeholder="l" class="form-input text-center">
+                        <input type="number" id="customItemH" step="1" min="0" placeholder="H" class="form-input text-center">
+                    </div>
+                    <p class="text-xs text-slate-400 mt-1">Volume calculÃ© : <span id="customItemVolume">0</span> L</p>
+                </div>
+                <div>
+                    <label class="form-label">CatÃ©gorie</label>
+                    <select id="customItemCategory" class="form-input">
+                        <option value="custom">PersonnalisÃ©</option>
+                        <option value="abri">Abri</option>
+                        <option value="couchage">Couchage</option>
+                        <option value="vetements">VÃªtements</option>
+                        <option value="cuisine">Cuisine</option>
+                        <option value="hygiene">HygiÃ¨ne</option>
+                        <option value="securite">SÃ©curitÃ©</option>
+                        <option value="electronique">Ã‰lectronique</option>
+                        <option value="divers">Divers</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="flex gap-3 mt-6">
+                <button onclick="App.ui.closeCustomItemModal()" class="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">Annuler</button>
+                <button onclick="App.library.addCustomItem()" class="flex-1 btn-primary justify-center">Ajouter</button>
+            </div>
+        </div>
+    </div>
+
+    <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        // =====================================================
+        // BACKPACK PLANNER V5 - APPLICATION COMPLÃˆTE
+        // =====================================================
+
+        const App = {
+            state: {
+                currentTab: 'planner',
+                currentScenario: 'tmb',
+                currentCategory: 'all',
+                packItems: [],
+                groupMembers: [],
+                targetWeight: 15,
+                selectedPack: null,
+                elevationChart: null,
+                scene: null,
+                camera: null,
+                renderer: null,
+                controls: null,
+                backpackModel: null
+            },
+
+            // CATALOGUE - 100 produits outdoor populaires avec vraies images
+            library: {
+                categories: [
+                    { id: 'all', name: 'Tout', icon: 'ðŸ ', color: '#1e293b', bg: '#f1f5f9' },
+                    { id: 'abri', name: 'Abri', icon: 'â›º', color: '#22c55e', bg: '#dcfce7' },
+                    { id: 'couchage', name: 'Couchage', icon: 'ðŸ›ï¸', color: '#f97316', bg: '#ffedd5' },
+                    { id: 'vetements', name: 'VÃªtements', icon: 'ðŸ‘•', color: '#3b82f6', bg: '#dbeafe' },
+                    { id: 'cuisine', name: 'Cuisine', icon: 'ðŸ³', color: '#eab308', bg: '#fef9c3' },
+                    { id: 'hygiene', name: 'HygiÃ¨ne', icon: 'ðŸ§´', color: '#ec4899', bg: '#fce7f3' },
+                    { id: 'securite', name: 'SÃ©curitÃ©', icon: 'ðŸ©¹', color: '#ef4444', bg: '#fee2e2' },
+                    { id: 'electronique', name: 'Ã‰lectro', icon: 'ðŸ“±', color: '#06b6d4', bg: '#cffafe' },
+                    { id: 'divers', name: 'Divers', icon: 'ðŸŽ’', color: '#8b5cf6', bg: '#f3e8ff' },
+                    { id: 'custom', name: 'Perso', icon: 'âœï¸', color: '#64748b', bg: '#f1f5f9' }
+                ],
+                items: [
+                    // ABRI
+                    { id: 1, name: 'Tarp Ultralight 3x3', brand: 'Sea to Summit', weight: 0.4, volume: 1.5, price: 90, category: 'abri', img: 'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=100&h=100&fit=crop' },
+                    { id: 2, name: 'BÃ¢che Superlight', brand: 'DD Hammocks', weight: 0.79, volume: 2, price: 65, category: 'abri', img: 'https://images.unsplash.com/photo-1478827536114-da961b7f86d2?w=100&h=100&fit=crop' },
+                    { id: 3, name: 'Tente Hubba Hubba NX', brand: 'MSR', weight: 1.72, volume: 8, price: 490, category: 'abri', img: 'https://images.unsplash.com/photo-1517823382935-51bfcb0ec6bc?w=100&h=100&fit=crop' },
+                    { id: 4, name: 'Tente Free Lite 2', brand: 'Nordisk', weight: 1.1, volume: 5, price: 599, category: 'abri', img: 'https://images.unsplash.com/photo-1563299796-17596ed6b017?w=100&h=100&fit=crop' },
+                    { id: 5, name: 'Tente Copper Spur HV UL2', brand: 'Big Agnes', weight: 1.27, volume: 6, price: 550, category: 'abri', img: 'https://images.unsplash.com/photo-1537225228614-56cc3556d7ed?w=100&h=100&fit=crop' },
+                    { id: 6, name: 'Bivy Alpine', brand: 'Outdoor Research', weight: 0.48, volume: 2, price: 180, category: 'abri', img: 'https://images.unsplash.com/photo-1445308394109-4ec2920981b1?w=100&h=100&fit=crop' },
+
+                    // COUCHAGE  
+                    { id: 10, name: 'Sac de couchage Spark SP III', brand: 'Sea to Summit', weight: 0.52, volume: 4, price: 280, category: 'couchage', img: 'https://images.unsplash.com/photo-1510672981848-a1c4f1cb5ccf?w=100&h=100&fit=crop' },
+                    { id: 11, name: 'NeoAir XLite NXT', brand: 'Thermarest', weight: 0.35, volume: 1.5, price: 220, category: 'couchage', img: 'https://images.unsplash.com/photo-1515444744130-501e77c23606?w=100&h=100&fit=crop' },
+                    { id: 12, name: 'Sac Phantom -1Â°C', brand: 'Mountain Hardwear', weight: 0.74, volume: 5, price: 450, category: 'couchage', img: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=100&h=100&fit=crop' },
+                    { id: 13, name: 'Quilt Revelation 20', brand: 'Enlightened Equipment', weight: 0.59, volume: 4, price: 320, category: 'couchage', img: 'https://images.unsplash.com/photo-1476673160081-cf065607f449?w=100&h=100&fit=crop' },
+                    { id: 14, name: 'Matelas Tensor Insulated', brand: 'Nemo', weight: 0.46, volume: 2, price: 200, category: 'couchage', img: 'https://images.unsplash.com/photo-1496545672447-f699b503d270?w=100&h=100&fit=crop' },
+                    { id: 15, name: 'Oreiller Aeros Premium', brand: 'Sea to Summit', weight: 0.08, volume: 0.3, price: 45, category: 'couchage', img: 'https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?w=100&h=100&fit=crop' },
+                    { id: 16, name: 'Sac Ascent 900', brand: 'Rab', weight: 1.15, volume: 8, price: 520, category: 'couchage', img: 'https://images.unsplash.com/photo-1558186395-6af1e5e99be4?w=100&h=100&fit=crop' },
+
+                    // VETEMENTS
+                    { id: 20, name: 'Doudoune Cerium LT', brand: 'Arc\'teryx', weight: 0.28, volume: 2, price: 380, category: 'vetements', img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=100&h=100&fit=crop' },
+                    { id: 21, name: 'Veste Gore-Tex Zeta SL', brand: 'Arc\'teryx', weight: 0.31, volume: 1.5, price: 350, category: 'vetements', img: 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=100&h=100&fit=crop' },
+                    { id: 22, name: 'Pantalon Gamma LT', brand: 'Arc\'teryx', weight: 0.34, volume: 1.5, price: 160, category: 'vetements', img: 'https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=100&h=100&fit=crop' },
+                    { id: 23, name: 'T-shirt Capilene Cool', brand: 'Patagonia', weight: 0.1, volume: 0.5, price: 45, category: 'vetements', img: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=100&h=100&fit=crop' },
+                    { id: 24, name: 'Polaire R1 Air', brand: 'Patagonia', weight: 0.27, volume: 2, price: 140, category: 'vetements', img: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=100&h=100&fit=crop' },
+                    { id: 25, name: 'Chaussures X Ultra 4 GTX', brand: 'Salomon', weight: 0.74, volume: 0, price: 160, category: 'vetements', img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop' },
+                    { id: 26, name: 'Chaussettes Hike Light', brand: 'Darn Tough', weight: 0.07, volume: 0.2, price: 28, category: 'vetements', img: 'https://images.unsplash.com/photo-1586350977771-b3b0abd50c82?w=100&h=100&fit=crop' },
+                    { id: 27, name: 'Casquette Trail', brand: 'Buff', weight: 0.05, volume: 0.2, price: 30, category: 'vetements', img: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=100&h=100&fit=crop' },
+                    { id: 28, name: 'Gants Softshell', brand: 'Black Diamond', weight: 0.08, volume: 0.3, price: 40, category: 'vetements', img: 'https://images.unsplash.com/photo-1545594861-3bef43ff2fc8?w=100&h=100&fit=crop' },
+
+                    // CUISINE
+                    { id: 30, name: 'RÃ©chaud PocketRocket 2', brand: 'MSR', weight: 0.07, volume: 0.5, price: 55, category: 'cuisine', img: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=100&h=100&fit=crop' },
+                    { id: 31, name: 'Popote Titan Kettle', brand: 'Toaks', weight: 0.12, volume: 1, price: 45, category: 'cuisine', img: 'https://images.unsplash.com/photo-1583394293214-28ez7e3eb2c4?w=100&h=100&fit=crop' },
+                    { id: 32, name: 'Gourde Trail 1L', brand: 'Salomon', weight: 0.05, volume: 0, price: 18, category: 'cuisine', img: 'https://images.unsplash.com/photo-1523362628745-0c100150b504?w=100&h=100&fit=crop' },
+                    { id: 33, name: 'Filtre BeFree 1L', brand: 'Katadyn', weight: 0.06, volume: 0.3, price: 45, category: 'cuisine', img: 'https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=100&h=100&fit=crop' },
+                    { id: 34, name: 'CuillÃ¨re-Fourchette Long', brand: 'Sea to Summit', weight: 0.02, volume: 0.1, price: 15, category: 'cuisine', img: 'https://images.unsplash.com/photo-1514326640560-7d063ef2aed5?w=100&h=100&fit=crop' },
+                    { id: 35, name: 'Cartouche gaz 230g', brand: 'MSR', weight: 0.38, volume: 0.8, price: 8, category: 'cuisine', img: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=100&h=100&fit=crop' },
+                    { id: 36, name: 'Tasse isotherme 350ml', brand: 'Hydro Flask', weight: 0.18, volume: 0.4, price: 35, category: 'cuisine', img: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=100&h=100&fit=crop' },
+
+                    // HYGIENE
+                    { id: 40, name: 'Serviette Airlite M', brand: 'Sea to Summit', weight: 0.05, volume: 0.3, price: 25, category: 'hygiene', img: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=100&h=100&fit=crop' },
+                    { id: 41, name: 'Savon Trek & Travel', brand: 'Sea to Summit', weight: 0.05, volume: 0.1, price: 8, category: 'hygiene', img: 'https://images.unsplash.com/photo-1584305574647-0cc949a2bb9f?w=100&h=100&fit=crop' },
+                    { id: 42, name: 'CrÃ¨me solaire SPF50', brand: 'La Roche-Posay', weight: 0.1, volume: 0.2, price: 15, category: 'hygiene', img: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?w=100&h=100&fit=crop' },
+                    { id: 43, name: 'Brosse Ã  dents pliable', brand: 'Sea to Summit', weight: 0.01, volume: 0.05, price: 8, category: 'hygiene', img: 'https://images.unsplash.com/photo-1559526324-593bc073d938?w=100&h=100&fit=crop' },
+                    { id: 44, name: 'Papier toilette compact', brand: 'Coghlans', weight: 0.05, volume: 0.1, price: 5, category: 'hygiene', img: 'https://images.unsplash.com/photo-1584556812952-905ffd0c611a?w=100&h=100&fit=crop' },
+
+                    // SECURITE
+                    { id: 50, name: 'Trousse secours UL', brand: 'Adventure Medical', weight: 0.18, volume: 0.5, price: 35, category: 'securite', img: 'https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=100&h=100&fit=crop' },
+                    { id: 51, name: 'Couverture survie', brand: 'SOL', weight: 0.08, volume: 0.2, price: 15, category: 'securite', img: 'https://images.unsplash.com/photo-1416339306562-f3d12fefd36f?w=100&h=100&fit=crop' },
+                    { id: 52, name: 'Lampe frontale Swift RL', brand: 'Petzl', weight: 0.1, volume: 0.2, price: 80, category: 'securite', img: 'https://images.unsplash.com/photo-1606318313647-137d1f3b4d3c?w=100&h=100&fit=crop' },
+                    { id: 53, name: 'Sifflet d\'urgence', brand: 'Fox 40', weight: 0.01, volume: 0.02, price: 8, category: 'securite', img: 'https://images.unsplash.com/photo-1560343776-97e7d202ff0e?w=100&h=100&fit=crop' },
+                    { id: 54, name: 'BÃ¢tons Trail Ergo Cork', brand: 'Leki', weight: 0.42, volume: 0, price: 140, category: 'securite', img: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=100&h=100&fit=crop' },
+                    { id: 55, name: 'Balise PLB ResQLink', brand: 'ACR', weight: 0.13, volume: 0.2, price: 350, category: 'securite', img: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop' },
+
+                    // ELECTRONIQUE
+                    { id: 60, name: 'GPS inReach Mini 2', brand: 'Garmin', weight: 0.1, volume: 0.2, price: 400, category: 'electronique', img: 'https://images.unsplash.com/photo-1551817958-d9d86fb29431?w=100&h=100&fit=crop' },
+                    { id: 61, name: 'Batterie externe 10000mAh', brand: 'Anker', weight: 0.19, volume: 0.2, price: 35, category: 'electronique', img: 'https://images.unsplash.com/photo-1609592424017-4e5b0f9d3e24?w=100&h=100&fit=crop' },
+                    { id: 62, name: 'Panneau solaire Nomad 10', brand: 'Goal Zero', weight: 0.39, volume: 0.5, price: 100, category: 'electronique', img: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=100&h=100&fit=crop' },
+                    { id: 63, name: 'Montre Fenix 7', brand: 'Garmin', weight: 0.08, volume: 0, price: 700, category: 'electronique', img: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&h=100&fit=crop' },
+                    { id: 64, name: 'CÃ¢ble USB-C multi', brand: 'Anker', weight: 0.03, volume: 0.05, price: 15, category: 'electronique', img: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=100&h=100&fit=crop' },
+
+                    // DIVERS
+                    { id: 70, name: 'Sac Ã  dos Exos 58', brand: 'Osprey', weight: 1.19, volume: 0, price: 240, category: 'divers', img: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=100&h=100&fit=crop' },
+                    { id: 71, name: 'Sac Ã©tanche 8L', brand: 'Sea to Summit', weight: 0.04, volume: 0.1, price: 20, category: 'divers', img: 'https://images.unsplash.com/photo-1622260614153-03223fb72052?w=100&h=100&fit=crop' },
+                    { id: 72, name: 'Carte IGN TOP25', brand: 'IGN', weight: 0.08, volume: 0.1, price: 14, category: 'divers', img: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?w=100&h=100&fit=crop' },
+                    { id: 73, name: 'Boussole Starter', brand: 'Silva', weight: 0.03, volume: 0.05, price: 25, category: 'divers', img: 'https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=100&h=100&fit=crop' },
+                    { id: 74, name: 'Couteau Swiss Classic', brand: 'Victorinox', weight: 0.06, volume: 0.05, price: 30, category: 'divers', img: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=100&h=100&fit=crop' },
+                    { id: 75, name: 'Lunettes de soleil', brand: 'Julbo', weight: 0.03, volume: 0.1, price: 80, category: 'divers', img: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=100&h=100&fit=crop' },
+                ],
+
+                filter(query) {
+                    App.library.render(query);
+                },
+
+                render(query = '') {
+                    const container = document.getElementById('libraryList');
+                    const cat = App.state.currentCategory;
+                    
+                    let items = [...App.library.items];
+                    if (cat !== 'all') {
+                        items = items.filter(i => i.category === cat);
+                    }
+                    if (query) {
+                        const q = query.toLowerCase();
+                        items = items.filter(i => i.name.toLowerCase().includes(q) || (i.brand && i.brand.toLowerCase().includes(q)));
+                    }
+
+                    container.innerHTML = items.map(item => {
+                        // Toujours permettre d'ajouter l'item
+                        return `
+                            <div class="equip-item" data-cat="${item.category}" draggable="true" ondragstart="App.drag.start(event, ${item.id})">
+                                <img src="${item.img}" alt="${item.name}" class="equip-img" onerror="this.src='https://via.placeholder.com/48?text=ðŸ“¦'">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-semibold text-slate-800 truncate">${item.name}</div>
+                                    <div class="text-[10px] text-slate-500">${item.brand || 'Custom'} Â· ${item.weight} kg</div>
+                                </div>
+                                <div class="equip-price">${item.price} â‚¬</div>
+                                <button class="equip-btn add" onclick="event.stopPropagation(); App.pack.addItem(${item.id})">
+                                    +
+                                </button>
+                            </div>
+                        `;
+                    }).join('') || '<p class="text-center text-slate-400 py-8">Aucun Ã©quipement trouvÃ©</p>';
+                },
+
+                renderCategories() {
+                    const container = document.getElementById('categoryFilters');
+                    container.innerHTML = App.library.categories.map(cat => `
+                        <button onclick="App.library.setCategory('${cat.id}')" 
+                                class="category-pill ${App.state.currentCategory === cat.id ? 'active' : ''}"
+                                style="background: ${cat.bg}; color: ${cat.color}">
+                            ${cat.icon} ${cat.name}
+                        </button>
+                    `).join('');
+                },
+
+                setCategory(catId) {
+                    App.state.currentCategory = catId;
+                    App.library.renderCategories();
+                    App.library.render();
+                },
+
+                addCustomItem() {
+                    const name = document.getElementById('customItemName').value.trim();
+                    const weight = parseFloat(document.getElementById('customItemWeight').value) || 0;
+                    const price = parseFloat(document.getElementById('customItemPrice').value) || 0;
+                    const category = document.getElementById('customItemCategory').value;
+                    const L = parseFloat(document.getElementById('customItemL').value) || 0;
+                    const W = parseFloat(document.getElementById('customItemW').value) || 0;
+                    const H = parseFloat(document.getElementById('customItemH').value) || 0;
+                    const volume = (L * W * H) / 1000; // cmÂ³ to L
+
+                    if (!name || weight <= 0) {
+                        alert('Veuillez remplir le nom et le poids');
+                        return;
+                    }
+
+                    const newItem = {
+                        id: Date.now(),
+                        name: name,
+                        brand: 'Perso',
+                        weight: weight,
+                        volume: Math.round(volume * 10) / 10,
+                        price: price,
+                        category: category,
+                        img: 'https://via.placeholder.com/48/64748b/ffffff?text=âœï¸'
+                    };
+
+                    App.library.items.push(newItem);
+                    App.library.render();
+                    App.ui.closeCustomItemModal();
+                    
+                    // Reset form
+                    document.getElementById('customItemName').value = '';
+                    document.getElementById('customItemWeight').value = '';
+                    document.getElementById('customItemPrice').value = '';
+                    document.getElementById('customItemL').value = '';
+                    document.getElementById('customItemW').value = '';
+                    document.getElementById('customItemH').value = '';
+                }
+            },
+            // DRAG & DROP
+            drag: {
+                start(e, itemId) {
+                    e.dataTransfer.setData('itemId', itemId);
+                    e.dataTransfer.effectAllowed = 'copy';
+                },
+                
+                init() {
+                    const packList = document.getElementById('packList');
+                    
+                    packList.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'copy';
+                        packList.classList.add('bg-blue-50');
+                    });
+                    
+                    packList.addEventListener('dragleave', () => {
+                        packList.classList.remove('bg-blue-50');
+                    });
+                    
+                    packList.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        packList.classList.remove('bg-blue-50');
+                        const itemId = parseInt(e.dataTransfer.getData('itemId'));
+                        if (itemId) {
+                            App.pack.addItem(itemId);
+                        }
+                    });
+                }
+            },
+
+            // PACK MANAGEMENT
+            pack: {
+                packs: [
+                    { id: 'osprey-renn', name: 'Osprey Renn 65', volume: 65, weight: 1.8, model: 'https://www.dropbox.com/scl/fi/tlilo284hg71cv44b4be1/OSPREY-RENN-HIKING-rouge-2.glb?rlkey=4au8iumgwy57vmiai0q36y1i0&raw=1' },
+                    { id: 'sac-bleu', name: 'Sac Trail 50L Bleu', volume: 50, weight: 1.2, model: 'https://www.dropbox.com/scl/fi/cxmgkwnz9vttvxeuxug1l/sac-a-dos-bleu.glb?rlkey=zocoqgavf09ie7qwsjh9893ke&raw=1' },
+                    { id: 'multi-tone', name: 'Adventure Pack 45L', volume: 45, weight: 1.1, model: 'https://www.dropbox.com/scl/fi/6qygpu0iw3v8vel5y8bl4/Multi-Tone-Adventure-Backpack-model-pack_preview_5753cff3-1820-4578-a039-f839b8995373.glb?rlkey=pfpsyocq9d28bwmn0gif25bnh&raw=1' },
+                    { id: 'logo-pack', name: 'Logo Pack 55L', volume: 55, weight: 1.5, model: 'https://www.dropbox.com/scl/fi/3qlhg7ysstxabxak26pi7/PTRCW29W7MGQ48DC_Logo.glb?rlkey=j1py53ycp3zkqodyd8jn7k02q&raw=1' },
+                    { id: 'ultralight-30', name: 'UL Backpack 30', volume: 30, weight: 0.6, model: null }
+                ],
+
+                addItem(itemId) {
+                    const item = App.library.items.find(i => i.id === itemId);
+                    if (item) {
+                        // GÃ©nÃ©rer un ID unique pour cette instance
+                        const instanceId = `${itemId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                        App.state.packItems.push({
+                            ...item, 
+                            instanceId: instanceId,
+                            originalId: itemId,
+                            qty: 1,
+                            carrier: null // Porteur non assignÃ© par dÃ©faut
+                        });
+                        App.pack.render();
+                        App.pack.updateStats();
+                        App.library.render();
+                        App.group.calculateMemberWeights();
+                    }
+                },
+
+                removeItem(instanceId) {
+                    App.state.packItems = App.state.packItems.filter(i => i.instanceId !== instanceId);
+                    App.pack.render();
+                    App.pack.updateStats();
+                    App.library.render();
+                    App.group.calculateMemberWeights();
+                },
+
+                render() {
+                    const container = document.getElementById('packList');
+                    
+                    if (App.state.packItems.length === 0) {
+                        container.innerHTML = `
+                            <div class="flex flex-col items-center justify-center h-32 text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 opacity-50"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path></svg>
+                                <p class="text-sm">Glissez des Ã©quipements ici</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    container.innerHTML = App.state.packItems.map(item => {
+                        // CrÃ©er le dropdown des porteurs avec badges
+                        const carrierOptions = (App.state.groupMembers && App.state.groupMembers.length > 0) 
+                            ? App.state.groupMembers.map(member => {
+                                const selected = item.carrier === member.id ? 'selected' : '';
+                                const badge = member.type === 'adult' ? '[A]' : '[E]';
+                                return `<option value="${member.id}" ${selected}>${badge} ${member.name}</option>`;
+                            }).join('')
+                            : '';
+                        
+                        // Trouver la couleur de la catÃ©gorie
+                        const categoryData = App.library.categories.find(c => c.id === item.category);
+                        const categoryColor = categoryData ? categoryData.color : '#64748b';
+                        const categoryBg = categoryData ? categoryData.bg : '#f1f5f9';
+                        const categoryIcon = categoryData ? categoryData.icon : 'ðŸ“¦';
+                        
+                        // Couleur du porteur (pour un Ã©ventuel badge)
+                        const carrierColor = item.carrier && App.state.groupMembers && App.state.groupMembers.length > 0 ? 
+                            (App.state.groupMembers.find(m => m.id === item.carrier)?.color || '#94a3b8') : 
+                            '#94a3b8';
+                        
+                        return `
+                        <div class="pack-item" style="border-left: 4px solid ${categoryColor}; background: linear-gradient(to right, ${categoryBg}15 0%, white 100%);">
+                            <div class="flex items-center gap-2 flex-1">
+                                <div class="text-lg" title="${categoryData ? categoryData.name : 'CatÃ©gorie'}">${categoryIcon}</div>
+                                <img src="${item.img}" alt="${item.name}" class="w-10 h-10 rounded object-contain bg-slate-50">
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-medium text-slate-700 truncate">${item.name}</div>
+                                    <div class="text-[10px] text-slate-400">${item.weight}kg Â· ${item.volume}L</div>
+                                </div>
+                            </div>
+                            <select 
+                                onchange="App.pack.assignCarrier('${item.instanceId}', this.value)"
+                                class="text-xs border-2 ${item.carrier ? 'border-emerald-500 bg-emerald-50' : 'border-slate-300'} rounded px-2 py-1.5 text-slate-700 font-medium outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                                style="min-width: 130px;">
+                                <option value="">ðŸ‘¤ Non assignÃ©</option>
+                                ${carrierOptions}
+                            </select>
+                            <button onclick="App.pack.removeItem('${item.instanceId}')" class="equip-btn remove">âœ•</button>
+                        </div>
+                        `;
+                    }).join('');
+                },
+
+                assignCarrier(instanceId, carrierId) {
+                    const item = App.state.packItems.find(i => i.instanceId === instanceId);
+                    if (item) {
+                        item.carrier = carrierId || null;
+                        App.pack.render();
+                        App.group.calculateMemberWeights();
+                        console.log(`ðŸ“¦ Item "${item.name}" assignÃ© Ã : ${carrierId || 'Non assignÃ©'}`);
+                    }
+                },
+
+                updateStats() {
+                    const totalWeight = App.state.packItems.reduce((sum, i) => sum + i.weight * (i.qty || 1), 0);
+                    const totalVolume = App.state.packItems.reduce((sum, i) => sum + i.volume * (i.qty || 1), 0);
+                    const packVolume = App.state.selectedPack ? App.state.selectedPack.volume : 50;
+                    
+                    document.getElementById('totalWeightDisplay').textContent = totalWeight.toFixed(1);
+                    document.getElementById('packItemCount').textContent = App.state.packItems.length + ' objets';
+                    
+                    const weightPct = Math.min((totalWeight / App.state.targetWeight) * 100, 100);
+                    const weightBar = document.getElementById('weightBar');
+                    weightBar.style.width = weightPct + '%';
+                    weightBar.className = `h-full transition-all duration-500 rounded-full ${weightPct > 100 ? 'bg-red-500' : weightPct > 80 ? 'bg-yellow-500' : 'bg-emerald-500'}`;
+                    
+                    const volumePct = Math.min((totalVolume / packVolume) * 100, 100);
+                    document.getElementById('volumeBar').style.width = volumePct + '%';
+                    document.getElementById('volumeText').textContent = `${totalVolume.toFixed(0)} L / ${packVolume} L`;
+                },
+
+                renderPackSelect() {
+                    const select = document.getElementById('packSelect');
+                    select.innerHTML = App.pack.packs.map(p => `
+                        <option value="${p.id}">${p.name} (${p.volume}L - ${p.weight}kg)</option>
+                    `).join('');
+                    App.state.selectedPack = App.pack.packs[0];
+                },
+
+                selectPack(packId) {
+                    const pack = App.pack.packs.find(p => p.id === packId);
+                    if (pack) {
+                        App.state.selectedPack = pack;
+                        App.pack.updateStats();
+                        if (pack.model) {
+                            App.three3d.loadModel(pack.model);
+                        }
+                    }
+                }
+            },
+            // DESTINATIONS
+            destinations: [
+                { id: 'tmb', name: 'Tour du Mont-Blanc', country: 'FR/IT/CH', days: 4, km: 80, denivele: 6000, season: 'Juil./Sept.', difficulty: 'ModÃ©rÃ©', image: 'https://images.unsplash.com/photo-1520962880247-cfaf541c8724?w=400&q=80', refugeInfo: 'Refuges gardÃ©s mi-juin Ã  mi-sept.', elevation: { labels: ['Houches', 'Borrant', 'Seigne', 'Courmay.', 'Champex', 'Balme', 'Fin'], data: [1800, 1700, 2516, 1200, 1470, 2191, 1000] } },
+                { id: 'queyras', name: 'Tour du Queyras (GR58)', country: 'France', days: 6, km: 115, denivele: 7900, season: 'Juin/Sept.', difficulty: 'Difficile', image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=400&q=80', refugeInfo: 'GÃ®tes dans tous les villages.', elevation: { labels: ['Ceillac', 'Girardin', 'St-VÃ©ran', 'Chamou.', 'AbriÃ¨s', 'Furfande'], data: [1640, 2700, 2042, 2884, 1550, 2500] } },
+                { id: 'auvergne', name: 'Volcans d\'Auvergne', country: 'France', days: 5, km: 85, denivele: 3500, season: 'Mai/Oct.', difficulty: 'Facile', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80', refugeInfo: 'ChaÃ®ne des Puys UNESCO.', elevation: { labels: ['Bourboule', 'Sancy', 'Pavin', 'Morand', 'P.DÃ´me', 'Volvic'], data: [850, 1886, 1197, 1401, 1465, 450] } },
+                { id: 'gr20', name: 'GR20 - Corse', country: 'France', days: 3, km: 45, denivele: 4200, season: 'Juin/Sept.', difficulty: 'TrÃ¨s difficile', image: 'https://images.unsplash.com/photo-1600298881974-6be191ceeda1?w=400&q=80', refugeInfo: 'Refuges PNRC obligatoires.', elevation: { labels: ['Calenzana', 'Ortu', 'Carrozzu', 'Ascu'], data: [275, 1570, 1270, 1422] } },
+                { id: 'hrp', name: 'Haute Route PyrÃ©nÃ©enne (HRP)', country: 'France/Espagne', days: 10, km: 180, denivele: 12000, season: 'Juil./AoÃ»t', difficulty: 'TrÃ¨s difficile', image: 'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=400&q=80', refugeInfo: 'Refuges non gardÃ©s, bivouac.', elevation: { labels: ['Lescun', 'ArrÃ©moulit', 'Bayssellance', 'Carlit', 'Colomers', 'Aneto', 'Maladeta'], data: [900, 2305, 2651, 2921, 2135, 3404, 2580] } },
+                { id: 'vercors', name: 'Tour du Vercors (GR91)', country: 'France', days: 5, km: 95, denivele: 5200, season: 'Mai/Sept.', difficulty: 'ModÃ©rÃ©', image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&q=80', refugeInfo: 'GÃ®tes et refuges gardÃ©s.', elevation: { labels: ['St-Nizier', 'Moucherotte', 'Grand Veymont', 'Archiane', 'Col Rousset', 'Die'], data: [1180, 1901, 2341, 945, 1367, 415] } }
+            ],
+
+            // UI
+            ui: {
+                switchTab(tab) {
+                    App.state.currentTab = tab;
+                    document.querySelectorAll('.nav-tab').forEach((t, i) => t.classList.toggle('active', (tab === 'planner' && i === 0) || (tab === 'basecamp' && i === 1)));
+                    document.getElementById('plannerTab').classList.toggle('active', tab === 'planner');
+                    document.getElementById('plannerContent').classList.toggle('active', tab === 'planner');
+                    document.getElementById('basecampContent').classList.toggle('active', tab === 'basecamp');
+                },
+
+                handleScenarioChange(value) {
+                    App.state.currentScenario = value;
+                    const dest = App.destinations.find(d => d.id === value);
+                    if (dest) App.ui.updateTripSummary(dest);
+                },
+
+                updateTripSummary(dest) {
+                    document.getElementById('tripNameDisplay').textContent = dest.name;
+                    document.getElementById('tripDaysDisplay').textContent = dest.days;
+                    document.getElementById('tripKmDisplay').textContent = dest.km;
+                    document.getElementById('tripDeniveleDisplay').textContent = dest.denivele;
+                    document.getElementById('tripSeasonDisplay').textContent = dest.season;
+                    document.getElementById('tripRefugeInfo').textContent = dest.refugeInfo;
+                    App.charts.updateElevationChart(dest);
+                },
+
+                openDestinationsModal() {
+                    document.getElementById('destinationsModal').classList.remove('hidden');
+                    document.getElementById('destinationsGrid').innerHTML = App.destinations.map(dest => `
+                        <div class="destination-card glass-card overflow-hidden" onclick="App.ui.selectDestination('${dest.id}')">
+                            <div class="relative h-40 overflow-hidden">
+                                <img src="${dest.image}" alt="${dest.name}" class="w-full h-full object-cover">
+                                <span class="absolute top-2 right-2 px-2 py-0.5 bg-white/90 rounded-full text-xs font-semibold">${dest.difficulty}</span>
+                            </div>
+                            <div class="p-4">
+                                <h4 class="font-bold text-slate-800 text-base mb-1">${dest.name}</h4>
+                                <p class="text-xs text-slate-500 mb-2">${dest.country}</p>
+                                <div class="flex gap-3 text-xs text-slate-600">
+                                    <span>ðŸ“… ${dest.days}j</span>
+                                    <span>ðŸ“ ${dest.km}km</span>
+                                    <span>â›°ï¸ ${dest.denivele}m</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                },
+
+                closeDestinationsModal() { document.getElementById('destinationsModal').classList.add('hidden'); },
+                
+                selectDestination(id) {
+                    document.getElementById('scenarioSelect').value = id;
+                    App.ui.handleScenarioChange(id);
+                    App.ui.closeDestinationsModal();
+                },
+
+                openAccountSettings() { document.getElementById('accountModal').classList.remove('hidden'); if(typeof lucide !== 'undefined') lucide.createIcons(); },
+                closeAccountSettings() { document.getElementById('accountModal').classList.add('hidden'); },
+                
+                openCustomItemModal() { 
+                    document.getElementById('customItemModal').classList.remove('hidden');
+                    // Auto-calc volume
+                    ['customItemL', 'customItemW', 'customItemH'].forEach(id => {
+                        document.getElementById(id).addEventListener('input', () => {
+                            const L = parseFloat(document.getElementById('customItemL').value) || 0;
+                            const W = parseFloat(document.getElementById('customItemW').value) || 0;
+                            const H = parseFloat(document.getElementById('customItemH').value) || 0;
+                            document.getElementById('customItemVolume').textContent = ((L * W * H) / 1000).toFixed(1);
+                        });
+                    });
+                },
+                closeCustomItemModal() { document.getElementById('customItemModal').classList.add('hidden'); }
+            },
+
+            // Account sections
+            account: {
+                showSection(section) {
+                    document.querySelectorAll('.account-menu-item').forEach(el => el.classList.remove('active'));
+                    event.target.closest('.account-menu-item').classList.add('active');
+                    
+                    const content = document.getElementById('accountContent');
+                    const sections = {
+                        profile: `<h4 class="text-lg font-bold mb-4">ðŸ‘¤ Profil</h4><div class="p-4 bg-slate-50 rounded-xl"><div class="flex items-center gap-4"><div class="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center font-bold text-xl">MF</div><div><div class="font-semibold">Marco Fumagalli</div><div class="text-sm text-slate-500">marco@example.com</div><span class="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">â­ Premium</span></div></div></div>`,
+                        subscription: `<h4 class="text-lg font-bold mb-4">ðŸ’³ Abonnement</h4><div class="p-4 bg-emerald-50 rounded-xl border-2 border-emerald-200"><div class="flex items-center justify-between"><div><span class="text-emerald-700 font-bold">Plan Premium</span><p class="text-sm text-slate-600">9,99 â‚¬/mois Â· Renouv. le 15/01/2026</p></div><button class="btn-primary text-sm">GÃ©rer</button></div></div>`,
+                        billing: `<h4 class="text-lg font-bold mb-4">ðŸ§¾ Facturation</h4><div class="space-y-3"><div class="p-3 bg-slate-50 rounded-lg flex justify-between"><span>15/12/2024 - Premium</span><span class="text-emerald-600">9,99 â‚¬</span></div><div class="p-3 bg-slate-50 rounded-lg flex justify-between"><span>15/11/2024 - Premium</span><span class="text-emerald-600">9,99 â‚¬</span></div></div>`,
+                        notifications: `<h4 class="text-lg font-bold mb-4">ðŸ”” Notifications</h4><div class="space-y-3"><label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg"><span>Emails promotionnels</span><input type="checkbox" checked class="w-5 h-5 accent-emerald-500"></label><label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg"><span>Rappels de randonnÃ©e</span><input type="checkbox" checked class="w-5 h-5 accent-emerald-500"></label></div>`,
+                        language: `<h4 class="text-lg font-bold mb-4">ðŸŒ Langue</h4><select class="form-input"><option selected>FranÃ§ais</option><option>English</option><option>Deutsch</option><option>EspaÃ±ol</option><option>Italiano</option></select>`,
+                        units: `<h4 class="text-lg font-bold mb-4">ðŸ“ UnitÃ©s & Mesures</h4><div class="space-y-3"><div><label class="form-label">Poids</label><select class="form-input"><option selected>Kilogrammes (kg)</option><option>Livres (lb)</option></select></div><div><label class="form-label">Distance</label><select class="form-input"><option selected>KilomÃ¨tres (km)</option><option>Miles (mi)</option></select></div></div>`,
+                        export: `<h4 class="text-lg font-bold mb-4">ðŸ“¤ Export donnÃ©es</h4><div class="space-y-3"><button class="btn-primary w-full justify-center">Exporter en JSON</button><button class="btn-primary w-full justify-center">Exporter en CSV</button></div>`,
+                        import: `<h4 class="text-lg font-bold mb-4">ðŸ“¥ Import donnÃ©es</h4><div class="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center"><p class="text-slate-500">Glissez un fichier JSON ou CSV ici</p><button class="btn-primary mt-4">Parcourir</button></div>`,
+                        sync: `<h4 class="text-lg font-bold mb-4">ðŸ”„ Synchronisation</h4><div class="p-4 bg-emerald-50 rounded-xl"><p class="text-emerald-700 font-semibold">âœ“ SynchronisÃ©</p><p class="text-sm text-slate-600">DerniÃ¨re sync: il y a 2 minutes</p></div>`,
+                        password: `<h4 class="text-lg font-bold mb-4">ðŸ”’ Mot de passe</h4><div class="space-y-3"><div><label class="form-label">Mot de passe actuel</label><input type="password" class="form-input" value="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"></div><div><label class="form-label">Nouveau mot de passe</label><input type="password" class="form-input"></div><button class="btn-primary mt-2">Modifier</button></div>`,
+                        '2fa': `<h4 class="text-lg font-bold mb-4">ðŸ›¡ï¸ Double authentification</h4><div class="p-4 bg-yellow-50 rounded-xl border border-yellow-200"><p class="text-yellow-700 font-semibold">âš ï¸ Non activÃ©e</p><button class="btn-primary mt-2">Activer la 2FA</button></div>`,
+                        sessions: `<h4 class="text-lg font-bold mb-4">ðŸ“± Sessions actives</h4><div class="space-y-3"><div class="p-3 bg-slate-50 rounded-lg flex justify-between items-center"><div><span class="font-medium">Chrome - MacBook Pro</span><p class="text-xs text-slate-500">Paris, France Â· Actif maintenant</p></div><span class="text-emerald-500 text-xs">Actuel</span></div><div class="p-3 bg-slate-50 rounded-lg flex justify-between items-center"><div><span class="font-medium">Safari - iPhone 15</span><p class="text-xs text-slate-500">Paris Â· Il y a 3h</p></div><button class="text-red-500 text-xs">RÃ©voquer</button></div></div>`,
+                        privacy: `<h4 class="text-lg font-bold mb-4">ðŸ‘ï¸ ConfidentialitÃ©</h4><div class="space-y-3"><label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg"><span>Profil public</span><input type="checkbox" class="w-5 h-5 accent-emerald-500"></label><label class="flex items-center justify-between p-3 bg-slate-50 rounded-lg"><span>Partage des statistiques</span><input type="checkbox" checked class="w-5 h-5 accent-emerald-500"></label></div>`,
+                        rgpd: `<h4 class="text-lg font-bold mb-4">ðŸ“‹ RGPD</h4><div class="space-y-3"><button class="w-full p-3 text-left bg-slate-50 rounded-lg hover:bg-slate-100">ðŸ“„ TÃ©lÃ©charger mes donnÃ©es</button><button class="w-full p-3 text-left bg-red-50 text-red-600 rounded-lg hover:bg-red-100">ðŸ—‘ï¸ Supprimer mon compte</button></div>`,
+                        terms: `<h4 class="text-lg font-bold mb-4">ðŸ“œ CGU</h4><div class="p-4 bg-slate-50 rounded-xl max-h-64 overflow-y-auto text-sm text-slate-600"><p>Conditions GÃ©nÃ©rales d'Utilisation de Backpack Planner...</p><p class="mt-2">Version 2.1 - Mise Ã  jour le 01/01/2025</p></div>`,
+                        help: `<h4 class="text-lg font-bold mb-4">â“ Centre d'aide</h4><div class="space-y-2"><a href="#" class="block p-3 bg-slate-50 rounded-lg hover:bg-slate-100">ðŸ“– Guide de dÃ©marrage</a><a href="#" class="block p-3 bg-slate-50 rounded-lg hover:bg-slate-100">ðŸŽ¥ Tutoriels vidÃ©o</a><a href="#" class="block p-3 bg-slate-50 rounded-lg hover:bg-slate-100">ðŸ’¬ Contacter le support</a></div>`,
+                        feedback: `<h4 class="text-lg font-bold mb-4">ðŸ’¬ Feedback</h4><textarea class="form-input h-32" placeholder="Partagez vos suggestions..."></textarea><button class="btn-primary mt-3">Envoyer</button>`
+                    };
+                    content.innerHTML = sections[section] || sections.profile;
+                }
+            },
+            // CHARTS
+            charts: {
+                initElevationChart() {
+                    const ctx = document.getElementById('elevationChart').getContext('2d');
+                    const dest = App.destinations[0];
+                    
+                    App.state.elevationChart = new Chart(ctx, {
+                        type: 'line',
+                        data: { labels: dest.elevation.labels, datasets: [{ data: dest.elevation.data, fill: true, backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: '#10b981', borderWidth: 2, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#10b981' }] },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { display: true, grid: { display: false }, ticks: { font: { size: 8 }, maxRotation: 45 } },
+                                y: { display: true, min: 500, max: 3000, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 8 }, callback: v => v + 'm' } }
+                            }
+                        }
+                    });
+                },
+                updateElevationChart(dest) {
+                    if (App.state.elevationChart) {
+                        App.state.elevationChart.data.labels = dest.elevation.labels;
+                        App.state.elevationChart.data.datasets[0].data = dest.elevation.data;
+                        const minAlt = Math.min(...dest.elevation.data);
+                        const maxAlt = Math.max(...dest.elevation.data);
+                        App.state.elevationChart.options.scales.y.min = Math.floor(minAlt / 500) * 500;
+                        App.state.elevationChart.options.scales.y.max = Math.ceil(maxAlt / 500) * 500 + 300;
+                        App.state.elevationChart.update();
+                    }
+                }
+            },
+
+            // 3D VIEWER
+            three3d: {
+                switchView(view) {
+                    const canvas = document.getElementById('canvas-container');
+                    const youtube = document.getElementById('youtube-container');
+                    document.getElementById('btn3d').classList.toggle('active', view === '3d');
+                    document.getElementById('btnVideo').classList.toggle('active', view === 'video');
+                    canvas.style.display = view === '3d' ? 'block' : 'none';
+                    youtube.classList.toggle('active', view === 'video');
+                },
+
+                init() {
+                    const container = document.getElementById('canvas-container');
+                    const width = container.clientWidth || 300;
+                    const height = container.clientHeight || 260;
+
+                    // Scene
+                    App.state.scene = new THREE.Scene();
+                    App.state.scene.background = new THREE.Color(0xf1f5f9);
+
+                    // Camera
+                    App.state.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+                    App.state.camera.position.set(0, 1, 3);
+
+                    // Renderer
+                    App.state.renderer = new THREE.WebGLRenderer({ antialias: true });
+                    App.state.renderer.setSize(width, height);
+                    App.state.renderer.setPixelRatio(window.devicePixelRatio);
+                    container.appendChild(App.state.renderer.domElement);
+
+                    // Controls
+                    if (typeof THREE.OrbitControls !== 'undefined') {
+                        App.state.controls = new THREE.OrbitControls(App.state.camera, App.state.renderer.domElement);
+                        App.state.controls.enableDamping = true;
+                        App.state.controls.dampingFactor = 0.05;
+                    }
+
+                    // Lights
+                    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+                    App.state.scene.add(ambientLight);
+                    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                    directionalLight.position.set(5, 10, 7);
+                    App.state.scene.add(directionalLight);
+
+                    // Placeholder backpack
+                    const geometry = new THREE.BoxGeometry(0.6, 1, 0.4);
+                    const material = new THREE.MeshPhongMaterial({ color: 0x2C5E50 });
+                    const placeholder = new THREE.Mesh(geometry, material);
+                    placeholder.name = 'placeholder';
+                    App.state.scene.add(placeholder);
+
+                    // Load first pack model
+                    const firstPack = App.pack.packs[0];
+                    if (firstPack.model) {
+                        App.three3d.loadModel(firstPack.model);
+                    }
+
+                    // Animation loop
+                    function animate() {
+                        requestAnimationFrame(animate);
+                        if (App.state.controls) App.state.controls.update();
+                        if (App.state.backpackModel) {
+                            App.state.backpackModel.rotation.y += 0.003;
+                        }
+                        App.state.renderer.render(App.state.scene, App.state.camera);
+                    }
+                    animate();
+
+                    // Resize handler
+                    window.addEventListener('resize', () => {
+                        const w = container.clientWidth;
+                        const h = container.clientHeight;
+                        App.state.camera.aspect = w / h;
+                        App.state.camera.updateProjectionMatrix();
+                        App.state.renderer.setSize(w, h);
+                    });
+                },
+
+                loadModel(url) {
+                    if (!url || typeof THREE.GLTFLoader === 'undefined') return;
+                    
+                    // Remove existing model
+                    if (App.state.backpackModel) {
+                        App.state.scene.remove(App.state.backpackModel);
+                    }
+                    
+                    // Remove placeholder
+                    const placeholder = App.state.scene.getObjectByName('placeholder');
+                    if (placeholder) App.state.scene.remove(placeholder);
+
+                    const loader = new THREE.GLTFLoader();
+                    loader.load(url, (gltf) => {
+                        App.state.backpackModel = gltf.scene;
+                        App.state.backpackModel.scale.set(1, 1, 1);
+                        App.state.backpackModel.position.set(0, -0.5, 0);
+                        
+                        // Auto-center and scale
+                        const box = new THREE.Box3().setFromObject(App.state.backpackModel);
+                        const size = box.getSize(new THREE.Vector3());
+                        const maxDim = Math.max(size.x, size.y, size.z);
+                        const scale = 1.5 / maxDim;
+                        App.state.backpackModel.scale.multiplyScalar(scale);
+                        
+                        const center = box.getCenter(new THREE.Vector3());
+                        App.state.backpackModel.position.sub(center.multiplyScalar(scale));
+                        
+                        App.state.scene.add(App.state.backpackModel);
+                    }, undefined, (error) => {
+                        console.log('Error loading model:', error);
+                    });
+                }
+            },
+
+            // AI
+            ai: {
+                generateList() {
+                    alert('ðŸ¤– GÃ©nÃ©ration IA en cours...\n\nCette fonctionnalitÃ© analysera votre destination et gÃ©nÃ©rera automatiquement une liste d\'Ã©quipements optimisÃ©e !');
+                }
+            },
+
+            // EXPORT
+            export: {
+                copyToWhatsApp() {
+                    const items = App.state.packItems.map(i => `â€¢ ${i.name} (${i.weight}kg)`).join('\n');
+                    const total = App.state.packItems.reduce((s, i) => s + i.weight, 0).toFixed(1);
+                    const text = `ðŸŽ’ Ma liste Backpack Planner\n\n${items || 'Sac vide'}\n\nâš–ï¸ Total: ${total}kg`;
+                    if (navigator.share) navigator.share({ text });
+                    else { navigator.clipboard.writeText(text); alert('Liste copiÃ©e !'); }
+                }
+            },
+
+            reset() {
+                if (confirm('Voulez-vous vous dÃ©connecter ?')) location.reload();
+            },
+            init() {
+                // Initialisation des composants
+                App.group.updateMembers();
+                App.library.renderCategories();
+                App.library.render();
+                App.pack.renderPackSelect();
+                App.pack.render();
+                App.drag.init();
+                App.three3d.init();
+                
+                // Initialisation UI
+                App.ui.switchTab('planner');
+                const defaultDest = App.destinations[0];
+                App.charts.initElevationChart();
+                App.ui.updateTripSummary(defaultDest);
+
+                // Initialisation Basecamp
+                App.basecamp.init();
+                
+                console.log("Backpack Planner initialized ðŸš€");
+            },
+
+            // GESTION DU GROUPE
+            group: {
+                updateMembers() {
+                    const nbAdults = parseInt(document.getElementById('nbAdults').value) || 1;
+                    const nbChildren = parseInt(document.getElementById('nbChildren').value) || 0;
+                    
+                    App.state.groupMembers = [];
+                    
+                    // GÃ©nÃ©rer les membres
+                    for(let i=1; i<=nbAdults; i++) {
+                        App.state.groupMembers.push({ 
+                            id: `adult-${i}`, 
+                            name: i===1 ? 'Moi (Marco)' : `Adulte ${i}`, 
+                            type: 'adult', 
+                            color: '#10b981', // Emerald
+                            capacity: 15,
+                            load: 0 
+                        });
+                    }
+                    for(let i=1; i<=nbChildren; i++) {
+                        App.state.groupMembers.push({ 
+                            id: `child-${i}`, 
+                            name: `Enfant ${i}`, 
+                            type: 'child', 
+                            color: '#f59e0b', // Amber
+                            capacity: 5,
+                            load: 0 
+                        });
+                    }
+                    
+                    App.state.targetWeight = (nbAdults * 15) + (nbChildren * 5); // CapacitÃ© totale estimÃ©e
+                    document.getElementById('targetWeightDisplay').textContent = App.state.targetWeight;
+                    
+                    App.group.renderMembers();
+                    App.pack.render(); // Re-render pack items to update carrier dropdowns
+                },
+                
+                renderMembers() {
+                    const container = document.getElementById('groupNames');
+                    container.innerHTML = App.state.groupMembers.map(m => `
+                        <div class="flex items-center gap-2 text-sm p-1 rounded hover:bg-white transition" id="member-row-${m.id}">
+                            <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-sm" style="background: ${m.color}; color: white;">
+                                ${m.name.charAt(0)}
+                            </div>
+                            <span class="text-slate-700 text-xs font-medium flex-1">${m.name}</span>
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs font-bold text-slate-800" id="weight-${m.id}">0.0</span>
+                                <span class="text-[10px] text-slate-400">/ ${m.capacity}kg</span>
+                            </div>
+                            <div class="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                <div id="bar-${m.id}" class="h-full bg-slate-400 transition-all duration-300" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    `).join('');
+                    
+                    App.group.calculateMemberWeights();
+                },
+                
+                calculateMemberWeights() {
+                    // Reset loads
+                    App.state.groupMembers.forEach(m => m.load = 0);
+                    
+                    // Distribute loads
+                    let unassignedWeight = 0;
+                    App.state.packItems.forEach(item => {
+                        if (item.carrier) {
+                            const member = App.state.groupMembers.find(m => m.id === item.carrier);
+                            if (member) member.load += item.weight;
+                        } else {
+                            unassignedWeight += item.weight;
+                        }
+                    });
+                    
+                    // Update UI
+                    App.state.groupMembers.forEach(m => {
+                        const elWeight = document.getElementById(`weight-${m.id}`);
+                        const elBar = document.getElementById(`bar-${m.id}`);
+                        if (elWeight && elBar) {
+                            elWeight.textContent = m.load.toFixed(1);
+                            const pct = Math.min((m.load / m.capacity) * 100, 100);
+                            elBar.style.width = `${pct}%`;
+                            elBar.style.backgroundColor = pct > 100 ? '#ef4444' : m.color;
+                        }
+                    });
+                    
+                    // Show warning for unassigned items if any
+                    // (Optional logic could go here)
+                }
+            },
+            // BASECAMP
+            basecamp: {
+                init() {
+                    // Simuler des donnÃ©es
+                    App.basecamp.renderInventory();
+                },
+
+                switchTab(tab) {
+                    document.querySelectorAll('.basecamp-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+                    document.querySelectorAll('.basecamp-content').forEach(c => c.classList.toggle('active', c.id === `basecamp${tab.charAt(0).toUpperCase() + tab.slice(1)}`));
+                    if(tab === 'saved') App.basecamp.renderSavedPacks();
+                    if(tab === 'history') App.basecamp.renderHistory();
+                },
+
+                renderInventory() {
+                    const grid = document.getElementById('inventoryGrid');
+                    grid.innerHTML = App.library.items.slice(0, 12).map(item => `
+                        <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                            <img src="${item.img}" class="w-10 h-10 rounded object-cover bg-white">
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-sm text-slate-800 truncate">${item.name}</div>
+                                <div class="text-xs text-slate-500">${item.category}</div>
+                            </div>
+                            <input type="checkbox" class="w-5 h-5 accent-emerald-500 cursor-pointer" onchange="App.basecamp.updateownedCount()">
+                        </div>
+                    `).join('');
+                    document.getElementById('totalCount').textContent = App.library.items.length;
+                    App.basecamp.updateownedCount();
+                },
+
+                updateownedCount() {
+                    const count = document.querySelectorAll('#inventoryGrid input:checked').length;
+                    document.getElementById('ownedCount').textContent = count;
+                },
+
+                markAllOwned() {
+                    document.querySelectorAll('#inventoryGrid input[type="checkbox"]').forEach(c => c.checked = true);
+                    App.basecamp.updateownedCount();
+                },
+
+                clearAllOwned() {
+                    document.querySelectorAll('#inventoryGrid input[type="checkbox"]').forEach(c => c.checked = false);
+                    App.basecamp.updateownedCount();
+                },
+
+                // Saved Packs logic
+                savedPacks: [],
+                saveCurrentPack() {
+                    if(App.state.packItems.length === 0) { alert('Votre sac est vide !'); return; }
+                    const name = prompt("Nom de ce sac ?", "Mon sac TMB " + new Date().toLocaleDateString());
+                    if(name) {
+                        App.basecamp.savedPacks.push({
+                            id: Date.now(),
+                            name: name,
+                            date: new Date().toLocaleDateString(),
+                            items: JSON.parse(JSON.stringify(App.state.packItems)),
+                            totalWeight: App.state.packItems.reduce((s,i) => s + i.weight, 0)
+                        });
+                        alert('Sac sauvegardÃ© !');
+                        App.basecamp.renderSavedPacks();
+                    }
+                },
+
+                renderSavedPacks() {
+                    if (App.basecamp.savedPacks.length === 0) {
+                        document.getElementById('savedPacksGrid').innerHTML = '<p class="col-span-2 text-center text-slate-400 py-8">Aucun sac sauvegardÃ©</p>';
+                        return;
+                    }
+                    document.getElementById('savedPacksGrid').innerHTML = App.basecamp.savedPacks.map(pack => `
+                        <div class="glass-card p-4 relative group">
+                            <button onclick="App.basecamp.deletePack(${pack.id})" class="absolute top-2 right-2 text-slate-300 hover:text-red-500 hidden group-hover:block px-2">&times;</button>
+                            <h4 class="font-bold text-slate-800">${pack.name}</h4>
+                            <p class="text-xs text-slate-500 mb-3">SauvegardÃ© le ${pack.date} Â· ${pack.items.length} objets</p>
+                            <div class="flex justify-between items-center">
+                                <span class="text-lg font-bold text-emerald-600">${pack.totalWeight.toFixed(1)} kg</span>
+                                <button onclick="App.basecamp.loadPack(${pack.id})" class="btn-primary text-xs py-1.5 px-3">Charger</button>
+                            </div>
+                        </div>
+                    `).join('');
+                },
+
+                loadPack(id) {
+                    const pack = App.basecamp.savedPacks.find(p => p.id === id);
+                    if(pack && confirm('Charger ce sac remplacera le contenu actuel. Continuer ?')) {
+                        App.state.packItems = JSON.parse(JSON.stringify(pack.items));
+                        App.pack.render();
+                        App.pack.updateStats();
+                        App.ui.switchTab('planner');
+                    }
+                },
+
+                deletePack(id) {
+                    if(confirm('Supprimer ce sac ?')) {
+                        App.basecamp.savedPacks = App.basecamp.savedPacks.filter(p => p.id !== id);
+                        App.basecamp.renderSavedPacks();
+                    }
+                },
+
+                // History
+                historyData: [
+                    { name: 'GR20 Corse', date: 'Juin 2023', status: 'completed', weight: 12.5 },
+                    { name: 'Tour du Queyras', date: 'Sept 2022', status: 'completed', weight: 11.2 }
+                ],
+                renderHistory() {
+                    document.getElementById('trekHistoryList').innerHTML = App.basecamp.historyData.map(trek => `
+                        <div class="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-lg shadow-sm">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-lg">ðŸ</div>
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm">${trek.name}</h4>
+                                    <p class="text-xs text-slate-500">${trek.date} Â· Poids: ${trek.weight}kg</p>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-green-600 uppercase tracking-wide px-2 py-1 bg-green-50 rounded">TerminÃ©</span>
+                        </div>
+                    `).join('');
+                },
+                addTrek() { alert('FonctionnalitÃ© Ã  venir !'); }
+            }
+        };
+
+        // DÃ©marrage
+        document.addEventListener('DOMContentLoaded', App.init);
+
+    </script>
+</body>
+</html>
