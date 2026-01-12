@@ -1,3 +1,53 @@
+# YETI — Your European Trek Intelligence
+
+YETI is a premium preparation platform for long-distance treks and pilgrimages in Europe.
+
+YETI is NOT:
+- a GPS navigation app
+- a GPX mapping tool
+- a real-time tracking platform
+
+YETI focuses exclusively on the phase BEFORE departure.
+
+## Core Problem
+Long-distance hikers and pilgrims experience strong preparation anxiety:
+- What gear to bring
+- How much weight is acceptable
+- What to remove or replace
+- Whether the setup matches terrain, season, weather, and personal limits
+
+This anxiety is currently fragmented across forums, spreadsheets, blogs, and contradictory advice.
+
+## What YETI Does
+YETI helps users prepare with confidence by:
+- Analyzing equipment lists (weight, redundancy, gaps)
+- Adapting gear to specific treks, seasons, and profiles
+- Providing structured, validated preparation guidance
+- Reducing uncertainty before departure
+
+YETI positions itself as:
+"The European Outdoor Copilot — before you leave."
+
+## What Makes YETI Different
+- Focus on preparation, not navigation
+- Structured gear intelligence instead of generic checklists
+- European-specific treks, regulations, and practices
+- Designed for serious hikers and pilgrims, not casual walks
+
+## Target Users
+- Serious hikers (35–55) preparing multi-day or multi-week treks
+- Pilgrims (Camino, Via Francigena) with preparation anxiety
+- Guides and agencies needing structured preparation tools
+
+## Strategic Constraint
+YETI assumes that navigation platforms (Komoot, AllTrails, Strava) already dominate GPS and mapping.
+YETI does not attempt to compete on navigation.
+
+YETI must therefore build defensible value in preparation intelligence, not maps.
+
+
+
+
 # YETI V3.2 — Outdoor Trek Platform
 
 ## Nouveautés V3.2
