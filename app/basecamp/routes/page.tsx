@@ -1,209 +1,161 @@
+// app/basecamp/routes/page.tsx
 "use client";
 
-import { useState, useMemo } from 'react';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 
-// --- MOCK DE DONNÉES ---
+// Port dynamiquement la map pour éviter les erreurs SSR de Leaflet
+const ExpeditionMap = dynamic(() => import('@/components/maps/ExpeditionMap'), { 
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full bg-bg-surface-2 animate-pulse flex items-center justify-center rounded-2xl">
+      <Icons.Map className="w-12 h-12 text-text-faint" />
+    </div>
+  )
+});
 
-interface RouteSummary {
-    id: string;
-    name: string;
-    distance: number; // km
-    elevation: number; // m
-    dateCompleted: string;
-    isJubilee: boolean; // Marque si c'est un trek "Trophée"
-    slug: string;
-}
-
-const MOCK_ROUTES: RouteSummary[] = [
-    { id: 'gr20', name: 'GR20 (Corse)', distance: 180, elevation: 11000, dateCompleted: '2024-08-15', isJubilee: true, slug: 'gr20-corse' },
-    { id: 'tmb', name: 'Tour du Mont-Blanc', distance: 170, elevation: 10000, dateCompleted: '2023-07-20', isJubilee: false, slug: 'tmb-suisse' },
-    { id: 'camino', name: 'Camino Francés (Partiel)', distance: 350, elevation: 5000, dateCompleted: '2023-05-01', isJubilee: true, slug: 'camino-frances' },
-    { id: 'lac-annecy', name: 'Tour du Lac d\'Annecy', distance: 40, elevation: 200, dateCompleted: '2024-09-10', isJubilee: false, slug: 'lac-annecy' },
+const STAGES = [
+  { id: 1, name: "Calenzana → Ortu di u Piobbu", dist: "10.5 km", elev: "+1550m", status: "completed" },
+  { id: 2, name: "Ortu di u Piobbu → Carozzu", dist: "7.2 km", elev: "+650m", status: "completed" },
+  { id: 3, name: "Carozzu → Asco Stagnu", dist: "4.8 km", elev: "+780m", status: "active" },
+  { id: 4, name: "Asco Stagnu → Tighjettu", dist: "8.5 km", elev: "+1050m", status: "pending" },
+  { id: 5, name: "Tighjettu → Ciottulu", dist: "6.2 km", elev: "+620m", status: "pending" },
+  { id: 6, name: "Ciottulu → Manganu", dist: "14.5 km", elev: "+650m", status: "pending" },
 ];
 
-// --- COMPOSANTS INTERNES ---
-
-const JubileeCard = ({ route }: { route: RouteSummary }) => {
-    return (
-        <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-stone-200 shadow-sm transition hover:shadow-md hover:border-orange-300">
-            <Icons.Trophy className="w-8 h-8 text-yellow-600 shrink-0" />
-            <div className="flex-1">
-                <Link href={`/treks/${route.slug}`} className="text-lg font-bold text-stone-900 hover:text-orange-600 transition">
-                    {route.name}
-                </Link>
-                <p className="text-sm text-stone-500">
-                    Complété le {route.dateCompleted}. {route.distance} km | {route.elevation.toLocaleString()} m D+.
-                </p>
-            </div>
-            <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">JUBILÉ</span>
-        </div>
-    );
-};
-
-const RouteItem = ({ route }: { route: RouteSummary }) => {
-    return (
-        <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-stone-200 hover:border-blue-300 transition">
-            <div className="flex-1">
-                <Link href={`/treks/${route.slug}`} className="text-base font-bold text-stone-900 hover:text-blue-600 transition">
-                    {route.name}
-                </Link>
-                <p className="text-xs text-stone-500 mt-0.5">
-                    {route.distance} km | {route.elevation.toLocaleString()} m D+
-                </p>
-            </div>
-            <div className="flex items-center gap-4">
-                {/* CORRECTION TYPAGE: Emballage de Icons.Trophy avec title */}
-                {route.isJubilee && (
-                    <span title="Trophée JUBILÉ" className="cursor-help">
-                        <Icons.Trophy className="w-4 h-4 text-yellow-500" />
-                    </span>
-                )}
-                <Link href={`/basecamp/packbuilder?trek=${route.slug}`} className="text-xs text-stone-500 hover:text-orange-600 font-medium flex items-center gap-1">
-                    <Icons.NavPack className="w-3 h-3" />
-                    Pack
-                </Link>
-                <Icons.ChevronRight className="w-4 h-4 text-stone-400" />
-            </div>
-        </div>
-    );
-};
-
-
-// --- COMPOSANT PRINCIPAL ---
-
-export default function RoutesPage() {
-    const [searchTerm, setSearchTerm] = useState(''); 
-    
-    const filteredRoutes = useMemo(() => {
-        return MOCK_ROUTES.filter(route => 
-            route.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ).sort((a, b) => b.dateCompleted.localeCompare(a.dateCompleted)); 
-    }, [searchTerm]);
-
-    const jubileeRoutes = useMemo(() => filteredRoutes.filter(r => r.isJubilee), [filteredRoutes]);
+export default function ItineraryPage() {
+    const [activeStage, setActiveStage] = useState(3);
 
     return (
-        <div className="min-h-screen bg-stone-50 pb-20 font-sans">
+        <div className="h-screen flex flex-col bg-bg-base transition-colors overflow-hidden">
             {/* HEADER */}
-            <header className="bg-white border-b border-stone-200 shadow-sm mb-8">
-                <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-black text-stone-900 flex items-center gap-3">
-                            <Icons.NavRoutes className="w-7 h-7 text-orange-600" />
-                            Mes Routes & Trophées
-                        </h1>
-                        <p className="text-sm text-stone-500 mt-1 ml-10">Gère tes parcours enregistrés et tes réussites.</p>
+            <header className="h-16 border-b border-border-subtle flex items-center justify-between px-8 bg-bg-surface-1 shrink-0 z-30">
+                <div className="flex items-center gap-4">
+                    <h1 className="text-xl font-black text-text-primary tracking-tight">Itinéraire</h1>
+                    <div className="h-4 w-[1px] bg-border-subtle" />
+                    <span className="text-sm text-text-muted font-medium uppercase tracking-widest">GR20 Nord</span>
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="flex -space-x-2">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="w-8 h-8 rounded-full border-2 border-bg-surface-1 bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-[10px] font-black text-white">M</div>
+                        ))}
                     </div>
-                    <Link href="/basecamp" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors flex items-center gap-2">
-                        <Icons.ArrowLeft className="w-4 h-4" /> Retour Basecamp
-                    </Link>
+                    <button className="premium-card px-4 py-2 rounded-xl flex items-center gap-2 text-cyan-vibrant hover:bg-cyan-vibrant/10 transition-colors">
+                        <Icons.Share className="w-4 h-4" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Partager</span>
+                    </button>
                 </div>
             </header>
 
-            <div className="max-w-7xl mx-auto px-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                {/* COLONNE GAUCHE : Listes (Routes & Jubilés) */}
-                <div className="lg:col-span-2 space-y-8">
+            <div className="flex-1 flex overflow-hidden">
+                {/* STAGES SIDEBAR */}
+                <aside className="w-80 border-r border-border-subtle bg-bg-surface-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+                    <div className="text-[10px] font-black text-text-faint uppercase tracking-[0.2em] px-2 mb-4">Étapes du Trek</div>
                     
-                    {/* Bar de Recherche et Filtre */}
-                    <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-stone-200 shadow-sm">
-                        <Icons.Search className="w-5 h-5 text-stone-400" />
-                        <input
-                            type="text"
-                            placeholder="Rechercher une route ou une ville..."
-                            className="flex-1 bg-transparent border-none focus:ring-0 text-stone-800 placeholder-stone-400"
-                            value={searchTerm}
-                            onChange={(e) => {
-                                const newValue = e.target.value;
-                                if (newValue !== searchTerm) {
-                                    setSearchTerm(newValue);
-                                }
-                            }}
-                        />
-                        {/* CORRECTION TYPAGE: Emballage de Icons.Filter avec title */}
-                        <span title="Filtrer les routes" className="cursor-pointer">
-                            <Icons.Filter className="w-5 h-5 text-stone-500 hover:text-orange-600 transition" />
-                        </span>
+                    <div className="space-y-2">
+                        {STAGES.map((stage) => (
+                            <div
+                                key={stage.id}
+                                onClick={() => setActiveStage(stage.id)}
+                                className={cn(
+                                    "p-4 rounded-xl cursor-pointer transition-all border",
+                                    activeStage === stage.id
+                                        ? "bg-bg-surface-2 border-cyan-vibrant/50 shadow-lg shadow-cyan-vibrant/5 scale-[1.02]"
+                                        : "bg-transparent border-transparent hover:bg-bg-surface-3"
+                                )}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className={cn(
+                                        "text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest",
+                                        stage.status === 'completed' ? "bg-emerald-vibrant/10 text-emerald-vibrant" :
+                                        stage.status === 'active' ? "bg-orange-vibrant/10 text-orange-vibrant animate-pulse" :
+                                        "bg-bg-surface-4 text-text-faint"
+                                    )}>
+                                        Jour {stage.id}
+                                    </span>
+                                    <span className="text-[10px] font-black font-mono text-text-faint">{stage.dist}</span>
+                                </div>
+                                <h4 className={cn(
+                                  "text-sm font-bold tracking-tight",
+                                  activeStage === stage.id ? "text-text-primary" : "text-text-muted"
+                                )}>{stage.name}</h4>
+                                <div className="mt-2 text-[10px] font-black text-cyan-vibrant uppercase tracking-widest">{stage.elev} D+</div>
+                            </div>
+                        ))}
                     </div>
 
-                    {/* Section JUBILÉ */}
-                    {jubileeRoutes.length > 0 && (
-                        <div className="space-y-4">
-                            <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
-                                <Icons.Trophy className="w-6 h-6 text-yellow-600" />
-                                JUBILÉ ({jubileeRoutes.length})
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {jubileeRoutes.map(route => (
-                                    <JubileeCard key={route.id} route={route} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                    
-                    {/* Section Routes Enregistrées */}
-                    <div className="space-y-4 pt-4 border-t border-stone-200">
-                        <h2 className="text-xl font-bold text-stone-900">
-                            Toutes les Routes ({filteredRoutes.length})
-                        </h2>
-                        <div className="space-y-3">
-                            {filteredRoutes.map(route => (
-                                <RouteItem key={route.id} route={route} />
-                            ))}
-                        </div>
+                    <button className="w-full mt-6 py-4 rounded-xl border-2 border-dashed border-border-default text-text-faint hover:text-text-muted hover:border-text-faint transition-all flex flex-col items-center justify-center gap-1 group">
+                         <Icons.Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                         <span className="text-[10px] font-black uppercase tracking-widest">Ajouter une variante</span>
+                    </button>
+                </aside>
+
+                {/* MAP AREA */}
+                <main className="flex-1 relative flex flex-col">
+                    <div className="flex-1 p-4">
+                         <div className="w-full h-full premium-card rounded-2xl overflow-hidden relative shadow-2xl ring-1 ring-border-subtle">
+                              <ExpeditionMap />
+                              
+                              {/* Overlays */}
+                              <div className="absolute top-6 left-6 z-10 space-y-3">
+                                   <div className="premium-card p-4 rounded-xl bg-bg-surface-1/80 backdrop-blur-md border-border-subtle flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-cyan-vibrant flex items-center justify-center shadow-lg shadow-cyan-vibrant/20">
+                                             <Icons.NavRoutes className="w-5 h-5 text-white" />
+                                        </div>
+                                        <div>
+                                             <div className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Position Actuelle</div>
+                                             <div className="text-sm font-black text-text-primary tracking-tight">Refuge d&apos;Asco Stagnu</div>
+                                        </div>
+                                   </div>
+                              </div>
+
+                              <div className="absolute top-6 right-6 z-10 flex flex-col gap-2">
+                                   <button className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-colors bg-bg-surface-1/80 backdrop-blur-md"><Icons.Plus className="w-5 h-5" /></button>
+                                   <button className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-colors bg-bg-surface-1/80 backdrop-blur-md"><Icons.Plus className="w-5 h-5 rotate-45" /></button>
+                              </div>
+                         </div>
                     </div>
 
-                    {filteredRoutes.length === 0 && (
-                        <p className="text-center text-stone-500 p-8 bg-white rounded-xl border border-stone-200">
-                            Aucune route trouvée. Essayez une recherche différente ou <Link href="/treks" className="text-orange-600 hover:underline">explorez nos treks</Link>.
-                        </p>
-                    )}
+                    {/* ELEVATION PROFILE */}
+                    <div className="h-48 px-4 pb-4">
+                         <div className="w-full h-full premium-card rounded-2xl p-6 relative group overflow-hidden">
+                              <div className="flex items-center justify-between mb-4">
+                                   <div className="text-[10px] font-black text-text-faint uppercase tracking-[0.2em]">Profil d&apos;Élévation Global</div>
+                                   <div className="text-xs font-black text-cyan-vibrant font-mono">11,000 m D+ Total</div>
+                              </div>
+                              
+                              {/* Mock Elevation Chart */}
+                              <div className="relative h-20 w-full flex items-end gap-[2px]">
+                                   {Array.from({ length: 120 }).map((_, i) => {
+                                        const h = 20 + Math.sin(i * 0.1) * 30 + Math.cos(i * 0.05) * 20 + (i/2);
+                                        return (
+                                             <div 
+                                                key={i} 
+                                                className={cn(
+                                                    "flex-1 bg-cyan-vibrant/20 rounded-t-sm transition-all duration-500 hover:bg-cyan-vibrant group-hover:opacity-100",
+                                                    i === 45 ? "bg-orange-vibrant animate-pulse" : "opacity-40"
+                                                )} 
+                                                style={{ height: `${h}%` }} 
+                                             />
+                                        );
+                                   })}
+                                   {/* Active Marker on chart */}
+                                   <div className="absolute bottom-0 left-[37.5%] top-0 w-[2px] bg-orange-vibrant shadow-[0_0_12px_rgba(249,115,22,0.5)] z-20" />
+                              </div>
 
-                </div>
-
-                {/* COLONNE DROITE : Carte & Statistiques */}
-                <div className="lg:col-span-1 space-y-8 sticky top-10">
-                    
-                    {/* Carte Mock */}
-                    <div className="p-6 bg-stone-950 rounded-2xl shadow-xl border border-stone-800 text-white min-h-[350px]">
-                        <h3 className="text-xs font-bold uppercase text-stone-400 mb-4 tracking-widest flex items-center gap-2">
-                            <Icons.Map className="w-4 h-4 text-orange-600" />
-                            Carte (Mock)
-                        </h3>
-                        <div className="h-64 flex items-center justify-center bg-stone-800 rounded-lg border-2 border-dashed border-stone-700">
-                                <Icons.Compass className="w-12 h-12 text-stone-600 opacity-50" />
-                        </div>
+                              <div className="mt-4 flex justify-between text-[9px] font-black text-text-faint uppercase tracking-widest">
+                                   <span>Calenzana (0 km)</span>
+                                   <span>Asco (32 km)</span>
+                                   <span>Vizzavona (90 km)</span>
+                                   <span>Conca (180 km)</span>
+                              </div>
+                         </div>
                     </div>
-
-                    {/* Stats de l'Aventurier */}
-                    <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-sm">
-                            <h3 className="text-lg font-bold text-stone-900 mb-4 flex items-center gap-2">
-                            <Icons.StatsDistance className="w-5 h-5 text-blue-600" />
-                            Statistiques Globales
-                        </h3>
-                        <div className="space-y-3 text-sm">
-                            <div className="flex justify-between items-center border-b border-stone-100 pb-2">
-                                <span className="text-stone-600">Distance Totale</span>
-                                <span className="font-bold text-stone-900">740 km</span>
-                            </div>
-                            <div className="flex justify-between items-center border-b border-stone-100 pb-2">
-                                <span className="text-stone-600">Dénivelé Total</span>
-                                <span className="font-bold text-stone-900">26 200 m</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-stone-600">Jours de Trek</span>
-                                <span className="font-bold text-stone-900">30 Jours</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-                </div>
+                </main>
             </div>
         </div>
     );

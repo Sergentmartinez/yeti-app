@@ -1,125 +1,248 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { Icons } from "@/components/icons";
-import { MOCK_USER, getAllTreks } from "@/lib/data";
 import { cn } from "@/lib/utils";
-import { Logo } from "@/components/Logo"; // ✅ Import du nouveau Logo
 
-export default function BasecampPage() {
-    const user = MOCK_USER;
-    const allTreks = getAllTreks();
-    const currentTrek = allTreks[0];
-
+export default function MissionControlPage() {
     return (
-        <div className="min-h-screen bg-stone-50 pb-20">
+        <div className="min-h-screen bg-bg-base transition-colors duration-300">
             {/* HEADER */}
-            <header className="bg-white border-b border-stone-200 shadow-sm">
-                <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-black text-stone-900 flex items-center gap-3">
-                            <Icons.Home className="w-7 h-7 text-orange-600" />
-                            Tableau de Bord
-                        </h1>
-                        <p className="text-sm text-stone-500 mt-1 ml-10">Vue d'ensemble de vos projets et statistiques.</p>
+            <header className="h-14 border-b border-border-subtle flex items-center justify-between px-6 bg-bg-surface-2/80 backdrop-blur-md sticky top-0 z-30">
+                <div className="flex items-center gap-3">
+                    <Icons.TrendingUp className="w-5 h-5 text-text-muted" />
+                    <h1 className="text-base font-black text-text-primary tracking-tight">Mission Control</h1>
+                </div>
+                <div className="flex items-center gap-3 text-[11px] text-text-muted font-medium">
+                    <span>Dernière synchro : Il y a 5 min</span>
+                    <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <Icons.Settings className="w-4 h-4 cursor-pointer hover:text-text-primary transition-colors" />
                     </div>
-                    <Link href="/" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors flex items-center gap-2">
-                        <Icons.ArrowLeft className="w-4 h-4" /> Retour Accueil
-                    </Link>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-6 py-10">
+            <div className="p-6 max-w-[1300px] mx-auto space-y-5">
                 
+                {/* TOP STATS CARD */}
+                <section className="premium-card rounded-2xl overflow-hidden flex relative">
+                    <div className="flex-1 p-6 z-10">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Icons.TrendingUp className="w-4 h-4 text-text-muted" />
+                            <span className="text-xs font-bold text-text-muted uppercase tracking-wider">Mission Control</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-6">
+                            <div className="border-r border-border-subtle pr-6">
+                                <div className="text-3xl font-black text-text-primary">2</div>
+                                <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mt-1">Projets actifs</div>
+                            </div>
+                            <div className="border-r border-border-subtle pr-6">
+                                <div className="text-3xl font-black text-text-primary">18,4<span className="text-sm font-bold text-text-muted ml-1">kg</span></div>
+                                <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mt-1">Pack actuel</div>
+                            </div>
+                            <div className="border-r border-border-subtle pr-6">
+                                <div className="text-3xl font-black text-text-primary">J-22</div>
+                                <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mt-1">J-22</div>
+                            </div>
+                            <div>
+                                <div className="text-3xl font-black text-text-primary">87<span className="text-sm font-bold text-text-muted ml-0.5">/100</span></div>
+                                <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mt-1">Sherpa</div>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Visual Background - Hidden in Dark Mode? Or adapted? */}
+                     <div className="w-[280px] relative hidden sm:block">
+                        <Image 
+                            src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80" 
+                            alt="Mountains" 
+                            fill 
+                            className="object-cover"
+                        />
+                         {/* Gradient adaptation for shared themes */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-bg-surface-2 via-bg-surface-2/60 to-transparent" />
+                    </div>
+                </section>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* CARTE 1: MON PROJET */}
-                    <div className="md:col-span-2 bg-stone-900 rounded-2xl p-8 text-white relative overflow-hidden group shadow-xl">
-                        <div className="absolute inset-0 opacity-40">
-                             {currentTrek && (
-                                 <Image 
-                                    src={currentTrek.heroImage} 
-                                    alt="Trek Background" 
+                {/* MIDDLE ROW: Actions + Projects */}
+                <div className="grid grid-cols-12 gap-5">
+                    {/* Actions */}
+                    <section className="col-span-4 premium-card rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-5">
+                            <Icons.AlertTriangle className="w-4 h-4 text-accent-orange" />
+                            <span className="text-xs font-black text-text-secondary uppercase tracking-wider">Actions</span>
+                        </div>
+                        <div className="space-y-4">
+                            <div className="flex items-start gap-3">
+                                <div className="w-2 h-2 rounded-full bg-accent-orange mt-1.5 shrink-0" />
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-bold text-text-primary">Réserver refuges J5-J8</span>
+                                        <span className="text-[9px] font-black text-text-muted bg-bg-surface-3 px-2 py-0.5 rounded">GR20</span>
+                                    </div>
+                                    <span className="text-[11px] text-text-muted">Pack actuel</span>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="w-2 h-2 rounded-full bg-text-muted mt-1.5 shrink-0" />
+                                <div className="flex-1">
+                                    <span className="text-sm font-bold text-text-primary">Commander cartouches gaz</span>
+                                    <div className="text-[11px] text-text-muted">Logistique</div>
+                                </div>
+                            </div>
+                            <div className="flex items-start gap-3">
+                                <div className="w-2 h-2 rounded-full bg-text-muted mt-1.5 shrink-0" />
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-bold text-text-primary">Tester matériel neuf</span>
+                                        <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">Validé</span>
+                                    </div>
+                                    <span className="text-[11px] text-text-muted">Validé</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Project Cards */}
+                    <div className="col-span-8 grid grid-cols-2 gap-5">
+                        {/* GR20 Card */}
+                        <div className="premium-card rounded-2xl overflow-hidden hover:shadow-card-hover transition-all group cursor-pointer">
+                            <div className="h-28 relative">
+                                <Image 
+                                    src="https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&q=80" 
+                                    alt="GR20" 
                                     fill 
                                     className="object-cover transition-transform duration-700 group-hover:scale-105"
-                                 />
-                             )}
-                             <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-900/80 to-transparent" />
-                        </div>
-                        
-                        <div className="relative z-10 flex flex-col h-full justify-between">
-                            <div>
-                                <div className="inline-flex items-center gap-2 bg-orange-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-4">
-                                    <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                                    En préparation
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
+                                <div className="absolute bottom-3 left-4 text-white font-black text-lg drop-shadow-md">GR20 Nord — Sud</div>
+                            </div>
+                            <div className="p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-[10px] font-bold text-text-muted">Progression</span>
+                                    <span className="text-[10px] font-bold text-text-primary">3 / 22 étapes</span>
                                 </div>
-                                <h2 className="text-3xl font-black uppercase tracking-tight mb-2">
-                                    {currentTrek?.name || "Aucun projet"}
-                                </h2>
-                                <p className="text-stone-300 max-w-md text-sm line-clamp-2">
-                                    {currentTrek?.description}
-                                </p>
-                            </div>
-
-                            <div className="mt-8 pt-8 border-t border-white/10 flex items-center justify-between">
-                                <div className="flex gap-8">
-                                    <div>
-                                        <p className="text-xs text-stone-500 uppercase font-bold">Départ</p>
-                                        <p className="font-mono font-bold text-lg">J-42</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-stone-500 uppercase font-bold">Sac</p>
-                                        <p className="font-mono font-bold text-lg">4.2kg</p>
-                                    </div>
+                                <div className="h-1.5 bg-bg-surface-3 rounded-full overflow-hidden mb-3">
+                                    <div className="h-full bg-accent-orange rounded-full" style={{ width: '14%' }} />
                                 </div>
-                                {currentTrek && (
-                                    <Link 
-                                        href={`/treks/${currentTrek.slug}`}
-                                        className="bg-white text-stone-950 px-6 py-3 rounded-xl font-bold text-sm hover:bg-stone-200 transition-colors"
-                                    >
-                                        Reprendre
-                                    </Link>
-                                )}
+                                <div className="flex justify-between text-[10px] font-bold text-text-muted">
+                                    <span className="flex items-center gap-1"><Icons.Archive className="w-3 h-3" /> Pack: 9,4 kg</span>
+                                    <span className="bg-accent-cyan/10 text-accent-cyan px-1.5 py-0.5 rounded">J-22</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {/* CARTE 2: PACK BUILDER */}
-                    <div className="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm flex flex-col justify-between">
-                        <div>
-                            <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-orange-600 mb-4">
-                                <Icons.NavPack className="w-6 h-6" />
+                        {/* West Highland Way Card */}
+                        <div className="premium-card rounded-2xl overflow-hidden opacity-60 hover:opacity-100 transition-opacity grayscale hover:grayscale-0 cursor-pointer">
+                            <div className="h-28 relative">
+                                <Image 
+                                    src="https://images.unsplash.com/photo-1501555088652-021faa106b9b?auto=format&fit=crop&q=80" 
+                                    alt="West Highland Way" 
+                                    fill 
+                                    className="object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/40" />
+                                <div className="absolute bottom-3 left-4 text-white font-black text-lg drop-shadow-md">West Highland Way</div>
                             </div>
-                            <h3 className="text-xl font-bold text-stone-900 mb-2">Pack Builder</h3>
-                            <p className="text-stone-500 text-sm">
-                                Optimisez le poids de votre sac gramme par gramme.
-                            </p>
+                            <div className="p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                     <span className="text-[10px] font-bold text-text-muted">Statut</span>
+                                    <span className="text-[10px] font-bold text-text-primary">Complet</span>
+                                </div>
+                                <div className="flex justify-between items-center mt-4">
+                                    <span className="text-sm font-black text-text-primary">28,5 kg</span>
+                                    <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">Terminé</span>
+                                </div>
+                            </div>
                         </div>
-                        <Link 
-                            href="/basecamp/packbuilder"
-                            className="mt-6 w-full flex items-center justify-center gap-2 border border-stone-200 py-3 rounded-xl text-sm font-bold text-stone-700 hover:border-stone-300 hover:bg-stone-50 transition-all"
-                        >
-                            Ouvrir <Icons.ArrowRight className="w-4 h-4" />
-                        </Link>
-                    </div>
-
-                    {/* CARTE 3: STATS */}
-                    <div className="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
-                        <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-6">Vos Statistiques</h3>
-                        <ul className="space-y-4">
-                            <li className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-stone-600">Treks</span>
-                                <span className="text-stone-900 font-black font-mono">0</span>
-                            </li>
-                            <li className="flex justify-between items-center">
-                                <span className="text-sm font-medium text-stone-600">Distance</span>
-                                <span className="text-stone-900 font-black font-mono">0 km</span>
-                            </li>
-                        </ul>
                     </div>
                 </div>
-            </main>
+
+                {/* BOTTOM ROW: Equipement (x2) + Sherpa Insights */}
+                <div className="grid grid-cols-12 gap-5">
+                    {/* Équipement Left */}
+                    <section className="col-span-5 premium-card rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-5">
+                            <Icons.Archive className="w-4 h-4 text-text-muted" />
+                            <span className="text-xs font-black text-text-secondary uppercase tracking-wider">Équipement</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-3 mb-5">
+                            {[
+                                { val: '62', lab: 'Items' },
+                                { val: '18,4 kg', lab: 'Total' },
+                                { val: '8', lab: 'À trier' },
+                                { val: '18,4', lab: 'Base' },
+                            ].map((s, i) => (
+                                <div key={i} className="text-center p-2 rounded-xl bg-bg-surface-3 border border-border-subtle">
+                                    <div className="text-sm font-black text-text-primary truncate">{s.val}</div>
+                                    <div className="text-[8px] font-bold text-text-muted uppercase truncate">{s.lab}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="space-y-2">
+                            {[
+                                { c: 'bg-emerald-500', l: 'Shelter', w: '3.2 kg' },
+                                { c: 'bg-blue-500', l: 'Sleep', w: '2.1 kg' },
+                                { c: 'bg-accent-orange', l: 'Cooking', w: '1.4 kg' },
+                                { c: 'bg-text-muted', l: 'Divers', w: '6.3 kg' },
+                            ].map((cat, i) => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <div className={cn("w-2 h-2 rounded-full", cat.c)} />
+                                    <span className="text-xs font-bold text-text-secondary flex-1">{cat.l}</span>
+                                    <span className="text-[10px] font-black text-text-muted">{cat.w}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-5 pt-4 border-t border-border-subtle">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Icons.Zap className="w-3 h-3 text-accent-purple" />
+                                <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">Sherpa Insights</span>
+                            </div>
+                            <div className="h-1 bg-bg-surface-3 rounded-full overflow-hidden">
+                                <div className="h-full bg-accent-orange w-1/3" />
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Équipement Right + Sherpa Insights */}
+                    <section className="col-span-7 premium-card rounded-2xl p-5">
+                        <div className="flex items-center gap-2 mb-5">
+                            <Icons.Menu className="w-4 h-4 text-text-muted" />
+                            <span className="text-xs font-black text-text-secondary uppercase tracking-wider">Détails</span>
+                        </div>
+                        <div className="space-y-1">
+                            {[
+                                { l: 'Shelter', cur: '3.2 kg', tot: '3.2 kg' },
+                                { l: 'Sleep', cur: '2.1 kg', tot: '2.1 kg' },
+                                { l: 'Cooking', cur: '1.4 kg', tot: '1.4 kg' },
+                                { l: 'Divers', cur: '6.3 kg', tot: '6.3 kg' },
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-center gap-4 p-2.5 rounded-lg hover:bg-bg-surface-3 transition-colors cursor-pointer group">
+                                    <span className="text-sm font-bold text-text-secondary group-hover:text-text-primary flex-1">{item.l}</span>
+                                    <span className="text-xs font-black text-text-primary">{item.cur}</span>
+                                    <Icons.ChevronRight className="w-3 h-3 text-text-muted group-hover:text-accent-orange transition-colors" />
+                                    <span className="text-xs font-black text-text-primary">{item.tot}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-5 pt-4 border-t border-border-subtle">
+                             <div className="flex items-center gap-2 mb-3">
+                                <Icons.User className="w-3 h-3 text-text-secondary" />
+                                <span className="text-[10px] font-black text-text-secondary uppercase tracking-wider">Sherpa Insights</span>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 p-2 rounded-lg bg-accent-orange/5 border border-accent-orange/10">
+                                    <Icons.AlertTriangle className="w-3 h-3 text-accent-orange" />
+                                    <span className="text-xs font-bold text-text-secondary">Tente MSR utilisée sur 2 projets <span className="text-[10px] text-text-muted">(GR20 - Weekend Vosge)</span></span>
+                                </div>
+                                <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    <span className="text-xs font-bold text-text-secondary">Température prévue — 21°C — vérifier confort duvet</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
         </div>
     );
 }
