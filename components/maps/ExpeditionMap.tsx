@@ -21,13 +21,13 @@ function ZoomControls() {
   return (
     <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
       <button 
-        onClick={() => map.zoomIn()}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); map.zoomIn(); }}
         className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"
       >
         <Icons.Plus className="w-5 h-5" />
       </button>
       <button 
-        onClick={() => map.zoomOut()}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); map.zoomOut(); }}
         className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"
       >
         <Icons.Minus className="w-5 h-5" />
@@ -45,6 +45,66 @@ function MapPicker({ onPointSelected }: { onPointSelected: (lat: number, lng: nu
     return null;
 }
 
+// Inner component to ensure map context is available
+function MapInner({ stages, pickingMode, onSelectPoint }: any) {
+    const map = useMap();
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    useEffect(() => {
+        if (map) {
+            setIsLoaded(true);
+            // Invalider la taille après un court délai pour forcer le recalcul du DOM Leaflet
+            setTimeout(() => map.invalidateSize(), 100);
+        }
+    }, [map]);
+
+    const polylinePositions = stages
+        .filter((s: any) => s.coords)
+        .map((s: any) => s.coords as [number, number]);
+
+    if (!isLoaded) return null;
+
+    return (
+        <>
+            <LayersControl position="top-right">
+                <LayersControl.BaseLayer checked name="Tactical (Map)">
+                    <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                </LayersControl.BaseLayer>
+                <LayersControl.BaseLayer name="Satellite">
+                    <TileLayer
+                        attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                    />
+                </LayersControl.BaseLayer>
+                <LayersControl.Overlay name="Topo Lines">
+                    <TileLayer
+                        url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                        attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+                    />
+                </LayersControl.Overlay>
+            </LayersControl>
+
+            {polylinePositions.length > 1 && (
+                <Polyline positions={polylinePositions} color="#22d3ee" weight={4} opacity={0.8} />
+            )}
+            
+            {stages.filter((s: any) => s.coords).map((stage: any) => (
+                <Marker key={stage.id} position={stage.coords!}>
+                    <Popup>
+                        <div className="text-xs font-black uppercase text-text-primary">{stage.name}</div>
+                    </Popup>
+                </Marker>
+            ))}
+            
+            {pickingMode && onSelectPoint && <MapPicker onPointSelected={onSelectPoint} />}
+            <ZoomControls />
+        </>
+    );
+}
+
 interface ExpeditionMapProps {
     stages: Array<{
         id: number;
@@ -56,21 +116,23 @@ interface ExpeditionMapProps {
 }
 
 export default function ExpeditionMap({ stages, onSelectPoint, pickingMode }: ExpeditionMapProps) {
-  const [mounted, setMounted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setIsClient(true);
   }, []);
+
+  if (!isClient) {
+    return (
+        <div className="w-full h-full bg-bg-surface-2 animate-pulse flex items-center justify-center rounded-2xl">
+          <Icons.Map className="w-12 h-12 text-text-faint" />
+        </div>
+    );
+  }
 
   const polylinePositions = stages
     .filter(s => s.coords)
     .map(s => s.coords as [number, number]);
-
-  if (!mounted) return (
-    <div className="w-full h-full bg-bg-surface-2 animate-pulse flex items-center justify-center rounded-2xl">
-      <Icons.Map className="w-12 h-12 text-text-faint" />
-    </div>
-  );
 
   return (
     <div className="relative w-full h-full">
@@ -81,39 +143,7 @@ export default function ExpeditionMap({ stages, onSelectPoint, pickingMode }: Ex
         scrollWheelZoom={false}
         zoomControl={false}
       >
-        <LayersControl position="top-right">
-            <LayersControl.BaseLayer checked name="Tactical (Map)">
-                <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-            </LayersControl.BaseLayer>
-            <LayersControl.BaseLayer name="Satellite">
-                <TileLayer
-                    attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                />
-            </LayersControl.BaseLayer>
-            <LayersControl.Overlay name="Topo Lines">
-                <TileLayer
-                    url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                    attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
-                />
-            </LayersControl.Overlay>
-        </LayersControl>
-
-        {polylinePositions.length > 1 && (
-            <Polyline positions={polylinePositions} color="#22d3ee" weight={4} opacity={0.8} />
-        )}
-        {stages.filter(s => s.coords).map((stage, i) => (
-           <Marker key={stage.id} position={stage.coords!}>
-              <Popup>
-                  <div className="text-xs font-black uppercase text-text-primary">{stage.name}</div>
-              </Popup>
-           </Marker>
-        ))}
-        {pickingMode && onSelectPoint && <MapPicker onPointSelected={onSelectPoint} />}
-        <ZoomControls />
+        <MapInner stages={stages} pickingMode={pickingMode} onSelectPoint={onSelectPoint} />
       </MapContainer>
     </div>
   );
