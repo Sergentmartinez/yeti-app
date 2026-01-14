@@ -1,9 +1,10 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents, LayersControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Icons } from '@/components/icons';
+import { useState } from 'react';
 
 // Fix for default marker icons in Leaflet with Next.js
 const DefaultIcon = L.icon({
@@ -55,7 +56,6 @@ interface ExpeditionMapProps {
 }
 
 export default function ExpeditionMap({ stages, onSelectPoint, pickingMode }: ExpeditionMapProps) {
-  // Extract coordinates for the polyline
   const polylinePositions = stages
     .filter(s => s.coords)
     .map(s => s.coords as [number, number]);
@@ -69,10 +69,27 @@ export default function ExpeditionMap({ stages, onSelectPoint, pickingMode }: Ex
         scrollWheelZoom={false}
         zoomControl={false}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <LayersControl position="top-right">
+            <LayersControl.BaseLayer checked name="Tactical (Map)">
+                <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Satellite">
+                <TileLayer
+                    attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                />
+            </LayersControl.BaseLayer>
+            <LayersControl.Overlay name="Topo Lines">
+                <TileLayer
+                    url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+                    attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
+                />
+            </LayersControl.Overlay>
+        </LayersControl>
+
         {polylinePositions.length > 1 && (
             <Polyline positions={polylinePositions} color="#22d3ee" weight={4} opacity={0.8} />
         )}
