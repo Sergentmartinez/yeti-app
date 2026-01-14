@@ -125,12 +125,14 @@ export default function ItineraryPage() {
                             <div
                                 key={stage.id}
                                 onClick={() => setActiveStage(stage.id)}
+                                onDoubleClick={() => openEditModal(stage.id)}
                                 className={cn(
                                     "p-4 rounded-xl cursor-pointer transition-all border group relative",
                                     activeStage === stage.id
                                         ? "bg-bg-surface-2 border-orange-vibrant/50 shadow-lg shadow-orange-vibrant/5 scale-[1.02]"
                                         : "bg-transparent border-transparent hover:bg-bg-surface-3"
                                 )}
+                                title="Double-clic pour éditer"
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <span className={cn(
