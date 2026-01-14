@@ -2,7 +2,7 @@
 "use client";
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { Modal } from '@/components/ui/Modal';
@@ -17,26 +17,64 @@ const ExpeditionMap = dynamic(() => import('@/components/maps/ExpeditionMap'), {
   )
 });
 
-const INITIAL_STAGES = [
-  { id: 1, name: "Calenzana → Ortu di u Piobbu", dist: "10.5 km", elev: "1550", status: "completed" },
-  { id: 2, name: "Ortu di u Piobbu → Carozzu", dist: "7.2 km", elev: "650", status: "completed" },
-  { id: 3, name: "Carozzu → Asco Stagnu", dist: "4.8 km", elev: "780", status: "completed" },
-  { id: 4, name: "Asco Stagnu → Tighjettu", dist: "8.5 km", elev: "1050", status: "active" },
-  { id: 5, name: "Tighjettu → Ciottulu", dist: "6.2 km", elev: "620", status: "active" },
-  { id: 6, name: "Ciottulu → Manganu", dist: "14.5 km", elev: "650", status: "active" },
+interface Stage {
+    id: number;
+    name: string;
+    dist: string;
+    elev: string;
+    status: 'completed' | 'active' | 'pending';
+    coords?: [number, number];
+}
+
+const INITIAL_STAGES: Stage[] = [
+  { id: 1, name: "Calenzana", dist: "0", elev: "0", status: "completed", coords: [42.4722, 8.8681] },
+  { id: 2, name: "Ortu di u Piobbu", dist: "10.5", elev: "1550", status: "completed", coords: [42.4167, 8.8833] },
+  { id: 3, name: "Carozzu", dist: "7.2", elev: "650", status: "completed", coords: [42.3667, 8.9167] },
+  { id: 4, name: "Asco Stagnu", dist: "4.8", elev: "780", status: "active", coords: [42.3333, 8.8667] },
+  { id: 5, name: "Tighjettu", dist: "8.5", elev: "1050", status: "active", coords: [42.3000, 8.9000] },
+  { id: 6, name: "Ciottulu di i Mori", dist: "6.2", elev: "620", status: "active", coords: [42.2611, 8.9222] },
 ];
 
 export default function ItineraryPage() {
-    const [stages, setStages] = useState(INITIAL_STAGES);
+    const [stages, setStages] = useState<Stage[]>(INITIAL_STAGES);
     const [activeStage, setActiveStage] = useState(4);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingStageId, setEditingStageId] = useState<number | null>(null);
+    const [isPickingMode, setIsPickingMode] = useState(false);
     
     // Form state
     const [stageName, setStageName] = useState("");
-    const [stageCoords, setStageCoords] = useState("");
+    const [stageCoords, setStageCoords] = useState<[number, number] | null>(null);
     const [stageElev, setStageElev] = useState("");
     const [stageDist, setStageDist] = useState("");
+
+    // --- LOGIC: Calculation from coordinates ---
+    const calculateStats = (lat: number, lng: number) => {
+        const lastStageWithCoords = [...stages].reverse().find(s => s.coords && (editingStageId ? s.id !== editingStageId : true));
+        if (lastStageWithCoords && lastStageWithCoords.coords) {
+            const [lat1, lon1] = lastStageWithCoords.coords;
+            // Haversine distance (approximate)
+            const R = 6371; // km
+            const dLat = (lat - lat1) * Math.PI / 180;
+            const dLon = (lng - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * 
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const d = R * c;
+            
+            setStageDist(d.toFixed(1));
+            // Mock elevation calculation: distance * 50m (variable terrain)
+            setStageElev(Math.round(d * 85).toString()); 
+        }
+    };
+
+    const handlePointPicked = (lat: number, lng: number) => {
+        setStageCoords([lat, lng]);
+        calculateStats(lat, lng);
+        setIsPickingMode(false);
+        setIsModalOpen(true);
+    };
 
     const openEditModal = (id: number) => {
         const s = stages.find(x => x.id === id);
@@ -44,8 +82,8 @@ export default function ItineraryPage() {
             setEditingStageId(id);
             setStageName(s.name);
             setStageElev(s.elev);
-            setStageDist(s.dist.replace(" km", ""));
-            setStageCoords("");
+            setStageDist(s.dist);
+            setStageCoords(s.coords || null);
             setIsModalOpen(true);
         }
     };
@@ -53,7 +91,7 @@ export default function ItineraryPage() {
     const openAddModal = () => {
         setEditingStageId(null);
         setStageName("");
-        setStageCoords("");
+        setStageCoords(null);
         setStageElev("");
         setStageDist("");
         setIsModalOpen(true);
@@ -62,25 +100,19 @@ export default function ItineraryPage() {
     const handleSaveStage = () => {
         if (!stageName) return;
 
+        const stageData = {
+            name: stageName,
+            elev: stageElev || "0",
+            dist: stageDist || "0",
+            coords: stageCoords || undefined,
+            status: 'active' as const
+        };
+
         if (editingStageId !== null) {
-            // Update existing
-            setStages(prev => prev.map(s => s.id === editingStageId ? {
-                ...s,
-                name: stageName,
-                elev: stageElev || "0",
-                dist: (stageDist || "0") + " km"
-            } : s));
+            setStages(prev => prev.map(s => s.id === editingStageId ? { ...s, ...stageData } : s));
         } else {
-            // Add new
             const nextId = stages.length > 0 ? Math.max(...stages.map(s => s.id)) + 1 : 1;
-            const newStage = {
-                id: nextId,
-                name: stageName,
-                dist: (stageDist || "0") + " km",
-                elev: stageElev || "0",
-                status: "active" as const
-            };
-            setStages([...stages, newStage]);
+            setStages([...stages, { id: nextId, ...stageData }]);
         }
         
         setIsModalOpen(false);
@@ -93,6 +125,8 @@ export default function ItineraryPage() {
         }
     };
 
+    const totalElev = useMemo(() => stages.reduce((acc, curr) => acc + parseInt(curr.elev || "0"), 0), [stages]);
+
     return (
         <div className="h-screen flex flex-col bg-bg-base transition-colors overflow-hidden">
             {/* HEADER */}
@@ -100,14 +134,14 @@ export default function ItineraryPage() {
                 <div className="flex items-center gap-4">
                     <h1 className="text-xl font-black text-text-primary tracking-tight">Itinéraire</h1>
                     <div className="h-4 w-[1px] bg-border-subtle" />
-                    <span className="text-sm text-text-muted font-medium uppercase tracking-widest">GR20 Nord</span>
+                    <span className="text-sm text-text-muted font-medium uppercase tracking-widest">Calcul Dynamique</span>
                 </div>
-                <div className="flex items-center gap-4">
-                    <div className="flex -space-x-2">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="w-8 h-8 rounded-full border-2 border-bg-surface-1 bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-[10px] font-black text-white">M</div>
-                        ))}
+                {isPickingMode && (
+                    <div className="absolute left-1/2 -translate-x-1/2 px-6 py-2 bg-orange-vibrant text-white text-xs font-black uppercase tracking-widest rounded-full shadow-2xl animate-pulse z-50">
+                        Cliquez sur la carte pour placer l&apos;étape
                     </div>
+                )}
+                <div className="flex items-center gap-4">
                     <button className="premium-card px-4 py-2 rounded-xl flex items-center gap-2 text-cyan-vibrant hover:bg-cyan-vibrant/10 transition-colors">
                         <Icons.Share className="w-4 h-4" />
                         <span className="text-[10px] font-black uppercase tracking-widest">Partager</span>
@@ -118,7 +152,7 @@ export default function ItineraryPage() {
             <div className="flex-1 flex overflow-hidden">
                 {/* STAGES SIDEBAR */}
                 <aside className="w-80 border-r border-border-subtle bg-bg-surface-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
-                    <div className="text-[10px] font-black text-text-faint uppercase tracking-[0.2em] px-2 mb-4">Étapes du Trek</div>
+                    <div className="text-[10px] font-black text-text-faint uppercase tracking-[0.2em] px-2 mb-4">Tactical Flow</div>
                     
                     <div className="space-y-2">
                         {stages.map((stage) => (
@@ -137,25 +171,23 @@ export default function ItineraryPage() {
                                 <div className="flex items-center justify-between mb-2">
                                     <span className={cn(
                                         "text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest",
-                                        stage.status === 'completed' ? "bg-emerald-vibrant/10 text-emerald-vibrant" :
-                                        stage.status === 'active' ? "bg-orange-vibrant/10 text-orange-vibrant animate-pulse" :
-                                        "bg-bg-surface-4 text-text-faint"
+                                        stage.coords ? "bg-orange-vibrant/10 text-orange-vibrant" : "bg-bg-surface-4 text-text-faint"
                                     )}>
-                                        Jour {stage.id}
+                                        {stage.coords ? "Détaillé" : "Draft"}
                                     </span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-xs font-black font-mono text-text-primary bg-bg-surface-3 px-1.5 py-0.5 rounded shadow-sm">{stage.dist}</span>
+                                        <span className="text-xs font-black font-mono text-text-primary bg-bg-surface-3 px-1.5 py-0.5 rounded shadow-sm">{stage.dist} km</span>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); openEditModal(stage.id); }}
                                             className="opacity-0 group-hover:opacity-100 p-1 hover:text-orange-vibrant transition-all"
                                         >
-                                            <Icons.PlusCircle className="w-3 h-3 rotate-45" /> {/* Edit Icon */}
+                                            <Icons.PlusCircle className="w-3 h-3 rotate-45" />
                                         </button>
                                     </div>
                                 </div>
                                 <h4 className={cn(
                                   "text-sm font-bold tracking-tight mb-1",
-                                  activeStage === stage.id ? "text-text-primary" : "text-text-muted"
+                                  activeStage === stage.id ? "text-text-primary" : "text-text-muted transition-colors"
                                 )}>{stage.name}</h4>
                                 <div className="text-xs font-black text-cyan-vibrant uppercase tracking-wider flex items-center gap-1.5">
                                     <Icons.StatsElevation className="w-3 h-3" />
@@ -178,22 +210,11 @@ export default function ItineraryPage() {
                 <main className="flex-1 relative flex flex-col">
                     <div className="flex-1 p-4">
                          <div className="w-full h-full premium-card rounded-2xl overflow-hidden relative shadow-2xl ring-1 ring-border-subtle">
-                              <ExpeditionMap />
-                              
-                              {/* Overlays */}
-                              <div className="absolute top-8 left-8 z-10 space-y-3">
-                                   <div className="premium-card p-4 rounded-xl bg-bg-surface-1/80 backdrop-blur-md border-border-subtle flex items-center gap-4 shadow-xl">
-                                        <div className="w-10 h-10 rounded-xl bg-orange-vibrant flex items-center justify-center shadow-lg shadow-orange-vibrant/20">
-                                             <Icons.NavRoutes className="w-5 h-5 text-white" />
-                                        </div>
-                                        <div>
-                                             <div className="text-[9px] font-black text-text-muted uppercase tracking-widest leading-none mb-1">Dernière Position</div>
-                                             <div className="text-sm font-black text-text-primary tracking-tight">
-                                                {stages.find(s => s.id === activeStage)?.name.split('→')[0] || "Refuge d'Asco"}
-                                             </div>
-                                        </div>
-                                   </div>
-                              </div>
+                              <ExpeditionMap 
+                                stages={stages} 
+                                pickingMode={isPickingMode} 
+                                onSelectPoint={handlePointPicked} 
+                              />
                          </div>
                     </div>
 
@@ -203,7 +224,7 @@ export default function ItineraryPage() {
                               <div className="flex items-center justify-between mb-6">
                                    <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Profil d&apos;Élévation Global</div>
                                    <div className="text-sm font-black text-orange-vibrant font-mono bg-orange-vibrant/5 px-3 py-1 rounded-lg ring-1 ring-orange-vibrant/20 shadow-lg shadow-orange-vibrant/5">
-                                        {stages.reduce((acc, curr) => acc + parseInt(curr.elev || "0"), 0).toLocaleString()} m D+ Total
+                                        {totalElev.toLocaleString()} m D+ Total
                                    </div>
                               </div>
                               
@@ -215,24 +236,15 @@ export default function ItineraryPage() {
                                              <div 
                                                 key={i} 
                                                 className={cn(
-                                                    "flex-1 rounded-t-sm transition-all duration-500 hover:scale-y-110 hover:opacity-100",
-                                                    i === 45 
-                                                        ? "bg-gradient-to-t from-orange-vibrant to-orange-400 animate-pulse shadow-[0_0_15px_rgba(249,115,22,0.6)] z-20" 
-                                                        : "bg-gradient-to-t from-orange-vibrant/30 to-orange-vibrant/5 group-hover:from-orange-vibrant/50"
+                                                    "flex-1 rounded-t-sm transition-all duration-500",
+                                                    i < (stages.length * 10)
+                                                        ? "bg-gradient-to-t from-orange-vibrant to-orange-400 opacity-80" 
+                                                        : "bg-gradient-to-t from-orange-vibrant/20 to-orange-vibrant/5 group-hover:from-orange-vibrant/30"
                                                 )} 
                                                 style={{ height: `${h}%` }} 
                                              />
                                         );
                                    })}
-                                   {/* Active Marker on chart */}
-                                   <div className="absolute bottom-0 left-[37.5%] h-full w-[2px] bg-orange-vibrant shadow-[0_0_15px_rgba(249,115,22,0.8)] z-30" />
-                              </div>
-
-                              <div className="mt-6 flex justify-between text-[11px] font-black text-text-muted uppercase tracking-widest px-1">
-                                   <span className="bg-bg-surface-4/50 px-2 py-1 rounded">Calenzana (0 km)</span>
-                                   <span className="bg-bg-surface-4/50 px-2 py-1 rounded">Asco (32 km)</span>
-                                   <span className="bg-bg-surface-4/50 px-2 py-1 rounded text-orange-vibrant ring-1 ring-orange-vibrant/20">Vizzavona (90 km)</span>
-                                   <span className="bg-bg-surface-4/50 px-2 py-1 rounded">Conca (180 km)</span>
                               </div>
                          </div>
                     </div>
@@ -240,13 +252,23 @@ export default function ItineraryPage() {
             </div>
 
             {/* STAGE MODAL (ADD/EDIT) */}
-            <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingStageId ? "CONFIGURER L'ÉTAPE TACTIQUE" : "AJOUTER UNE ÉTAPE TACTIQUE"}>
+            <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingStageId ? "CONFIGURER L'ÉTAPE TACTIQUE" : "NOUVELLE ÉTAPE"}>
                 <div className="space-y-6 pt-2">
+                    <div className="flex items-center justify-between">
+                         <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Localisation sur la carte</label>
+                         <button 
+                            onClick={() => { setIsModalOpen(false); setIsPickingMode(true); }}
+                            className="text-[10px] font-black uppercase text-orange-vibrant hover:underline"
+                         >
+                            {stageCoords ? "Repositionner..." : "Choisir sur la carte..."}
+                         </button>
+                    </div>
+
                     <div className="space-y-3">
-                        <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Nom de l&apos;étape / Destination</label>
+                        <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Nom de l&apos;étape</label>
                         <input 
                             type="text" 
-                            placeholder="Ex: Refuge de Manganu..." 
+                            placeholder="Destination..." 
                             value={stageName}
                             onChange={(e) => setStageName(e.target.value)}
                             className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-3 text-sm font-bold text-text-primary focus:ring-2 focus:ring-orange-vibrant/30 outline-none transition-all"
@@ -255,10 +277,10 @@ export default function ItineraryPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Altitude D+ (m)</label>
+                            <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Altitude (m)</label>
                             <input 
                                 type="number" 
-                                placeholder="Ex: 850" 
+                                placeholder="Auto-calculé" 
                                 value={stageElev}
                                 onChange={(e) => setStageElev(e.target.value)}
                                 className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-3 text-sm font-bold text-text-primary focus:ring-2 focus:ring-orange-vibrant/30 outline-none transition-all"
@@ -268,7 +290,7 @@ export default function ItineraryPage() {
                             <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Distance (km)</label>
                             <input 
                                 type="number" 
-                                placeholder="Ex: 12" 
+                                placeholder="Auto-calculé" 
                                 value={stageDist}
                                 onChange={(e) => setStageDist(e.target.value)}
                                 className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-3 text-sm font-bold text-text-primary focus:ring-2 focus:ring-orange-vibrant/30 outline-none transition-all"
@@ -276,40 +298,16 @@ export default function ItineraryPage() {
                         </div>
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Coordonnées GPS (Optionnel)</label>
-                        <input 
-                            type="text" 
-                            placeholder="42.345, 8.912" 
-                            value={stageCoords}
-                            onChange={(e) => setStageCoords(e.target.value)}
-                            className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-3 text-xs font-mono text-text-primary focus:ring-2 focus:ring-orange-vibrant/30 outline-none transition-all"
-                        />
-                    </div>
-
                     <div className="flex justify-between gap-3 pt-4">
                         <div>
                             {editingStageId && (
-                                <button 
-                                    onClick={() => deleteStage(editingStageId)}
-                                    className="px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-accent-red/60 hover:text-accent-red transition-colors"
-                                >
-                                    Supprimer
-                                </button>
+                                <button onClick={() => deleteStage(editingStageId)} className="px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-accent-red/60 hover:text-accent-red">Supprimer</button>
                             )}
                         </div>
                         <div className="flex gap-3">
-                            <button 
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-primary transition-colors"
-                            >
-                                Annuler
-                            </button>
-                            <button 
-                                onClick={handleSaveStage}
-                                className="px-8 py-3 rounded-xl bg-orange-vibrant text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-orange-vibrant/20 hover:scale-105 active:scale-95 transition-all"
-                            >
-                                {editingStageId ? "Mettre à jour" : "Confirmer l'étape"}
+                            <button onClick={() => setIsModalOpen(false)} className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-primary">Annuler</button>
+                            <button onClick={handleSaveStage} className="px-8 py-3 rounded-xl bg-orange-vibrant text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-orange-vibrant/20">
+                                {editingStageId ? "Mettre à jour" : "Confirmer"}
                             </button>
                         </div>
                     </div>

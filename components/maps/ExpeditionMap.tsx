@@ -1,6 +1,6 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Icons } from '@/components/icons';
@@ -14,15 +14,6 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
-
-const GR20_COORDINATES: [number, number][] = [
-  [42.4722, 8.8681], // Calenzana
-  [42.4167, 8.8833], // Ortu di u Piobbu
-  [42.3667, 8.9167], // Carozzu
-  [42.3333, 8.8667], // Asco Stagnu
-  [42.3000, 8.9000], // Tighjettu
-  [42.2611, 8.9222], // Ciottulu di i Mori
-];
 
 function ZoomControls() {
   const map = useMap();
@@ -44,12 +35,36 @@ function ZoomControls() {
   );
 }
 
-export default function ExpeditionMap() {
+function MapPicker({ onPointSelected }: { onPointSelected: (lat: number, lng: number) => void }) {
+    useMapEvents({
+        click(e) {
+            onPointSelected(e.latlng.lat, e.latlng.lng);
+        },
+    });
+    return null;
+}
+
+interface ExpeditionMapProps {
+    stages: Array<{
+        id: number;
+        name: string;
+        coords?: [number, number];
+    }>;
+    onSelectPoint?: (lat: number, lng: number) => void;
+    pickingMode?: boolean;
+}
+
+export default function ExpeditionMap({ stages, onSelectPoint, pickingMode }: ExpeditionMapProps) {
+  // Extract coordinates for the polyline
+  const polylinePositions = stages
+    .filter(s => s.coords)
+    .map(s => s.coords as [number, number]);
+
   return (
     <div className="relative w-full h-full">
       <MapContainer 
-        center={[42.35, 8.9]} 
-        zoom={11} 
+        center={polylinePositions[polylinePositions.length - 1] || [42.35, 8.9]} 
+        zoom={pickingMode ? 14 : 11} 
         className="w-full h-full rounded-2xl z-0"
         scrollWheelZoom={false}
         zoomControl={false}
@@ -58,14 +73,17 @@ export default function ExpeditionMap() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Polyline positions={GR20_COORDINATES} color="#22d3ee" weight={4} opacity={0.8} />
-        {GR20_COORDINATES.map((pos, i) => (
-           <Marker key={i} position={pos}>
+        {polylinePositions.length > 1 && (
+            <Polyline positions={polylinePositions} color="#22d3ee" weight={4} opacity={0.8} />
+        )}
+        {stages.filter(s => s.coords).map((stage, i) => (
+           <Marker key={stage.id} position={stage.coords!}>
               <Popup>
-                  <div className="text-xs font-black uppercase">Étape {i + 1}</div>
+                  <div className="text-xs font-black uppercase">{stage.name}</div>
               </Popup>
            </Marker>
         ))}
+        {pickingMode && onSelectPoint && <MapPicker onPointSelected={onSelectPoint} />}
         <ZoomControls />
       </MapContainer>
     </div>
