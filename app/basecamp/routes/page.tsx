@@ -3,7 +3,6 @@
 
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
-import Link from 'next/link';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
 
@@ -114,11 +113,6 @@ export default function ItineraryPage() {
                                              <div className="text-sm font-black text-text-primary tracking-tight">Refuge d&apos;Asco Stagnu</div>
                                         </div>
                                    </div>
-                              </div>
-
-                              <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
-                                   <button className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"><Icons.Plus className="w-5 h-5" /></button>
-                                   <button className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"><Icons.Minus className="w-5 h-5" /></button>
                               </div>
                          </div>
                     </div>
