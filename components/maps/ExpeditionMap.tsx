@@ -30,6 +30,7 @@ export default function ExpeditionMap() {
       zoom={11} 
       className="w-full h-full rounded-2xl z-0"
       scrollWheelZoom={false}
+      zoomControl={false}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
