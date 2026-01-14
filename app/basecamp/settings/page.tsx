@@ -132,7 +132,7 @@ export default function SettingsPage() {
                   
                   {setting.type === "select" && (
                     <select className="bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-2 text-sm font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-cyan-vibrant/50">
-                      {setting.options?.map(opt => (
+                      {(setting as any).options?.map((opt: string) => (
                         <option key={opt} value={opt}>{opt}</option>
                       ))}
                     </select>

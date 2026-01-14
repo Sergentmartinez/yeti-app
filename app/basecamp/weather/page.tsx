@@ -43,7 +43,7 @@ export default function WeatherPage() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-orange-vibrant/5 blur-3xl -mr-32 -mt-32" />
           <div className="relative z-10 flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-black text-text-faint uppercase tracking-[0.3em] mb-2">Conditions actuelles • Refuge d'Asco</div>
+              <div className="text-[10px] font-black text-text-faint uppercase tracking-[0.3em] mb-2">Conditions actuelles • Refuge d&apos;Asco</div>
               <div className="flex items-baseline gap-4">
                 <span className="text-7xl font-black font-mono text-text-primary">12°</span>
                 <div className="text-text-muted">

@@ -1,112 +1,94 @@
-import { Stage, TrekTheme } from "@/types";
-import { Icons } from "@/components/icons";
-import { cn } from "@/lib/utils";
+"use client";
 
-interface StageCardProps {
-    stage: Stage;
-    theme: TrekTheme;
-    onClick?: () => void;
+import Link from 'next/link';
+import Image from 'next/image';
+import { Map, ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Trek } from '@/types';
+
+interface TrekCardProps {
+    trek: Trek;
 }
 
-export const StageCard = ({ stage, theme, onClick }: StageCardProps) => {
-    const isSpirit = theme === "spirit";
+export const TrekCard = ({ trek }: TrekCardProps) => {
+    const nameParts = trek.name.split(' ');
+    const firstWord = nameParts[0];
+    const restOfName = nameParts.slice(1).join(' ');
+    const isSpirit = trek.theme === 'spirit';
+    const themeColor = isSpirit ? 'text-blue-500' : 'text-orange-500';
+    const hoverBorder = isSpirit ? 'hover:border-blue-500/50' : 'hover:border-orange-500/50';
+    const hoverShadow = isSpirit ? 'hover:shadow-blue-900/20' : 'hover:shadow-orange-900/20';
+    const arrowBg = isSpirit ? 'group-hover:bg-blue-600' : 'group-hover:bg-orange-600';
 
-    // Configuration des couleurs selon le thème
-    const colors = isSpirit ? {
-        sidebar: "bg-gradient-to-b from-blue-500 to-blue-700",
-        sidebarBorder: "border-blue-600",
-        textAccent: "text-blue-600",
-        bgLight: "bg-blue-50",
-    } : {
-        sidebar: "bg-gradient-to-b from-orange-500 to-orange-700",
-        sidebarBorder: "border-orange-600",
-        textAccent: "text-orange-600",
-        bgLight: "bg-orange-50",
+    const getDifficultyColor = (score: number) => {
+        if (score >= 4.5) return 'text-red-500';
+        if (score >= 3.5) return 'text-orange-500';
+        return 'text-green-500';
     };
 
-    // Extraction du numéro (ex: "E01" -> "01")
-    const stageNumber = stage.code.replace(/\D/g, '');
-
     return (
-        <div 
-            onClick={onClick}
-            className="group relative flex w-full bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer h-32"
+        <Link 
+            href={`/treks/${trek.slug}`}
+            className={cn(
+                "group relative flex flex-col bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all duration-500 hover:-translate-y-2",
+                hoverBorder, hoverShadow
+            )}
         >
-            {/* --- 1. BANDE LATÉRALE (Ribbon) --- */}
-            <div className={cn(
-                "w-16 shrink-0 flex flex-col items-center justify-center text-white relative", 
-                colors.sidebar
-            )}>
-                {/* Texture subtile pour effet "matière" */}
-                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white to-transparent" />
+            <div className="relative h-64 w-full overflow-hidden">
+                <Image
+                    src={trek.heroImage}
+                    alt={trek.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-linear-to-t from-zinc-900 via-zinc-900/20 to-transparent" />
                 
-                <span className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-[-2px]">
-                    Jour
-                </span>
-                <span className="text-3xl font-black tracking-tighter leading-none">
-                    {stageNumber}
-                </span>
-            </div>
-
-            {/* --- 2. CONTENU PRINCIPAL --- */}
-            <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
-                
-                {/* Header: Titre + Tags */}
-                <div>
-                    <div className="flex justify-between items-start">
-                        <h3 className="text-lg font-bold text-stone-900 leading-tight truncate pr-4 group-hover:text-stone-700 transition-colors">
-                            {stage.title}
-                        </h3>
-                        {/* Tag Principal (si dispo) */}
-                        {stage.tags && stage.tags.length > 0 && (
-                            <span className="shrink-0 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-stone-100 text-stone-500 border border-stone-200 hidden sm:inline-block">
-                                {stage.tags[0]}
-                            </span>
-                        )}
-                    </div>
-                    {/* Petite description tronquée */}
-                    <p className="text-xs text-stone-500 mt-1 line-clamp-1">
-                        {stage.description || "Voir le détail de l'itinéraire..."}
-                    </p>
-                </div>
-
-                {/* Footer: Stats Techniques */}
-                <div className="flex items-center gap-4 pt-3 border-t border-stone-100/50 mt-1">
-                    
-                    {/* Distance */}
-                    <div className="flex items-center gap-1.5">
-                        <Icons.StatsDistance className={cn("w-3.5 h-3.5", colors.textAccent)} />
-                        <div className="flex flex-col leading-none">
-                            <span className="text-sm font-bold text-stone-700">{stage.stats.dist}km</span>
-                        </div>
-                    </div>
-
-                    {/* Dénivelé (Mise en avant) */}
-                    <div className="flex items-center gap-1.5 pl-4 border-l border-stone-200">
-                        <Icons.StatsElevation className={cn("w-3.5 h-3.5", colors.textAccent)} />
-                        <div className="flex flex-col leading-none">
-                            <span className="text-sm font-bold text-stone-700">+{stage.stats.dplus}m</span>
-                        </div>
-                    </div>
-
-                    {/* Durée */}
-                    {stage.stats.duration && (
-                        <div className="flex items-center gap-1.5 ml-auto text-stone-400">
-                            <Icons.StatsDuration className="w-3.5 h-3.5" />
-                            <span className="text-xs font-semibold">{stage.stats.duration.replace('h', 'h')}</span>
-                        </div>
-                    )}
+                <div className="absolute top-4 left-4 bg-zinc-950/60 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">Ouvert</span>
                 </div>
             </div>
 
-            {/* --- 3. OVERLAY HOVER (Subtil) --- */}
-            {/* Ajoute une bordure colorée interne au survol */}
-            <div className={cn(
-                "absolute inset-0 border-2 rounded-2xl pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100",
-                colors.sidebarBorder
-            )} />
-        </div>
+            <div className="p-8 flex-1 flex flex-col">
+                <h3 className="text-3xl font-black text-white mb-2 uppercase tracking-tight leading-none">
+                    {firstWord} <span className={themeColor}>{restOfName}</span>
+                </h3>
+
+                <p className="text-sm text-zinc-500 mb-8 line-clamp-2 leading-relaxed">{trek.description}</p>
+
+                <div className="grid grid-cols-4 gap-4 mb-8 border-t border-b border-white/5 py-5">
+                    <div className="text-center">
+                        <span className="block text-[10px] text-zinc-600 uppercase font-bold mb-1 tracking-wider">Distance</span>
+                        <span className="text-xl text-white font-black">{trek.stats.dist}<span className="text-xs font-normal text-zinc-600 ml-1">km</span></span>
+                    </div>
+                    <div className="text-center border-l border-white/5">
+                        <span className="block text-[10px] text-zinc-600 uppercase font-bold mb-1 tracking-wider">D+</span>
+                        <span className="text-xl text-white font-black">{Math.round(trek.stats.dplus/1000)}<span className="text-xs font-normal text-zinc-600 ml-1">k</span></span>
+                    </div>
+                    <div className="text-center border-l border-white/5">
+                        <span className="block text-[10px] text-zinc-600 uppercase font-bold mb-1 tracking-wider">Durée</span>
+                        <span className="text-xl text-white font-black">{trek.stats.days}<span className="text-xs font-normal text-zinc-600 ml-1">j</span></span>
+                    </div>
+                    <div className="text-center border-l border-white/5">
+                        <span className="block text-[10px] text-zinc-600 uppercase font-bold mb-1 tracking-wider">Niveau</span>
+                        <span className={cn("text-xl font-black", getDifficultyColor(trek.stats.difficulty))}>
+                            {trek.stats.difficulty}<span className="text-xs font-normal text-zinc-600 ml-1">/5</span>
+                        </span>
+                    </div>
+                </div>
+
+                <div className="mt-auto flex justify-between items-center">
+                    <span className="text-xs font-medium text-zinc-500 flex items-center gap-2 uppercase tracking-wide">
+                        <Map className="w-3 h-3 text-zinc-600" />
+                        {trek.location}
+                    </span>
+                    <span className={cn("w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-white transition-colors", arrowBg)}>
+                        <ArrowRight className="w-4 h-4" />
+                    </span>
+                </div>
+            </div>
+        </Link>
     );
 };
 
-export default StageCard;
+export default TrekCard;

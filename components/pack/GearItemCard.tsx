@@ -1,6 +1,6 @@
 // components/pack/GearItemCard.tsx
 import { GearItem } from "@/types";
-import { formatWeight } from "@/lib/gear";
+import { GEAR_ITEMS, GEAR_CATEGORIES, calculateTotalWeight, formatWeight } from "@/lib/gear";
 import { Icons } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ export function GearItemCard({ item, isInPack = false, quantity, onToggle }: Gea
             </span>
             <div className="w-1 h-1 rounded-full bg-border-subtle" />
             <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
-              {item.categoryName}
+              {GEAR_CATEGORIES.find(c => c.id === item.category)?.name || item.category}
             </span>
           </div>
 

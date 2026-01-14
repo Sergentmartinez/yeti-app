@@ -7,7 +7,7 @@ import {
   ArrowRight, ArrowLeft, CloudSun, Home, TrendingUp, Download, Check,
   Star, Gauge, Clock, Route, MapPin, AlertTriangle, Footprints, Target,
   Package, Layers, Trophy, BookOpen, Archive, Hammer, Sun, Moon, Calendar,
-  Bell, Shield, Database, HelpCircle, Eye, Users, BarChart3, Wallet, Globe, Folder
+  Bell, Shield, Database, HelpCircle, Eye, Users, BarChart3, Wallet, Globe, Folder, Lock, Edit3
 } from "lucide-react";
 
 
@@ -146,6 +146,12 @@ export const Icons = {
   Trash: ({ className }: { className?: string }) => (
     <Trash2 strokeWidth={TECH_STROKE} className={className} />
   ),
+  Trash2: ({ className }: { className?: string }) => (
+    <Trash2 strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Edit3: ({ className }: { className?: string }) => (
+    <Edit3 strokeWidth={TECH_STROKE} className={className} />
+  ),
   Save: ({ className }: { className?: string }) => (
       <CheckCircle2 strokeWidth={TECH_STROKE} className={className} />
   ),
@@ -173,7 +179,7 @@ export const Icons = {
   Share: ({ className }: { className?: string }) => (
     <Share2 strokeWidth={TECH_STROKE} className={className} />
   ),
-  File: ({ className }: { className?: string }) => (
+  FileText: ({ className }: { className?: string }) => (
     <FileText strokeWidth={TECH_STROKE} className={className} />
   ),
   User: ({ className }: { className?: string }) => (
@@ -298,6 +304,9 @@ export const Icons = {
   ),
   Folder: ({ className }: { className?: string }) => (
     <Folder strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Lock: ({ className }: { className?: string }) => (
+    <Lock strokeWidth={TECH_STROKE} className={className} />
   ),
 };
 

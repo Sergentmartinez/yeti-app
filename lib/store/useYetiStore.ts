@@ -104,8 +104,6 @@ interface YetiState {
 
     // Projects
     currentProjectId: string | null;
-    // Projects
-    currentProjectId: string | null;
     projects: TrekProject[];
     
     // Global Data (Mock for Stats)
@@ -157,7 +155,7 @@ type YetiStore = YetiState & YetiActions;
 
 // === INITIAL STATE ===
 
-const initialState: Omit<YetiState, 'getSelectedPack' | 'getTotalWeight' | 'getTotalVolume' | 'getTotalPrice' | 'getBaseWeight'> = {
+const initialState: Omit<YetiState, 'getSelectedPack' | 'getTotalWeight' | 'getTotalVolume' | 'getTotalPrice' | 'getBaseWeight' | 'getGlobalStats'> = {
     // Timeline
     currentPhase: 'J-30',
     departureDate: null,

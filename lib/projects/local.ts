@@ -1,4 +1,4 @@
-import { AdventureProject, Purchase, ProductKey } from "@/types/projects";
+import { AdventureProject, Purchase, ProductKey, ProjectMember } from "@/types/projects";
 
 const LS_PROJECTS = "yeti.projects.v1";
 const LS_PURCHASES = "yeti.purchases.v1";
@@ -36,7 +36,7 @@ export function upsertProject(p: AdventureProject): AdventureProject {
 export function createProject(input: { name: string; trekSlug: string; startDate?: string; members?: { name: string }[] }): AdventureProject {
   const id = crypto.randomUUID();
   const createdAt = nowISO();
-  const members = (input.members || [{ name: "Moi" }]).map(m => ({
+  const members: ProjectMember[] = (input.members || [{ name: "Moi" }]).map(m => ({
     id: crypto.randomUUID(),
     name: m.name,
     role: m.name === "Moi" ? "leader" : "member",

@@ -8,6 +8,7 @@ export const CAMINO: Trek = {
     description: "Plus qu'une randonnée, le Camino de Santiago est une immersion dans l'histoire européenne. Des Pyrénées à la Galice, vous traverserez des paysages variés : montagnes, vignobles, plateaux désertiques et forêts humides.",
     category: "pelerinage",
     location: "France / Espagne",
+    country: ["France", "Espagne"],
     heroImage: "https://static.nationalgeographic.fr/files/styles/image_3200/public/camino-prepped-1.webp?w=1600&h=900",
     theme: "spirit",
     

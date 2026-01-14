@@ -20,6 +20,7 @@ interface Phase {
   icon: any;
   sub: string;
   range: [number, number]; // J-60 to J-45 etc.
+  color: string;
   tasks: Task[];
 }
 
@@ -31,6 +32,7 @@ const PHASES_DATA: Phase[] = [
     icon: Icons.SimpleCheck, 
     sub: 'Terminé',
     range: [60, 45],
+    color: 'emerald',
     tasks: [
       { id: 101, label: 'Définir l\'itinéraire (GR20 Nord)', status: 'done', date: 'J-58' },
       { id: 102, label: 'Réserver les billets d\'avion (Ajaccio)', status: 'done', date: 'J-55' },
@@ -47,6 +49,7 @@ const PHASES_DATA: Phase[] = [
     icon: Icons.NavPack, 
     sub: 'En cours',
     range: [45, 15],
+    color: 'cyan',
     tasks: [
       { id: 201, label: 'Inventaire complet du garage', status: 'done', date: 'J-40' },
       { id: 202, label: 'Valider la liste matériel finale', status: 'done', date: 'J-35' },
@@ -64,6 +67,7 @@ const PHASES_DATA: Phase[] = [
     icon: Icons.CatFood, 
     sub: 'J-15',
     range: [15, 5],
+    color: 'amber',
     tasks: [
       { id: 301, label: 'Calculer les calories par jour (3500 kcal)', status: 'pending', date: 'J-12' },
       { id: 302, label: 'Commander repas lyophilisés (Real Turmat)', status: 'pending', date: 'J-10' },
@@ -79,6 +83,7 @@ const PHASES_DATA: Phase[] = [
     icon: Icons.Trophy, 
     sub: 'J-0',
     range: [5, 0],
+    color: 'white',
     tasks: [
       { id: 401, label: 'Vérifier la météo finale à 2000m', status: 'pending', date: 'J-2' },
       { id: 402, label: 'Charger les traces GPS (Watch & Mobile)', status: 'pending', date: 'J-1' },
@@ -91,11 +96,91 @@ const PHASES_DATA: Phase[] = [
 
 export default function TimelinePage() {
   const [activePhaseId, setActivePhaseId] = useState<string>('gear');
+  const [phases, setPhases] = useState<Phase[]>(PHASES_DATA);
+  const [newTaskLabel, setNewTaskLabel] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  
   const currentJ = 22; // Current status is J-22
 
   const activePhase = useMemo(() => 
-    PHASES_DATA.find(p => p.id === activePhaseId) || PHASES_DATA[1]
-  , [activePhaseId]);
+    phases.find(p => p.id === activePhaseId) || phases[1]
+  , [activePhaseId, phases]);
+
+  const handleToggleTask = (phaseId: string, taskId: number) => {
+    // Prevent toggle if editing
+    if (editingTaskId === taskId) return;
+    
+    setPhases(prev => prev.map(phase => {
+      if (phase.id !== phaseId) return phase;
+      return {
+        ...phase,
+        tasks: phase.tasks.map(task => {
+          if (task.id !== taskId) return task;
+          // Toggle logic: done -> pending, pending/active -> done
+          const newStatus = task.status === 'done' ? 'pending' : 'done';
+          return { ...task, status: newStatus };
+        })
+      };
+    }));
+  };
+
+  const handleAddTask = () => {
+    if (!newTaskLabel.trim()) return;
+    
+    setPhases(prev => prev.map(phase => {
+      if (phase.id !== activePhaseId) return phase;
+      
+      const newTask: Task = {
+        id: Date.now(),
+        label: newTaskLabel,
+        status: 'pending',
+        date: `J-${currentJ}`
+      };
+      
+      return {
+        ...phase,
+        tasks: [...phase.tasks, newTask]
+      };
+    }));
+    
+    setNewTaskLabel("");
+  };
+
+  const handleDeleteTask = (e: React.MouseEvent, phaseId: string, taskId: number) => {
+    e.stopPropagation();
+    if (confirm("Supprimer cette tâche ?")) {
+      setPhases(prev => prev.map(phase => {
+        if (phase.id !== phaseId) return phase;
+        return {
+          ...phase,
+          tasks: phase.tasks.filter(t => t.id !== taskId)
+        };
+      }));
+    }
+  };
+
+  const startEditing = (e: React.MouseEvent, task: Task) => {
+    e.stopPropagation();
+    setEditingTaskId(task.id);
+    setEditLabel(task.label);
+  };
+
+  const saveEdit = (phaseId: string, taskId: number) => {
+    if (!editLabel.trim()) return;
+
+    setPhases(prev => prev.map(phase => {
+      if (phase.id !== phaseId) return phase;
+      return {
+        ...phase,
+        tasks: phase.tasks.map(task => {
+          if (task.id !== taskId) return task;
+          return { ...task, label: editLabel };
+        })
+      };
+    }));
+    setEditingTaskId(null);
+  };
 
   // Logic for the progress bar: J-60 is 0%, J-0 is 100%
   // Progress = (60 - currentJ) / 60
@@ -126,7 +211,7 @@ export default function TimelinePage() {
           
           {/* TOP PROGRESS BAR */}
           <div className="relative mb-12">
-            <div className="flex justify-between text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-4">
+            <div className="flex justify-between text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4">
               <span>J-60</span>
               <span>J-45</span>
               <span>J-30</span>
@@ -165,31 +250,57 @@ export default function TimelinePage() {
                 key={phase.id}
                 onClick={() => setActivePhaseId(phase.id)}
                 className={cn(
-                  "premium-card rounded-2xl p-6 flex flex-col items-center justify-center text-center group cursor-pointer transition-all border-2",
-                  activePhaseId === phase.id 
-                    ? "border-accent-cyan/40 bg-accent-cyan/5 shadow-[0_0_30px_rgba(34,211,238,0.08)] scale-[1.02]" 
-                    : phase.status === 'done'
-                    ? "border-emerald-500/10 hover:border-emerald-500/30 opacity-80"
-                    : "border-transparent bg-bg-surface-2/50 hover:bg-bg-surface-3 opacity-50"
+                  "premium-card rounded-2xl p-6 flex flex-col items-center justify-center text-center group cursor-pointer transition-all duration-300 border-2 relative overflow-hidden",
+                  activePhaseId === phase.id && phase.color === 'emerald' && "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_30px_rgba(16,185,129,0.1)] scale-[1.02]",
+                  activePhaseId === phase.id && phase.color === 'cyan' && "border-cyan-500/40 bg-cyan-500/10 shadow-[0_0_30px_rgba(6,182,212,0.1)] scale-[1.02]",
+                  activePhaseId === phase.id && phase.color === 'amber' && "border-amber-500/40 bg-amber-500/10 shadow-[0_0_30px_rgba(245,158,11,0.1)] scale-[1.02]",
+                  activePhaseId === phase.id && phase.color === 'white' && "border-white/40 bg-white/5 shadow-[0_0_30px_rgba(255,255,255,0.1)] scale-[1.02]",
+                  
+                  activePhaseId !== phase.id && phase.status === 'done' && "border-emerald-500/20 hover:border-emerald-500/40 bg-emerald-900/10 hover:bg-emerald-900/20 opacity-70 hover:opacity-100",
+                  activePhaseId !== phase.id && phase.status !== 'done' && "border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 hover:border-zinc-700 opacity-60 hover:opacity-100 scale-95 hover:scale-[0.98]"
                 )}
               >
+                {/* Active Glow Background */}
+                {activePhaseId === phase.id && (
+                  <div className={cn(
+                    "absolute inset-0 opacity-20 blur-xl transition-all",
+                    phase.color === 'emerald' && "bg-gradient-to-tr from-emerald-500/0 via-emerald-500/10 to-emerald-500/0",
+                    phase.color === 'cyan' && "bg-gradient-to-tr from-cyan-500/0 via-cyan-500/10 to-cyan-500/0",
+                    phase.color === 'amber' && "bg-gradient-to-tr from-amber-500/0 via-amber-500/10 to-amber-500/0",
+                    phase.color === 'white' && "bg-gradient-to-tr from-white/0 via-white/5 to-white/0"
+                  )} />
+                )}
+
                 <div className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all",
-                  activePhaseId === phase.id
-                    ? "bg-accent-cyan text-bg-surface-1 shadow-[0_0_20px_rgba(34,211,238,0.5)]"
-                    : phase.status === 'done'
-                    ? "bg-emerald-500/10 text-emerald-500"
-                    : "bg-bg-surface-4 text-text-faint"
+                  "w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all duration-300 relative z-10",
+                  activePhaseId === phase.id && phase.color === 'emerald' && "bg-emerald-500 text-black shadow-[0_0_20px_rgba(16,185,129,0.4)]",
+                  activePhaseId === phase.id && phase.color === 'cyan' && "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]",
+                  activePhaseId === phase.id && phase.color === 'amber' && "bg-amber-500 text-black shadow-[0_0_20px_rgba(245,158,11,0.4)]",
+                  activePhaseId === phase.id && phase.color === 'white' && "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.2)]",
+                  
+                  activePhaseId !== phase.id && phase.status === 'done' && "bg-emerald-500/20 text-emerald-500 ring-1 ring-emerald-500/30",
+                  activePhaseId !== phase.id && phase.status !== 'done' && "bg-zinc-800 text-zinc-500 group-hover:bg-zinc-700 group-hover:text-zinc-300"
                 )}>
                   <phase.icon className="w-6 h-6" />
                 </div>
+                
                 <div className={cn(
-                  "text-[10px] font-black uppercase tracking-widest mb-1",
-                  activePhaseId === phase.id ? "text-accent-cyan" : phase.status === 'done' ? "text-emerald-500" : "text-text-muted"
+                  "text-xs font-black uppercase tracking-widest mb-1 relative z-10 transition-colors duration-300",
+                  activePhaseId === phase.id && phase.color === 'emerald' && "text-emerald-400",
+                  activePhaseId === phase.id && phase.color === 'cyan' && "text-cyan-400",
+                  activePhaseId === phase.id && phase.color === 'amber' && "text-amber-400",
+                  activePhaseId === phase.id && phase.color === 'white' && "text-white",
+                  
+                  activePhaseId !== phase.id && phase.status === 'done' && "text-emerald-500/80",
+                  activePhaseId !== phase.id && phase.status !== 'done' && "text-zinc-500 group-hover:text-zinc-300"
                 )}>
                   {phase.label}
                 </div>
-                <div className="text-[9px] font-bold text-text-faint uppercase tracking-tighter">
+                
+                <div className={cn(
+                  "text-[9px] font-bold uppercase tracking-tighter relative z-10 transition-colors duration-300",
+                  activePhaseId === phase.id ? "text-white/80" : "text-zinc-600 group-hover:text-zinc-500"
+                )}>
                   {phase.sub}
                 </div>
               </button>
@@ -213,11 +324,12 @@ export default function TimelinePage() {
               {activePhase.tasks.map((task) => (
                 <div 
                   key={task.id}
+                  onClick={() => handleToggleTask(activePhase.id, task.id)}
                   className={cn(
-                    "flex items-center gap-5 p-4 rounded-2xl transition-all border border-border-subtle group",
+                    "flex items-center gap-5 p-4 rounded-2xl transition-all border border-border-subtle group cursor-pointer",
                     task.status === 'active' 
                       ? "bg-bg-surface-2 border-accent-cyan/20 ring-1 ring-accent-cyan/10 shadow-lg shadow-accent-cyan/5" 
-                      : "bg-bg-surface-3/30 hover:bg-bg-surface-3/60"
+                      : "bg-zinc-900/30 border-zinc-800 hover:bg-zinc-900 hover:border-zinc-700"
                   )}
                 >
                   <div className={cn(
@@ -237,11 +349,45 @@ export default function TimelinePage() {
                   
                   <div className={cn(
                     "flex-1 text-sm font-bold tracking-tight transition-all",
-                    task.status === 'done' ? "text-text-muted line-through opacity-70" : task.status === 'active' ? "text-text-primary" : "text-text-faint group-hover:text-text-muted"
+                    task.status === 'done' ? "text-zinc-500 line-through opacity-50" : task.status === 'active' ? "text-white scale-[1.02] origin-left" : "text-zinc-400 group-hover:text-zinc-200"
                   )}>
-                    {task.label}
+                    {editingTaskId === task.id ? (
+                      <input 
+                        type="text"
+                        autoFocus
+                        className="w-full bg-zinc-900/50 text-white p-1 rounded border border-accent-cyan/50 focus:outline-none"
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        onBlur={() => saveEdit(activePhase.id, task.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEdit(activePhase.id, task.id);
+                          if (e.key === 'Escape') setEditingTaskId(null);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      task.label
+                    )}
                   </div>
                   
+                  {/* ACTIONS GROUP (Visible on Hover) */}
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={(e) => startEditing(e, task)}
+                      className="p-1.5 text-zinc-500 hover:text-accent-cyan hover:bg-zinc-800 rounded-lg transition-colors"
+                      title="Renommer"
+                    >
+                      <Icons.Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={(e) => handleDeleteTask(e, activePhase.id, task.id)}
+                      className="p-1.5 text-zinc-500 hover:text-red-500 hover:bg-zinc-800 rounded-lg transition-colors"
+                      title="Supprimer"
+                    >
+                      <Icons.Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
                   <div className={cn(
                     "text-[10px] font-black font-mono tracking-tighter uppercase px-2 py-1 rounded bg-bg-surface-4/40",
                     task.status === 'active' ? "text-accent-cyan bg-accent-cyan/10" : "text-text-faint"
@@ -250,6 +396,28 @@ export default function TimelinePage() {
                   </div>
                 </div>
               ))}
+
+              {/* ADD TASK INPUT */}
+              <div className="flex items-center gap-3 p-2 pl-4 rounded-2xl border border-dashed border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/30 transition-all group">
+                <Icons.Plus className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400" />
+                <input 
+                  type="text" 
+                  placeholder="Ajouter une tâche..." 
+                  className="flex-1 bg-transparent border-none text-sm font-bold text-zinc-300 placeholder:text-zinc-700 focus:outline-none focus:placeholder:text-zinc-600 h-10"
+                  value={newTaskLabel}
+                  onChange={(e) => setNewTaskLabel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddTask();
+                  }}
+                />
+                <button 
+                  onClick={handleAddTask}
+                  disabled={!newTaskLabel.trim()}
+                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed text-[10px] font-black uppercase tracking-wider text-zinc-400 rounded-xl transition-all"
+                >
+                  Ajouter
+                </button>
+              </div>
             </div>
           </div>
         </section>

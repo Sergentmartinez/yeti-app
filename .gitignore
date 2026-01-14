@@ -9,3 +9,7 @@ node_modules
 .env*.local
 .env
 .vercel
+
+*.log
+*_log.txt
+*_log_*.txt

@@ -91,7 +91,7 @@ function generateId(): string {
 
 // === API MOCK ===
 
-export const supabaseMock = {
+export const supabaseMock: any = {
 
     // === AUTH ===
 
@@ -232,7 +232,7 @@ export const supabaseMock = {
             const projects = supabaseMock.projects.getAll();
             const active = projects
                 .filter((p: SavedProject) => p.status === 'active')
-                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+                .sort((a: SavedProject, b: SavedProject) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
             return active[0] || null;
         }
@@ -252,7 +252,7 @@ export const supabaseMock = {
          * Récupère uniquement les items possédés
          */
         getOwned: (): SavedGearItem[] => {
-            return supabaseMock.gear.getAll().filter(item => item.owned);
+            return supabaseMock.gear.getAll().filter((item: SavedGearItem) => item.owned);
         },
 
         /**

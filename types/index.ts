@@ -1,6 +1,9 @@
 export type TrekTheme = 'sport' | 'spirit';
 export type PrimaryAccess = 'plane' | 'bus' | 'train';
 
+export * from './user';
+export * from './projects';
+
 // === GEAR TYPES ===
 
 export interface GearItem {

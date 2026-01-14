@@ -112,7 +112,7 @@ export function ContextBlock() {
                 <div className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">Catalogue</div>
                 <div className="text-lg font-black mb-2 leading-tight">12 Itinéraires</div>
                 <p className="text-[10px] opacity-80 leading-relaxed">
-                    Explorez les plus beaux sentiers d'Europe sélectionnés par nos guides.
+                    Explorez les plus beaux sentiers d&apos;Europe sélectionnés par nos guides.
                 </p>
             </div>
         </div>
