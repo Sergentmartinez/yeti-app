@@ -1,8 +1,7 @@
-"use client";
-
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { Icons } from '@/components/icons';
 
 // Fix for default marker icons in Leaflet with Next.js
 const DefaultIcon = L.icon({
@@ -23,27 +22,50 @@ const GR20_COORDINATES: [number, number][] = [
   [42.2611, 8.9222], // Ciottulu di i Mori
 ];
 
+function ZoomControls() {
+  const map = useMap();
+  return (
+    <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
+      <button 
+        onClick={() => map.zoomIn()}
+        className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"
+      >
+        <Icons.Plus className="w-5 h-5" />
+      </button>
+      <button 
+        onClick={() => map.zoomOut()}
+        className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"
+      >
+        <Icons.Minus className="w-5 h-5" />
+      </button>
+    </div>
+  );
+}
+
 export default function ExpeditionMap() {
   return (
-    <MapContainer 
-      center={[42.35, 8.9]} 
-      zoom={11} 
-      className="w-full h-full rounded-2xl z-0"
-      scrollWheelZoom={false}
-      zoomControl={false}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <Polyline positions={GR20_COORDINATES} color="#22d3ee" weight={4} opacity={0.8} />
-      {GR20_COORDINATES.map((pos, i) => (
-         <Marker key={i} position={pos}>
-            <Popup>
-                <div className="text-xs font-black uppercase">Étape {i + 1}</div>
-            </Popup>
-         </Marker>
-      ))}
-    </MapContainer>
+    <div className="relative w-full h-full">
+      <MapContainer 
+        center={[42.35, 8.9]} 
+        zoom={11} 
+        className="w-full h-full rounded-2xl z-0"
+        scrollWheelZoom={false}
+        zoomControl={false}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <Polyline positions={GR20_COORDINATES} color="#22d3ee" weight={4} opacity={0.8} />
+        {GR20_COORDINATES.map((pos, i) => (
+           <Marker key={i} position={pos}>
+              <Popup>
+                  <div className="text-xs font-black uppercase">Étape {i + 1}</div>
+              </Popup>
+           </Marker>
+        ))}
+        <ZoomControls />
+      </MapContainer>
+    </div>
   );
 }
