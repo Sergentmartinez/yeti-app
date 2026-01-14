@@ -56,10 +56,12 @@ export default function ItineraryPage() {
     const fetchRealElevation = async (lat: number, lng: number) => {
         setIsFetchingElevation(true);
         try {
-            const res = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`);
+            // Switching to Open-Meteo Elevation API (highly precise SRTM/ASTER models)
+            const res = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`);
             const data = await res.json();
-            if (data.results && data.results[0]) {
-                const absoluteElevation = Math.round(data.results[0].elevation);
+            
+            if (data.elevation && data.elevation[0] !== undefined) {
+                const absoluteElevation = Math.round(data.elevation[0]);
                 setStageAbsElev(absoluteElevation.toString());
                 
                 const lastStage = [...stages].reverse().find(s => s.coords && (editingStageId ? s.id !== editingStageId : true));
@@ -68,6 +70,13 @@ export default function ItineraryPage() {
                     setStageElev(gain.toString());
                 } else {
                     setStageElev("0");
+                }
+            } else {
+                // Fallback to open-elevation if open-meteo fails
+                const resAlt = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`);
+                const dataAlt = await resAlt.json();
+                if (dataAlt.results && dataAlt.results[0]) {
+                    setStageAbsElev(Math.round(dataAlt.results[0].elevation).toString());
                 }
             }
         } catch (error) {
