@@ -1,10 +1,11 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents, LayersControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Icons } from '@/components/icons';
 import { useState, useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
 
 // Fix for default marker icons in Leaflet with Next.js
 const DefaultIcon = L.icon({
@@ -16,24 +17,63 @@ const DefaultIcon = L.icon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
+const MAP_STYLES = {
+    tactical: {
+        name: "Tactique",
+        url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        attr: '&copy; OpenStreetMap contributors'
+    },
+    satellite: {
+        name: "Satellite",
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        attr: 'Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP'
+    },
+    topo: {
+        name: "Relief",
+        url: "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+        attr: 'Map data: &copy; OpenStreetMap contributors, SRTM | Map style: &copy; OpenTopoMap'
+    }
+};
+
 function ZoomControls() {
   const map = useMap();
   return (
     <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
       <button 
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(map) map.zoomIn(); }}
-        className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"
+        className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl border border-border-subtle"
       >
         <Icons.Plus className="w-5 h-5" />
       </button>
       <button 
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(map) map.zoomOut(); }}
-        className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"
+        className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl border border-border-subtle"
       >
         <Icons.Minus className="w-5 h-5" />
       </button>
     </div>
   );
+}
+
+function StyleSwitcher({ activeStyle, onStyleChange }: { activeStyle: keyof typeof MAP_STYLES, onStyleChange: (s: keyof typeof MAP_STYLES) => void }) {
+    return (
+        <div className="absolute top-6 right-6 z-[1000] flex gap-2">
+            {(Object.keys(MAP_STYLES) as Array<keyof typeof MAP_STYLES>).map((styleKey) => (
+                <button
+                    key={styleKey}
+                    onClick={() => onStyleChange(styleKey)}
+                    className={cn(
+                        "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all shadow-xl backdrop-blur-md border",
+                        activeStyle === styleKey 
+                            ? "bg-cyan-vibrant text-white border-cyan-vibrant" 
+                            : "bg-bg-surface-1/80 text-text-muted border-border-subtle hover:text-text-primary"
+                    )}
+                >
+                    {MAP_STYLES[styleKey].name}
+                </button>
+            ))}
+        </div>
+    );
 }
 
 function MapPicker({ onPointSelected }: { onPointSelected: (lat: number, lng: number) => void }) {
@@ -49,65 +89,26 @@ function MapPicker({ onPointSelected }: { onPointSelected: (lat: number, lng: nu
 function MapInner({ stages, pickingMode, onSelectPoint }: any) {
     const map = useMap();
     const [isReady, setIsReady] = useState(false);
-    const hasInvalidated = useRef(false);
+    const [style, setStyle] = useState<keyof typeof MAP_STYLES>('tactical');
 
     useEffect(() => {
         if (!map) return;
-
-        let isMounted = true;
-
-        map.whenReady(() => {
-            if (isMounted) {
-                // Ensure the map container is in the DOM
-                const container = map.getContainer();
-                if (container && container.offsetParent !== null) {
-                    setIsReady(true);
-                    if (!hasInvalidated.current) {
-                        setTimeout(() => {
-                            if (isMounted && map) {
-                                map.invalidateSize();
-                                hasInvalidated.current = true;
-                            }
-                        }, 250);
-                    }
-                }
-            }
-        });
-
-        return () => {
-            isMounted = false;
-        };
+        map.whenReady(() => setIsReady(true));
     }, [map]);
 
     const polylinePositions = stages
         .filter((s: any) => s.coords)
         .map((s: any) => s.coords as [number, number]);
 
-    // Non-DOM dependent logic can stay here, but LayersControl MUST wait for a stable map
     if (!isReady) return null;
 
     return (
         <>
-            <LayersControl position="top-right">
-                <LayersControl.BaseLayer checked name="Tactical (Map)">
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                </LayersControl.BaseLayer>
-                <LayersControl.BaseLayer name="Satellite">
-                    <TileLayer
-                        attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                    />
-                </LayersControl.BaseLayer>
-                <LayersControl.Overlay name="Topo Lines">
-                    <TileLayer
-                        url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
-                        attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)'
-                    />
-                </LayersControl.Overlay>
-            </LayersControl>
+            <TileLayer
+                key={style} // Key change forces fresh mount of TileLayer, very stable
+                attribution={MAP_STYLES[style].attr}
+                url={MAP_STYLES[style].url}
+            />
 
             {polylinePositions.length > 1 && (
                 <Polyline positions={polylinePositions} color="#22d3ee" weight={4} opacity={0.8} />
@@ -124,6 +125,7 @@ function MapInner({ stages, pickingMode, onSelectPoint }: any) {
             
             {pickingMode && onSelectPoint && <MapPicker onPointSelected={onSelectPoint} />}
             <ZoomControls />
+            <StyleSwitcher activeStyle={style} onStyleChange={setStyle} />
         </>
     );
 }
@@ -159,7 +161,6 @@ export default function ExpeditionMap({ stages, onSelectPoint, pickingMode }: Ex
     .filter(s => s.coords)
     .map(s => s.coords as [number, number]);
 
-  // Center on last valid coordinate or Corsica default
   const mapCenter = polylinePositions.length > 0 
     ? polylinePositions[polylinePositions.length - 1] 
     : [42.35, 8.9] as [number, number];
