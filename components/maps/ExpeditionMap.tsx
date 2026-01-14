@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents,
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Icons } from '@/components/icons';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 // Fix for default marker icons in Leaflet with Next.js
 const DefaultIcon = L.icon({
@@ -21,13 +21,13 @@ function ZoomControls() {
   return (
     <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
       <button 
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); map.zoomIn(); }}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(map) map.zoomIn(); }}
         className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"
       >
         <Icons.Plus className="w-5 h-5" />
       </button>
       <button 
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); map.zoomOut(); }}
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(map) map.zoomOut(); }}
         className="w-10 h-10 premium-card rounded-xl flex items-center justify-center text-text-muted hover:text-cyan-vibrant transition-all hover:scale-110 bg-bg-surface-1/80 backdrop-blur-md shadow-xl"
       >
         <Icons.Minus className="w-5 h-5" />
@@ -48,21 +48,43 @@ function MapPicker({ onPointSelected }: { onPointSelected: (lat: number, lng: nu
 // Inner component to ensure map context is available
 function MapInner({ stages, pickingMode, onSelectPoint }: any) {
     const map = useMap();
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [isReady, setIsReady] = useState(false);
+    const hasInvalidated = useRef(false);
 
     useEffect(() => {
-        if (map) {
-            setIsLoaded(true);
-            // Invalider la taille après un court délai pour forcer le recalcul du DOM Leaflet
-            setTimeout(() => map.invalidateSize(), 100);
-        }
+        if (!map) return;
+
+        let isMounted = true;
+
+        map.whenReady(() => {
+            if (isMounted) {
+                // Ensure the map container is in the DOM
+                const container = map.getContainer();
+                if (container && container.offsetParent !== null) {
+                    setIsReady(true);
+                    if (!hasInvalidated.current) {
+                        setTimeout(() => {
+                            if (isMounted && map) {
+                                map.invalidateSize();
+                                hasInvalidated.current = true;
+                            }
+                        }, 250);
+                    }
+                }
+            }
+        });
+
+        return () => {
+            isMounted = false;
+        };
     }, [map]);
 
     const polylinePositions = stages
         .filter((s: any) => s.coords)
         .map((s: any) => s.coords as [number, number]);
 
-    if (!isLoaded) return null;
+    // Non-DOM dependent logic can stay here, but LayersControl MUST wait for a stable map
+    if (!isReady) return null;
 
     return (
         <>
@@ -94,7 +116,8 @@ function MapInner({ stages, pickingMode, onSelectPoint }: any) {
             {stages.filter((s: any) => s.coords).map((stage: any) => (
                 <Marker key={stage.id} position={stage.coords!}>
                     <Popup>
-                        <div className="text-xs font-black uppercase text-text-primary">{stage.name}</div>
+                        <div className="text-xs font-black uppercase text-text-primary underline mb-1">{stage.name}</div>
+                        <div className="text-[10px] font-bold text-text-muted">{stage.absElev}m / +{stage.elev}m D+</div>
                     </Popup>
                 </Marker>
             ))}
@@ -110,6 +133,8 @@ interface ExpeditionMapProps {
         id: number;
         name: string;
         coords?: [number, number];
+        absElev?: string;
+        elev?: string;
     }>;
     onSelectPoint?: (lat: number, lng: number) => void;
     pickingMode?: boolean;
@@ -134,13 +159,18 @@ export default function ExpeditionMap({ stages, onSelectPoint, pickingMode }: Ex
     .filter(s => s.coords)
     .map(s => s.coords as [number, number]);
 
+  // Center on last valid coordinate or Corsica default
+  const mapCenter = polylinePositions.length > 0 
+    ? polylinePositions[polylinePositions.length - 1] 
+    : [42.35, 8.9] as [number, number];
+
   return (
     <div className="relative w-full h-full">
       <MapContainer 
-        center={polylinePositions[polylinePositions.length - 1] || [42.35, 8.9]} 
+        center={mapCenter} 
         zoom={pickingMode ? 14 : 11} 
         className="w-full h-full rounded-2xl z-0"
-        scrollWheelZoom={false}
+        scrollWheelZoom={true}
         zoomControl={false}
       >
         <MapInner stages={stages} pickingMode={pickingMode} onSelectPoint={onSelectPoint} />
