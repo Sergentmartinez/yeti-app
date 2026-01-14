@@ -77,13 +77,16 @@ export default function ItineraryPage() {
                                     )}>
                                         Jour {stage.id}
                                     </span>
-                                    <span className="text-[10px] font-black font-mono text-text-faint">{stage.dist}</span>
+                                    <span className="text-xs font-black font-mono text-text-primary bg-bg-surface-3 px-1.5 py-0.5 rounded shadow-sm">{stage.dist}</span>
                                 </div>
                                 <h4 className={cn(
-                                  "text-sm font-bold tracking-tight",
+                                  "text-sm font-bold tracking-tight mb-1",
                                   activeStage === stage.id ? "text-text-primary" : "text-text-muted"
                                 )}>{stage.name}</h4>
-                                <div className="mt-2 text-[10px] font-black text-cyan-vibrant uppercase tracking-widest">{stage.elev} D+</div>
+                                <div className="text-xs font-black text-cyan-vibrant uppercase tracking-wider flex items-center gap-1.5">
+                                    <Icons.StatsElevation className="w-3 h-3" />
+                                    {stage.elev} D+
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -123,35 +126,37 @@ export default function ItineraryPage() {
                     {/* ELEVATION PROFILE */}
                     <div className="h-48 px-4 pb-4">
                          <div className="w-full h-full premium-card rounded-2xl p-6 relative group overflow-hidden">
-                              <div className="flex items-center justify-between mb-4">
-                                   <div className="text-[10px] font-black text-text-faint uppercase tracking-[0.2em]">Profil d&apos;Élévation Global</div>
-                                   <div className="text-xs font-black text-cyan-vibrant font-mono">11,000 m D+ Total</div>
+                              <div className="flex items-center justify-between mb-6">
+                                   <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Profil d&apos;Élévation Global</div>
+                                   <div className="text-sm font-black text-cyan-vibrant font-mono bg-cyan-vibrant/5 px-3 py-1 rounded-lg ring-1 ring-cyan-vibrant/20 shadow-lg shadow-cyan-vibrant/5">11,000 m D+ Total</div>
                               </div>
                               
                               {/* Mock Elevation Chart */}
-                              <div className="relative h-20 w-full flex items-end gap-[2px]">
+                              <div className="relative h-24 w-full flex items-end gap-[2px]">
                                    {Array.from({ length: 120 }).map((_, i) => {
                                         const h = 20 + Math.sin(i * 0.1) * 30 + Math.cos(i * 0.05) * 20 + (i/2);
                                         return (
                                              <div 
                                                 key={i} 
                                                 className={cn(
-                                                    "flex-1 bg-cyan-vibrant/20 rounded-t-sm transition-all duration-500 hover:bg-cyan-vibrant group-hover:opacity-100",
-                                                    i === 45 ? "bg-orange-vibrant animate-pulse" : "opacity-40"
+                                                    "flex-1 rounded-t-sm transition-all duration-500 hover:scale-y-110 hover:opacity-100",
+                                                    i === 45 
+                                                        ? "bg-gradient-to-t from-orange-vibrant to-orange-400 animate-pulse shadow-[0_0_15px_rgba(249,115,22,0.6)] z-20" 
+                                                        : "bg-gradient-to-t from-cyan-vibrant/40 to-cyan-vibrant/10 group-hover:from-cyan-vibrant/60"
                                                 )} 
                                                 style={{ height: `${h}%` }} 
                                              />
                                         );
                                    })}
                                    {/* Active Marker on chart */}
-                                   <div className="absolute bottom-0 left-[37.5%] top-0 w-[2px] bg-orange-vibrant shadow-[0_0_12px_rgba(249,115,22,0.5)] z-20" />
+                                   <div className="absolute bottom-0 left-[37.5%] h-full w-[2px] bg-orange-vibrant shadow-[0_0_15px_rgba(249,115,22,0.8)] z-30" />
                               </div>
 
-                              <div className="mt-4 flex justify-between text-[9px] font-black text-text-faint uppercase tracking-widest">
-                                   <span>Calenzana (0 km)</span>
-                                   <span>Asco (32 km)</span>
-                                   <span>Vizzavona (90 km)</span>
-                                   <span>Conca (180 km)</span>
+                              <div className="mt-6 flex justify-between text-[11px] font-black text-text-muted uppercase tracking-widest px-1">
+                                   <span className="bg-bg-surface-4/50 px-2 py-1 rounded">Calenzana (0 km)</span>
+                                   <span className="bg-bg-surface-4/50 px-2 py-1 rounded">Asco (32 km)</span>
+                                   <span className="bg-bg-surface-4/50 px-2 py-1 rounded text-orange-vibrant ring-1 ring-orange-vibrant/20">Vizzavona (90 km)</span>
+                                   <span className="bg-bg-surface-4/50 px-2 py-1 rounded">Conca (180 km)</span>
                               </div>
                          </div>
                     </div>

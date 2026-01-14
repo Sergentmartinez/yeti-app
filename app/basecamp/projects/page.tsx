@@ -6,7 +6,6 @@ import { getAllTreks } from "@/lib/treks";
 import { createProject, deleteProject, listProjects } from "@/lib/projects/local";
 import { AdventureProject } from "@/types/projects";
 import { Modal } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
@@ -41,62 +40,65 @@ export default function ProjectsPage() {
   return (
     <div className="min-h-screen bg-bg-base transition-colors duration-300">
       {/* HEADER */}
-      <header className="h-16 border-b border-border-subtle flex items-center justify-between px-8 bg-bg-surface-1 sticky top-0 z-30">
+      <header className="h-16 border-b border-border-subtle flex items-center justify-between px-8 bg-bg-surface-2/80 backdrop-blur-md sticky top-0 z-30">
         <div className="flex items-center gap-4">
           <Icons.Folder className="w-6 h-6 text-accent-cyan" />
           <div>
-            <h1 className="text-xl font-black text-text-primary tracking-tight">Mes Projets</h1>
-            <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest leading-none">Gestion des expéditions</p>
+            <h1 className="text-xl font-black text-text-primary tracking-tight">Mes Expéditions</h1>
+            <p className="text-xs font-black text-text-muted uppercase tracking-[0.2em] leading-none mt-1">Tactical Backbone v4.0</p>
           </div>
         </div>
         <button 
           onClick={() => setOpen(true)}
-          className="premium-card px-4 py-2 rounded-xl flex items-center gap-2 text-accent-cyan hover:bg-accent-cyan/10 transition-colors"
+          className="premium-card px-5 py-2.5 rounded-xl flex items-center gap-2 text-accent-cyan hover:bg-accent-cyan/10 transition-all hover:scale-105 active:scale-95 border border-accent-cyan/20"
         >
           <Icons.Plus className="w-4 h-4" />
-          <span className="text-[10px] font-black uppercase tracking-widest">Nouveau Projet</span>
+          <span className="text-xs font-black uppercase tracking-widest">Nouveau Projet</span>
         </button>
       </header>
 
       <div className="p-8 max-w-[1400px] mx-auto space-y-8 animate-slide-up">
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {projects.map(p => (
-            <div key={p.id} className="premium-card rounded-2xl p-6 flex flex-col group transition-all hover:translate-y-[-2px]">
-              <div className="flex items-start justify-between gap-3 mb-6">
+            <div key={p.id} className="premium-card rounded-2xl p-6 flex flex-col group transition-all hover:translate-y-[-4px] bg-bg-surface-1 hover:shadow-2xl hover:border-accent-cyan/30 border-2 border-transparent">
+              <div className="flex items-start justify-between gap-3 mb-8">
                 <div className="flex-1">
-                  <div className="text-sm font-black text-text-primary uppercase tracking-tight group-hover:text-accent-cyan transition-colors">{p.name}</div>
-                  <div className="mt-2 flex flex-col gap-1">
-                    <div className="text-[10px] font-bold text-text-faint uppercase tracking-wider flex items-center gap-2">
-                      <Icons.MapPin className="w-3 h-3" /> Trek: <span className="text-text-muted">{p.trekSlug}</span>
+                  <div className="text-lg font-black text-text-primary uppercase tracking-tight group-hover:text-accent-cyan transition-colors">{p.name}</div>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <div className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-2.5 group/item">
+                      <Icons.MapPin className="w-3.5 h-3.5 text-accent-cyan opacity-60 group-hover/item:opacity-100 transition-opacity" /> 
+                      Itinéraire: <span className="text-text-primary font-mono">{p.trekSlug}</span>
                     </div>
                     {p.startDate && (
-                      <div className="text-[10px] font-bold text-text-faint uppercase tracking-wider flex items-center gap-2">
-                        <Icons.Calendar className="w-3 h-3" /> Départ: <span className="text-text-muted">{p.startDate}</span>
+                      <div className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-2.5 group/item">
+                        <Icons.Calendar className="w-3.5 h-3.5 text-accent-orange opacity-60 group-hover/item:opacity-100 transition-opacity" /> 
+                        Départ: <span className="text-text-primary font-mono">{p.startDate}</span>
                       </div>
                     )}
-                    <div className="text-[10px] font-bold text-text-faint uppercase tracking-wider flex items-center gap-2">
-                      <Icons.Users className="w-3 h-3" /> Membres: <span className="text-text-muted">{p.members.length}</span>
+                    <div className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-2.5 group/item">
+                      <Icons.Users className="w-3.5 h-3.5 text-emerald-500 opacity-60 group-hover/item:opacity-100 transition-opacity" /> 
+                      Équipe: <span className="text-text-primary font-mono">{p.members.length} membre{p.members.length > 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 </div>
                 <button 
                   onClick={() => onDelete(p)} 
-                  className="rounded-lg p-2 text-text-faint hover:text-accent-red hover:bg-accent-red/10 transition-colors" 
+                  className="rounded-lg p-2.5 text-text-faint hover:text-accent-red hover:bg-accent-red/10 transition-colors" 
                   aria-label="Supprimer"
                 >
                   <Icons.Trash className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="mt-auto pt-6 border-t border-border-subtle flex gap-3">
+              <div className="mt-auto pt-6 border-t border-border-subtle flex gap-4">
                 <Link href={`/basecamp/projects/${p.id}`} className="flex-1">
-                  <button className="w-full py-2 rounded-xl bg-bg-surface-3 text-[10px] font-black uppercase tracking-widest text-text-primary hover:bg-bg-surface-4 transition-colors">
-                    Ouvrir
+                  <button className="w-full py-3 rounded-xl bg-bg-surface-3 text-xs font-black uppercase tracking-[0.2em] text-text-primary hover:bg-accent-cyan hover:text-bg-base transition-all shadow-lg active:scale-95">
+                    Launch
                   </button>
                 </Link>
                 <Link href={`/treks/${p.trekSlug}`} className="flex-1">
-                  <button className="w-full py-2 rounded-xl border border-border-subtle text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-primary hover:border-text-faint transition-colors">
-                    Détails
+                  <button className="w-full py-3 rounded-xl border border-border-subtle text-xs font-black uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-text-faint transition-all active:scale-95">
+                    Data
                   </button>
                 </Link>
               </div>
@@ -106,62 +108,64 @@ export default function ProjectsPage() {
           {projects.length === 0 && (
             <div 
               onClick={() => setOpen(true)}
-              className="premium-card rounded-2xl p-12 border-dashed border-2 flex flex-col items-center justify-center text-center cursor-pointer group hover:border-accent-cyan/50 transition-colors"
+              className="premium-card rounded-2xl p-16 border-dashed border-2 flex flex-col items-center justify-center text-center cursor-pointer group hover:border-accent-cyan/50 transition-all bg-bg-surface-1/50"
             >
-              <Icons.Folder className="w-12 h-12 text-text-faint mb-4 group-hover:text-accent-cyan/50 transition-all" />
-              <h3 className="text-sm font-black text-text-primary uppercase tracking-widest">Aucun projet actif</h3>
-              <p className="text-[10px] font-bold text-text-faint uppercase mt-2">Commencez une nouvelle aventure</p>
+              <div className="w-16 h-16 rounded-full bg-bg-surface-3 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                <Icons.Folder className="w-8 h-8 text-text-faint group-hover:text-accent-cyan transition-all" />
+              </div>
+              <h3 className="text-base font-black text-text-primary uppercase tracking-widest">Aucune expédition en cours</h3>
+              <p className="text-xs font-bold text-text-muted uppercase mt-3 tracking-widest">Initialisez votre premier Tactical Backbone</p>
             </div>
           )}
         </div>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="CRÉER UN PROJET">
-        <div className="space-y-6 pt-2">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-text-faint uppercase tracking-widest">Nom de l&apos;Aventure</label>
+      <Modal open={open} onClose={() => setOpen(false)} title="INITIALISER L'EXPÉDITION">
+        <div className="space-y-6 pt-4">
+          <div className="space-y-3">
+            <label className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Nom de mission</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: GR20 SUD JUILLET..."
-              className="w-full bg-bg-surface-2 border border-border-subtle rounded-xl px-4 py-3 text-sm font-black text-text-primary focus:ring-1 focus:ring-accent-cyan/50 outline-none"
+              placeholder="Ex: GR20_SUD_ALPHA..."
+              className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-5 py-4 text-sm font-black text-text-primary focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan/50 outline-none transition-all placeholder:text-text-faint"
             />
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-text-faint uppercase tracking-widest">Trek</label>
+            <div className="space-y-3">
+              <label className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Terrain cible</label>
               <select
                 value={trekSlug}
                 onChange={(e) => setTrekSlug(e.target.value)}
-                className="w-full bg-bg-surface-2 border border-border-subtle rounded-xl px-4 py-3 text-sm font-black text-text-primary focus:ring-1 focus:ring-accent-cyan/50"
+                className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-5 py-4 text-sm font-black text-text-primary focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan/50 outline-none transition-all"
               >
-                {treks.map(t => <option key={t.slug} value={t.slug}>{t.name}</option>)}
+                {treks.map(t => <option key={t.slug} value={t.slug}>{t.name.toUpperCase()}</option>)}
               </select>
             </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-text-faint uppercase tracking-widest">Date prévue</label>
+            <div className="space-y-3">
+              <label className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Fenêtre de départ</label>
               <input
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 type="date"
-                className="w-full bg-bg-surface-2 border border-border-subtle rounded-xl px-4 py-3 text-sm font-black text-text-primary focus:ring-1 focus:ring-accent-cyan/50"
+                className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-5 py-4 text-sm font-black text-text-primary focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan/50 outline-none transition-all invert dark:invert-0"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-5 pt-6">
             <button 
               onClick={() => setOpen(false)}
-              className="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-faint hover:text-text-primary transition-colors"
+              className="px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-text-muted hover:text-text-primary transition-colors"
             >
-              Annuler
+              Abanddonner
             </button>
             <button 
               onClick={onCreate}
-              className="px-8 py-3 rounded-xl bg-accent-cyan text-bg-surface-1 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-accent-cyan/20 hover:scale-105 transition-all"
+              className="px-10 py-4 rounded-xl bg-accent-cyan text-bg-base text-xs font-black uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(138,180,248,0.3)] hover:scale-105 active:scale-95 transition-all"
             >
-              Lancer l&apos;Aventure
+              Lancer Mission
             </button>
           </div>
         </div>

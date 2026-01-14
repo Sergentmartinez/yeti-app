@@ -76,9 +76,9 @@ export default function LandingPage() {
                        { label: 'Dénivelé Planifié', value: '2.8M m' },
                        { label: 'Sherpa AI Score', value: '98%' }
                    ].map((stat, i) => (
-                       <div key={i} className="premium-card p-6 rounded-2xl text-center">
-                           <div className="text-2xl font-black text-text-primary font-mono tracking-tighter">{stat.value}</div>
-                           <div className="text-[8px] font-black text-text-faint uppercase tracking-[0.2em] mt-2">{stat.label}</div>
+                       <div key={i} className="premium-card p-6 rounded-2xl text-center flex flex-col justify-center gap-2 group hover:border-cyan-vibrant/30 transition-colors">
+                           <div className="text-4xl md:text-5xl font-black text-text-primary font-mono tracking-tighter group-hover:text-cyan-vibrant transition-colors">{stat.value}</div>
+                           <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">{stat.label}</div>
                        </div>
                    ))}
               </div>
@@ -103,15 +103,15 @@ export default function LandingPage() {
                           { title: 'Corrélations météorologiques', desc: 'Alertes si votre duvet n’est pas adapté à la limite pluie-neige.' },
                           { title: 'Tactical Backbone', desc: 'Visualisez l’équilibre de votre charge en 3D Studio.' }
                       ].map((feature, i) => (
-                          <div key={i} className="flex gap-4 p-6 premium-card rounded-2xl group cursor-default">
-                              <div className="w-12 h-12 rounded-xl bg-bg-surface-3 flex items-center justify-center group-hover:bg-cyan-vibrant/20 group-hover:text-cyan-vibrant transition-all">
-                                  <Icons.Check className="w-5 h-5" />
-                              </div>
-                              <div>
-                                  <h4 className="text-sm font-black text-text-primary uppercase tracking-tight">{feature.title}</h4>
-                                  <p className="text-xs text-text-muted mt-1 font-medium">{feature.desc}</p>
-                              </div>
-                          </div>
+                        <div key={i} className="flex gap-6 p-6 premium-card rounded-2xl group cursor-default hover:bg-bg-surface-2 transition-all">
+                            <div className="w-14 h-14 rounded-2xl bg-cyan-vibrant/10 text-cyan-vibrant flex items-center justify-center group-hover:bg-cyan-vibrant group-hover:text-white transition-all shadow-lg shadow-cyan-vibrant/5">
+                                <Icons.Check className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <h4 className="text-base font-black text-text-primary uppercase tracking-tight">{feature.title}</h4>
+                                <p className="text-sm text-text-muted mt-2 font-medium leading-relaxed">{feature.desc}</p>
+                            </div>
+                        </div>
                       ))}
                   </div>
               </div>
