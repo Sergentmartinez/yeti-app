@@ -337,22 +337,49 @@ export default function ItineraryPage() {
 
                     <div className="h-48 px-4 pb-4">
                          <div className="w-full h-full premium-card rounded-2xl p-6 relative group overflow-hidden">
-                              <div className="flex items-center justify-between mb-4">
+                               <div className="flex items-center justify-between mb-4">
                                    <div className="flex items-center gap-3">
-                                        <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Profil Tactique</div>
+                                        <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Profil d&apos;Élévation Tactique</div>
                                         <div className="text-sm font-black text-orange-vibrant font-mono bg-orange-vibrant/5 px-3 py-1 rounded-lg ring-1 ring-orange-vibrant/20">
-                                             {totalElev.toLocaleString()} m D+
+                                             {totalElev.toLocaleString()} m D+ Cumulé
                                         </div>
                                    </div>
                               </div>
                               
-                              <div className="relative h-24 w-full flex items-end gap-1 px-2 overflow-x-auto scrollbar-hide">
-                                   {chartPoints.map((elev, i) => {
-                                        const h = (elev / maxAbsElev) * 100;
+                              <div className="relative h-24 w-full flex items-end gap-[1px]">
+                                   {Array.from({ length: 120 }).map((_, i) => {
+                                        const stageIndex = Math.floor((i / 120) * (stages.length || 1));
+                                        const currentStage = stages[Math.min(stages.length - 1, stageIndex)];
+                                        const nextStage = stages[Math.min(stages.length - 1, stageIndex + 1)] || currentStage;
+                                        
+                                        const currentAbs = parseInt(currentStage?.absElev || "300");
+                                        const nextAbs = parseInt(nextStage?.absElev || "300");
+                                        
+                                        const baseH = (currentAbs / maxAbsElev) * 80;
+                                        const nextH = (nextAbs / maxAbsElev) * 80;
+                                        
+                                        const internalI = i % Math.max(1, 120 / (stages.length || 1));
+                                        const ratio = internalI / Math.max(1, 120 / (stages.length || 1));
+                                        const interpolatedH = baseH + (nextH - baseH) * ratio;
+                                        
+                                        const h = interpolatedH + Math.sin(i * 0.2) * 2 + Math.cos(i * 0.1) * 3;
+                                        
                                         return (
-                                             <div key={i} className={cn("flex-1 min-w-[12px] rounded-t-sm bg-gradient-to-t from-orange-vibrant/40 to-orange-vibrant shadow-[0_-4px_12px_rgba(249,115,22,0.1)]")} style={{ height: `${Math.max(10, h)}%` }} />
+                                             <div 
+                                               key={i} 
+                                               className={cn(
+                                                   "flex-1 rounded-t-[1px] transition-all duration-500", 
+                                                   "bg-gradient-to-t from-orange-vibrant to-orange-400 opacity-80 shadow-[0_-4px_8px_rgba(249,115,22,0.1)]"
+                                               )} 
+                                               style={{ height: `${Math.max(5, h)}%` }} 
+                                             />
                                         );
                                    })}
+                              </div>
+                              <div className="mt-4 flex justify-between text-[8px] font-black text-text-faint uppercase tracking-[0.2em]">
+                                   <span>{stages[0]?.name || "Basecamp Alpha"}</span>
+                                   <span className="animate-pulse">Tactical Scan Active</span>
+                                   <span>{stages[stages.length-1]?.name || "Objective Delta"}</span>
                               </div>
                          </div>
                     </div>
