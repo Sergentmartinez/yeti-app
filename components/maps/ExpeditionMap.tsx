@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, useMapEvents,
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Icons } from '@/components/icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Fix for default marker icons in Leaflet with Next.js
 const DefaultIcon = L.icon({
@@ -56,9 +56,21 @@ interface ExpeditionMapProps {
 }
 
 export default function ExpeditionMap({ stages, onSelectPoint, pickingMode }: ExpeditionMapProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const polylinePositions = stages
     .filter(s => s.coords)
     .map(s => s.coords as [number, number]);
+
+  if (!mounted) return (
+    <div className="w-full h-full bg-bg-surface-2 animate-pulse flex items-center justify-center rounded-2xl">
+      <Icons.Map className="w-12 h-12 text-text-faint" />
+    </div>
+  );
 
   return (
     <div className="relative w-full h-full">
@@ -96,7 +108,7 @@ export default function ExpeditionMap({ stages, onSelectPoint, pickingMode }: Ex
         {stages.filter(s => s.coords).map((stage, i) => (
            <Marker key={stage.id} position={stage.coords!}>
               <Popup>
-                  <div className="text-xs font-black uppercase">{stage.name}</div>
+                  <div className="text-xs font-black uppercase text-text-primary">{stage.name}</div>
               </Popup>
            </Marker>
         ))}
