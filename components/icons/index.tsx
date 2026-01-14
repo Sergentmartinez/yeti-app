@@ -2,7 +2,7 @@
 import { 
   Map, Mountain, Tent, Backpack, Compass, Thermometer, Wind, Droplets, 
   Flame, Utensils, Shirt, BedDouble, Zap, Box, CheckCircle2, X, 
-  ChevronRight, ChevronDown, ChevronLeft, Search, Plus, Minus, Trash2, FileText, Share2, 
+  ChevronRight, ChevronDown, ChevronLeft, Search, Plus, Minus, Trash2, FileText, Share2, Upload,
   User, Settings, LogOut, Train, Plane, Bus, CalendarRange, Activity, 
   ArrowRight, ArrowLeft, CloudSun, Home, TrendingUp, Download, Check,
   Star, Gauge, Clock, Route, MapPin, AlertTriangle, Footprints, Target,
@@ -190,6 +190,9 @@ export const Icons = {
   ),
   Download: ({ className }: { className?: string }) => (
     <Download strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Upload: ({ className }: { className?: string }) => (
+    <Upload strokeWidth={TECH_STROKE} className={className} />
   ),
   Star: ({ className }: { className?: string }) => (
     <Star strokeWidth={TECH_STROKE} className={className} />
