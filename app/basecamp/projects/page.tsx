@@ -6,8 +6,8 @@ import { getAllTreks } from "@/lib/treks";
 import { createProject, deleteProject, listProjects } from "@/lib/projects/local";
 import { AdventureProject } from "@/types/projects";
 import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/icons";
-import { cn } from "@/lib/utils";
 
 export default function ProjectsPage() {
   const treks = useMemo(() => getAllTreks(), []);
@@ -17,7 +17,7 @@ export default function ProjectsPage() {
   const [startDate, setStartDate] = useState("");
 
   const [tick, setTick] = useState(0);
-  const projects = useMemo(() => listProjects(), [tick]);
+  const projects = listProjects();
 
   function refresh() { setTick(t => t + 1); }
 
@@ -38,135 +38,86 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-base transition-colors duration-300">
-      {/* HEADER */}
-      <header className="h-16 border-b border-border-subtle flex items-center justify-between px-8 bg-bg-surface-2/80 backdrop-blur-md sticky top-0 z-30">
-        <div className="flex items-center gap-4">
-          <Icons.Folder className="w-6 h-6 text-accent-cyan" />
-          <div>
-            <h1 className="text-xl font-black text-text-primary tracking-tight">Mes Expéditions</h1>
-            <p className="text-xs font-black text-text-muted uppercase tracking-[0.2em] leading-none mt-1">Tactical Backbone v4.0</p>
-          </div>
+    <div className="p-8">
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-black text-white">Mes projets</h1>
+          <p className="mt-1 text-sm text-zinc-400">Chaque projet = une expédition datée + un groupe + un sac.</p>
         </div>
-        <button 
-          onClick={() => setOpen(true)}
-          className="premium-card px-5 py-2.5 rounded-xl flex items-center gap-2 text-accent-cyan hover:bg-accent-cyan/10 transition-all hover:scale-105 active:scale-95 border border-accent-cyan/20"
-        >
-          <Icons.Plus className="w-4 h-4" />
-          <span className="text-xs font-black uppercase tracking-widest">Nouveau Projet</span>
-        </button>
-      </header>
-
-      <div className="p-8 max-w-[1400px] mx-auto space-y-8 animate-slide-up">
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map(p => (
-            <div key={p.id} className="premium-card rounded-2xl p-6 flex flex-col group transition-all hover:translate-y-[-4px] bg-bg-surface-1 hover:shadow-2xl hover:border-accent-cyan/30 border-2 border-transparent">
-              <div className="flex items-start justify-between gap-3 mb-8">
-                <div className="flex-1">
-                  <div className="text-lg font-black text-text-primary uppercase tracking-tight group-hover:text-accent-cyan transition-colors">{p.name}</div>
-                  <div className="mt-4 flex flex-col gap-2">
-                    <div className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-2.5 group/item">
-                      <Icons.MapPin className="w-3.5 h-3.5 text-accent-cyan opacity-60 group-hover/item:opacity-100 transition-opacity" /> 
-                      Itinéraire: <span className="text-text-primary font-mono">{p.trekSlug}</span>
-                    </div>
-                    {p.startDate && (
-                      <div className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-2.5 group/item">
-                        <Icons.Calendar className="w-3.5 h-3.5 text-accent-orange opacity-60 group-hover/item:opacity-100 transition-opacity" /> 
-                        Départ: <span className="text-text-primary font-mono">{p.startDate}</span>
-                      </div>
-                    )}
-                    <div className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-2.5 group/item">
-                      <Icons.Users className="w-3.5 h-3.5 text-emerald-500 opacity-60 group-hover/item:opacity-100 transition-opacity" /> 
-                      Équipe: <span className="text-text-primary font-mono">{p.members.length} membre{p.members.length > 1 ? 's' : ''}</span>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => onDelete(p)} 
-                  className="rounded-lg p-2.5 text-text-faint hover:text-accent-red hover:bg-accent-red/10 transition-colors" 
-                  aria-label="Supprimer"
-                >
-                  <Icons.Trash className="h-4 w-4" />
-                </button>
-              </div>
-
-              <div className="mt-auto pt-6 border-t border-border-subtle flex gap-4">
-                <Link href={`/basecamp/projects/${p.id}`} className="flex-1">
-                  <button className="w-full py-3 rounded-xl bg-bg-surface-3 text-xs font-black uppercase tracking-[0.2em] text-text-primary hover:bg-accent-cyan hover:text-bg-base transition-all shadow-lg active:scale-95">
-                    Launch
-                  </button>
-                </Link>
-                <Link href={`/treks/${p.trekSlug}`} className="flex-1">
-                  <button className="w-full py-3 rounded-xl border border-border-subtle text-xs font-black uppercase tracking-[0.2em] text-text-muted hover:text-text-primary hover:border-text-faint transition-all active:scale-95">
-                    Data
-                  </button>
-                </Link>
-              </div>
-            </div>
-          ))}
-          
-          {projects.length === 0 && (
-            <div 
-              onClick={() => setOpen(true)}
-              className="premium-card rounded-2xl p-16 border-dashed border-2 flex flex-col items-center justify-center text-center cursor-pointer group hover:border-accent-cyan/50 transition-all bg-bg-surface-1/50"
-            >
-              <div className="w-16 h-16 rounded-full bg-bg-surface-3 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Icons.Folder className="w-8 h-8 text-text-faint group-hover:text-accent-cyan transition-all" />
-              </div>
-              <h3 className="text-base font-black text-text-primary uppercase tracking-widest">Aucune expédition en cours</h3>
-              <p className="text-xs font-bold text-text-muted uppercase mt-3 tracking-widest">Initialisez votre premier Tactical Backbone</p>
-            </div>
-          )}
-        </div>
+        <Button onClick={() => setOpen(true)}>
+          <Icons.Plus className="mr-2 h-4 w-4" />
+          Nouveau projet
+        </Button>
       </div>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="INITIALISER L'EXPÉDITION">
-        <div className="space-y-6 pt-4">
-          <div className="space-y-3">
-            <label className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Nom de mission</label>
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {projects.map(p => (
+          <div key={p.id} className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-bold text-white">{p.name}</div>
+                <div className="mt-1 text-xs text-zinc-500">
+                  Trek: <span className="text-zinc-300">{p.trekSlug}</span>
+                  {p.startDate ? <> • Départ: <span className="text-zinc-300">{p.startDate}</span></> : null}
+                </div>
+                <div className="mt-2 text-xs text-zinc-500">
+                  Membres: <span className="text-zinc-300">{p.members.length}</span>
+                </div>
+              </div>
+              <button onClick={() => onDelete(p)} className="rounded-lg p-2 hover:bg-zinc-900" aria-label="Supprimer">
+                <Icons.Trash className="h-4 w-4 text-zinc-400" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <Link href={`/basecamp/projects/${p.id}`} className="flex-1">
+                <Button className="w-full">Ouvrir</Button>
+              </Link>
+              <Link href={`/treks/${p.trekSlug}`} className="flex-1">
+                <Button variant="outline" className="w-full">Voir le trek</Button>
+              </Link>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <Modal open={open} onClose={() => setOpen(false)} title="Créer un projet">
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-zinc-300">Nom du projet</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: GR20_SUD_ALPHA..."
-              className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-5 py-4 text-sm font-black text-text-primary focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan/50 outline-none transition-all placeholder:text-text-faint"
+              placeholder="ex: Mon GR20 Juillet 2026"
+              className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
             />
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-3">
-              <label className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Terrain cible</label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs font-bold text-zinc-300">Trek</label>
               <select
                 value={trekSlug}
                 onChange={(e) => setTrekSlug(e.target.value)}
-                className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-5 py-4 text-sm font-black text-text-primary focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan/50 outline-none transition-all"
+                className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
               >
-                {treks.map(t => <option key={t.slug} value={t.slug}>{t.name.toUpperCase()}</option>)}
+                {treks.map(t => <option key={t.slug} value={t.slug}>{t.name}</option>)}
               </select>
             </div>
-            <div className="space-y-3">
-              <label className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Fenêtre de départ</label>
+            <div>
+              <label className="text-xs font-bold text-zinc-300">Date de départ</label>
               <input
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 type="date"
-                className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-5 py-4 text-sm font-black text-text-primary focus:ring-2 focus:ring-accent-cyan/50 focus:border-accent-cyan/50 outline-none transition-all invert dark:invert-0"
+                className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-orange-500"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-5 pt-6">
-            <button 
-              onClick={() => setOpen(false)}
-              className="px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-text-muted hover:text-text-primary transition-colors"
-            >
-              Abanddonner
-            </button>
-            <button 
-              onClick={onCreate}
-              className="px-10 py-4 rounded-xl bg-accent-cyan text-bg-base text-xs font-black uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(138,180,248,0.3)] hover:scale-105 active:scale-95 transition-all"
-            >
-              Lancer Mission
-            </button>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button>
+            <Button onClick={onCreate}>Créer</Button>
           </div>
         </div>
       </Modal>

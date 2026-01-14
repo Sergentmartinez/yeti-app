@@ -1,437 +1,210 @@
-// app/basecamp/routes/page.tsx
 "use client";
 
-import dynamic from 'next/dynamic';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
 import { Icons } from '@/components/icons';
 import { cn } from '@/lib/utils';
-import { Modal } from '@/components/ui/Modal';
 
-// Port dynamiquement la map pour éviter les erreurs SSR de Leaflet
-const ExpeditionMap = dynamic(() => import('@/components/maps/ExpeditionMap'), { 
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full bg-bg-surface-2 animate-pulse flex items-center justify-center rounded-2xl">
-      <Icons.Map className="w-12 h-12 text-text-faint" />
-    </div>
-  )
-});
+// --- MOCK DE DONNÉES ---
 
-interface Stage {
-    id: number;
+interface RouteSummary {
+    id: string;
     name: string;
-    dist: string;
-    elev: string; // This is D+ for the stage
-    absElev: string; // Absolute elevation for the chart
-    status: 'completed' | 'active' | 'pending';
-    coords?: [number, number];
+    distance: number; // km
+    elevation: number; // m
+    dateCompleted: string;
+    isJubilee: boolean; // Marque si c'est un trek "Trophée"
+    slug: string;
 }
 
-const INITIAL_STAGES: Stage[] = [
-  { id: 1, name: "Calenzana", dist: "0", elev: "0", absElev: "300", status: "completed", coords: [42.5083, 8.8556] },
-  { id: 2, name: "Ortu di u Piobbu", dist: "10.5", elev: "1310", absElev: "1550", status: "completed", coords: [42.4167, 8.8833] },
-  { id: 3, name: "Carozzu", dist: "7.2", elev: "650", absElev: "1270", status: "completed", coords: [42.3667, 8.9167] },
-  { id: 4, name: "Asco Stagnu", dist: "4.8", elev: "780", absElev: "1422", status: "active", coords: [42.3333, 8.8667] },
-  { id: 5, name: "Tighjettu", dist: "8.5", elev: "1050", absElev: "1683", status: "active", coords: [42.3000, 8.9000] },
-  { id: 6, name: "Ciottulu di i Mori", dist: "6.2", elev: "620", absElev: "1991", status: "active", coords: [42.2611, 8.9222] },
+const MOCK_ROUTES: RouteSummary[] = [
+    { id: 'gr20', name: 'GR20 (Corse)', distance: 180, elevation: 11000, dateCompleted: '2024-08-15', isJubilee: true, slug: 'gr20-corse' },
+    { id: 'tmb', name: 'Tour du Mont-Blanc', distance: 170, elevation: 10000, dateCompleted: '2023-07-20', isJubilee: false, slug: 'tmb-suisse' },
+    { id: 'camino', name: 'Camino Francés (Partiel)', distance: 350, elevation: 5000, dateCompleted: '2023-05-01', isJubilee: true, slug: 'camino-frances' },
+    { id: 'lac-annecy', name: 'Tour du Lac d\'Annecy', distance: 40, elevation: 200, dateCompleted: '2024-09-10', isJubilee: false, slug: 'lac-annecy' },
 ];
 
-export default function ItineraryPage() {
-    const [stages, setStages] = useState<Stage[]>(INITIAL_STAGES);
-    const [activeStage, setActiveStage] = useState(4);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingStageId, setEditingStageId] = useState<number | null>(null);
-    const [isPickingMode, setIsPickingMode] = useState(false);
-    const [isFetchingElevation, setIsFetchingElevation] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+// --- COMPOSANTS INTERNES ---
+
+const JubileeCard = ({ route }: { route: RouteSummary }) => {
+    return (
+        <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-stone-200 shadow-sm transition hover:shadow-md hover:border-orange-300">
+            <Icons.Trophy className="w-8 h-8 text-yellow-600 shrink-0" />
+            <div className="flex-1">
+                <Link href={`/treks/${route.slug}`} className="text-lg font-bold text-stone-900 hover:text-orange-600 transition">
+                    {route.name}
+                </Link>
+                <p className="text-sm text-stone-500">
+                    Complété le {route.dateCompleted}. {route.distance} km | {route.elevation.toLocaleString()} m D+.
+                </p>
+            </div>
+            <span className="text-xs font-bold text-orange-600 uppercase tracking-wider">JUBILÉ</span>
+        </div>
+    );
+};
+
+const RouteItem = ({ route }: { route: RouteSummary }) => {
+    return (
+        <div className="flex items-center justify-between p-4 bg-white rounded-xl border border-stone-200 hover:border-blue-300 transition">
+            <div className="flex-1">
+                <Link href={`/treks/${route.slug}`} className="text-base font-bold text-stone-900 hover:text-blue-600 transition">
+                    {route.name}
+                </Link>
+                <p className="text-xs text-stone-500 mt-0.5">
+                    {route.distance} km | {route.elevation.toLocaleString()} m D+
+                </p>
+            </div>
+            <div className="flex items-center gap-4">
+                {/* CORRECTION TYPAGE: Emballage de Icons.Trophy avec title */}
+                {route.isJubilee && (
+                    <span title="Trophée JUBILÉ" className="cursor-help">
+                        <Icons.Trophy className="w-4 h-4 text-yellow-500" />
+                    </span>
+                )}
+                <Link href={`/basecamp/packbuilder?trek=${route.slug}`} className="text-xs text-stone-500 hover:text-orange-600 font-medium flex items-center gap-1">
+                    <Icons.NavPack className="w-3 h-3" />
+                    Pack
+                </Link>
+                <Icons.ChevronRight className="w-4 h-4 text-stone-400" />
+            </div>
+        </div>
+    );
+};
+
+
+// --- COMPOSANT PRINCIPAL ---
+
+export default function RoutesPage() {
+    const [searchTerm, setSearchTerm] = useState(''); 
     
-    // Form state
-    const [stageName, setStageName] = useState("");
-    const [stageCoords, setStageCoords] = useState<[number, number] | null>(null);
-    const [stageElev, setStageElev] = useState("");
-    const [stageAbsElev, setStageAbsElev] = useState("");
-    const [stageDist, setStageDist] = useState("");
+    const filteredRoutes = useMemo(() => {
+        return MOCK_ROUTES.filter(route => 
+            route.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ).sort((a, b) => b.dateCompleted.localeCompare(a.dateCompleted)); 
+    }, [searchTerm]);
 
-    // --- LOGIC: Fetch Real Elevation from API ---
-    const fetchRealElevation = async (lat: number, lng: number) => {
-        setIsFetchingElevation(true);
-        try {
-            const res = await fetch(`https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`);
-            const data = await res.json();
-            if (data.results && data.results[0]) {
-                const absoluteElevation = Math.round(data.results[0].elevation);
-                setStageAbsElev(absoluteElevation.toString());
-                
-                const lastStage = [...stages].reverse().find(s => s.coords && (editingStageId ? s.id !== editingStageId : true));
-                if (lastStage && lastStage.absElev) {
-                    const gain = Math.max(0, absoluteElevation - parseInt(lastStage.absElev)); 
-                    setStageElev(gain.toString());
-                } else {
-                    setStageElev("0");
-                }
-            }
-        } catch (error) {
-            console.error("Elevation API failed", error);
-        } finally {
-            setIsFetchingElevation(false);
-        }
-    };
-
-    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-        const R = 6371; // km
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
-    };
-
-    const handlePointPicked = (lat: number, lng: number) => {
-        setStageCoords([lat, lng]);
-        
-        const lastStageWithCoords = [...stages].reverse().find(s => s.coords && (editingStageId ? s.id !== editingStageId : true));
-        if (lastStageWithCoords && lastStageWithCoords.coords) {
-            const d = calculateDistance(lastStageWithCoords.coords[0], lastStageWithCoords.coords[1], lat, lng);
-            setStageDist(d.toFixed(1));
-        } else {
-            setStageDist("0");
-        }
-
-        fetchRealElevation(lat, lng);
-        setIsPickingMode(false);
-        setIsModalOpen(true);
-    };
-
-    const importGPX = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const xml = event.target?.result as string;
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            const trkpts = doc.querySelectorAll("trkpt");
-            
-            if (trkpts.length === 0) {
-                alert("GPX invalide ou vide");
-                return;
-            }
-
-            const newStages: Stage[] = [];
-            let prevCoords: [number, number] | null = null;
-            let prevAbsElev: number | null = null;
-
-            trkpts.forEach((pt, i) => {
-                // Downsample to avoid overwhelming the app (take every 50th point if many)
-                if (trkpts.length > 50 && i % Math.floor(trkpts.length / 10) !== 0 && i !== trkpts.length - 1) return;
-
-                const lat = parseFloat(pt.getAttribute("lat") || "0");
-                const lon = parseFloat(pt.getAttribute("lon") || "0");
-                const ele = pt.querySelector("ele")?.textContent || "0";
-                const name = pt.querySelector("name")?.textContent || `Point ${i + 1}`;
-
-                let dist = 0;
-                let elev = 0;
-
-                if (prevCoords) {
-                    dist = calculateDistance(prevCoords[0], prevCoords[1], lat, lon);
-                }
-                if (prevAbsElev) {
-                    elev = Math.max(0, Math.round(parseFloat(ele)) - prevAbsElev);
-                }
-
-                newStages.push({
-                    id: Date.now() + i,
-                    name: name,
-                    dist: dist.toFixed(1),
-                    elev: elev.toString(),
-                    absElev: Math.round(parseFloat(ele)).toString(),
-                    status: 'active',
-                    coords: [lat, lon]
-                });
-
-                prevCoords = [lat, lon];
-                prevAbsElev = Math.round(parseFloat(ele));
-            });
-
-            setStages(newStages);
-        };
-        reader.readAsText(file);
-    };
-
-    const downloadGPX = () => {
-        const gpx = `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="YETI PWA" xmlns="http://www.topografix.com/GPX/1/1">
-  <trk>
-    <name>Mon Itinéraire Tactique</name>
-    <trkseg>
-      ${stages.filter(s => s.coords).map(s => `
-      <trkpt lat="${s.coords![0]}" lon="${s.coords![1]}">
-        <ele>${s.absElev}</ele>
-        <name>${s.name}</name>
-      </trkpt>`).join('')}
-    </trkseg>
-  </trk>
-</gpx>`;
-        const blob = new Blob([gpx], { type: 'application/gpx+xml' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'itineraire_yeti.gpx';
-        a.click();
-    };
-
-    const openEditModal = (id: number) => {
-        const s = stages.find(x => x.id === id);
-        if (s) {
-            setEditingStageId(id);
-            setStageName(s.name);
-            setStageElev(s.elev);
-            setStageAbsElev(s.absElev);
-            setStageDist(s.dist);
-            setStageCoords(s.coords || null);
-            setIsModalOpen(true);
-        }
-    };
-
-    const openAddModal = () => {
-        setEditingStageId(null);
-        setStageName("");
-        setStageCoords(null);
-        setStageElev("");
-        setStageAbsElev("");
-        setStageDist("");
-        setIsModalOpen(true);
-    };
-
-    const handleSaveStage = () => {
-        if (!stageName) return;
-
-        const stageData = {
-            name: stageName,
-            elev: stageElev || "0",
-            absElev: stageAbsElev || "0",
-            dist: stageDist || "0",
-            coords: stageCoords || undefined,
-            status: 'active' as const
-        };
-
-        if (editingStageId !== null) {
-            setStages(prev => prev.map(s => s.id === editingStageId ? { ...s, ...stageData } : s));
-        } else {
-            const nextId = stages.length > 0 ? Math.max(...stages.map(s => s.id)) + 1 : 1;
-            setStages([...stages, { id: nextId, ...stageData }]);
-        }
-        
-        setIsModalOpen(false);
-    };
-
-    const totalElev = useMemo(() => stages.reduce((acc, curr) => acc + parseInt(curr.elev || "0"), 0), [stages]);
-    const totalDist = useMemo(() => stages.reduce((acc, curr) => acc + parseFloat(curr.dist || "0"), 0).toFixed(1), [stages]);
-
-    // Data for elevation chart
-    const chartPoints = useMemo(() => {
-        if (stages.length === 0) return [];
-        return stages.map(s => parseInt(s.absElev || "0"));
-    }, [stages]);
-
-    const maxAbsElev = Math.max(...chartPoints, 3000);
+    const jubileeRoutes = useMemo(() => filteredRoutes.filter(r => r.isJubilee), [filteredRoutes]);
 
     return (
-        <div className="h-screen flex flex-col bg-bg-base transition-colors overflow-hidden">
-            <header className="h-16 border-b border-border-subtle flex items-center justify-between px-8 bg-bg-surface-1 shrink-0 z-30">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-black text-text-primary tracking-tight">Itinéraire</h1>
-                    <div className="h-4 w-[1px] bg-border-subtle" />
-                    <span className="text-sm text-text-muted font-medium uppercase tracking-widest leading-none">Intelligence Tactique</span>
-                </div>
-                {isPickingMode && (
-                    <div className="absolute left-1/2 -translate-x-1/2 px-6 py-2 bg-orange-vibrant text-white text-xs font-black uppercase tracking-widest rounded-full shadow-2xl animate-pulse z-50 ring-4 ring-orange-vibrant/20">
-                        Cliquez sur la carte pour définir l&apos;étape
+        <div className="min-h-screen bg-stone-50 pb-20 font-sans">
+            {/* HEADER */}
+            <header className="bg-white border-b border-stone-200 shadow-sm mb-8">
+                <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-black text-stone-900 flex items-center gap-3">
+                            <Icons.NavRoutes className="w-7 h-7 text-orange-600" />
+                            Mes Routes & Trophées
+                        </h1>
+                        <p className="text-sm text-stone-500 mt-1 ml-10">Gère tes parcours enregistrés et tes réussites.</p>
                     </div>
-                )}
-                <div className="flex items-center gap-4">
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={importGPX} 
-                        accept=".gpx" 
-                        className="hidden" 
-                    />
-                    <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="premium-card px-4 py-2 rounded-xl flex items-center gap-2 text-cyan-vibrant hover:bg-cyan-vibrant/10 transition-colors"
-                    >
-                        <Icons.Upload className="w-4 h-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Importer GPX</span>
-                    </button>
-                    <button 
-                        onClick={downloadGPX}
-                        className="premium-card px-4 py-2 rounded-xl flex items-center gap-2 text-emerald-vibrant hover:bg-emerald-vibrant/10 transition-colors"
-                    >
-                        <Icons.Download className="w-4 h-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Exporter</span>
-                    </button>
+                    <Link href="/basecamp" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors flex items-center gap-2">
+                        <Icons.ArrowLeft className="w-4 h-4" /> Retour Basecamp
+                    </Link>
                 </div>
             </header>
 
-            <div className="flex-1 flex overflow-hidden">
-                <aside className="w-80 border-r border-border-subtle bg-bg-surface-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
-                    <div className="flex items-center justify-between px-2 mb-4">
-                        <div className="text-[10px] font-black text-text-faint uppercase tracking-[0.2em]">Flux d&apos;étapes</div>
-                        <div className="text-[10px] font-bold text-text-muted bg-bg-surface-3 px-2 py-0.5 rounded">{totalDist} km</div>
-                    </div>
+            <div className="max-w-7xl mx-auto px-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                {/* COLONNE GAUCHE : Listes (Routes & Jubilés) */}
+                <div className="lg:col-span-2 space-y-8">
                     
-                    <div className="space-y-2">
-                        {stages.map((stage) => (
-                            <div
-                                key={stage.id}
-                                onClick={() => setActiveStage(stage.id)}
-                                onDoubleClick={() => openEditModal(stage.id)}
-                                className={cn(
-                                    "p-4 rounded-xl cursor-pointer transition-all border group relative",
-                                    activeStage === stage.id
-                                        ? "bg-bg-surface-2 border-orange-vibrant/50 shadow-lg shadow-orange-vibrant/5 scale-[1.02]"
-                                        : "bg-transparent border-transparent hover:bg-bg-surface-3"
-                                )}
-                            >
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className={cn(
-                                        "text-[10px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest",
-                                        stage.coords ? "bg-orange-vibrant/10 text-orange-vibrant" : "bg-bg-surface-4 text-text-faint"
-                                    )}>
-                                        {stage.coords ? "GPS OK" : "Draft"}
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-black font-mono text-text-primary bg-bg-surface-3 px-1.5 py-0.5 rounded shadow-sm">{stage.dist} km</span>
-                                        <button onClick={(e) => { e.stopPropagation(); openEditModal(stage.id); }} className="opacity-0 group-hover:opacity-100 p-1 hover:text-orange-vibrant"><Icons.PlusCircle className="w-3 h-3 rotate-45" /></button>
-                                    </div>
-                                </div>
-                                <h4 className="text-sm font-bold tracking-tight mb-1 text-text-primary line-clamp-1">{stage.name}</h4>
-                                <div className="flex items-center justify-between">
-                                    <div className="text-xs font-black text-cyan-vibrant uppercase tracking-wider flex items-center gap-1.5">
-                                        <Icons.StatsElevation className="w-3 h-3" />
-                                        +{stage.elev}m
-                                    </div>
-                                    <div className="text-[9px] font-bold text-text-faint uppercase">{stage.absElev}m</div>
-                                </div>
+                    {/* Bar de Recherche et Filtre */}
+                    <div className="flex items-center gap-4 p-4 bg-white rounded-xl border border-stone-200 shadow-sm">
+                        <Icons.Search className="w-5 h-5 text-stone-400" />
+                        <input
+                            type="text"
+                            placeholder="Rechercher une route ou une ville..."
+                            className="flex-1 bg-transparent border-none focus:ring-0 text-stone-800 placeholder-stone-400"
+                            value={searchTerm}
+                            onChange={(e) => {
+                                const newValue = e.target.value;
+                                if (newValue !== searchTerm) {
+                                    setSearchTerm(newValue);
+                                }
+                            }}
+                        />
+                        {/* CORRECTION TYPAGE: Emballage de Icons.Filter avec title */}
+                        <span title="Filtrer les routes" className="cursor-pointer">
+                            <Icons.Filter className="w-5 h-5 text-stone-500 hover:text-orange-600 transition" />
+                        </span>
+                    </div>
+
+                    {/* Section JUBILÉ */}
+                    {jubileeRoutes.length > 0 && (
+                        <div className="space-y-4">
+                            <h2 className="text-xl font-bold text-stone-900 flex items-center gap-2">
+                                <Icons.Trophy className="w-6 h-6 text-yellow-600" />
+                                JUBILÉ ({jubileeRoutes.length})
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {jubileeRoutes.map(route => (
+                                    <JubileeCard key={route.id} route={route} />
+                                ))}
                             </div>
-                        ))}
-                    </div>
-
-                    <button onClick={openAddModal} className="w-full mt-6 py-4 rounded-xl border-2 border-dashed border-border-default text-text-faint hover:text-orange-vibrant hover:border-orange-vibrant/30 transition-all flex flex-col items-center justify-center gap-1 group bg-orange-vibrant/5">
-                         <Icons.Plus className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                         <span className="text-[10px] font-black uppercase tracking-widest">Nouvelle Étape</span>
-                    </button>
-                </aside>
-
-                <main className="flex-1 relative flex flex-col">
-                    <div className="flex-1 p-4">
-                         <div className="w-full h-full premium-card rounded-2xl overflow-hidden relative shadow-2xl ring-1 ring-border-subtle">
-                              <ExpeditionMap stages={stages} pickingMode={isPickingMode} onSelectPoint={handlePointPicked} />
-                         </div>
-                    </div>
-
-                    <div className="h-48 px-4 pb-4">
-                         <div className="w-full h-full premium-card rounded-2xl p-6 relative group overflow-hidden">
-                               <div className="flex items-center justify-between mb-4">
-                                   <div className="flex items-center gap-3">
-                                        <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">Profil d&apos;Élévation Tactique</div>
-                                        <div className="text-sm font-black text-orange-vibrant font-mono bg-orange-vibrant/5 px-3 py-1 rounded-lg ring-1 ring-orange-vibrant/20">
-                                             {totalElev.toLocaleString()} m D+ Cumulé
-                                        </div>
-                                   </div>
-                              </div>
-                              
-                              <div className="relative h-24 w-full flex items-end gap-[1px]">
-                                   {Array.from({ length: 120 }).map((_, i) => {
-                                        const stageIndex = Math.floor((i / 120) * (stages.length || 1));
-                                        const currentStage = stages[Math.min(stages.length - 1, stageIndex)];
-                                        const nextStage = stages[Math.min(stages.length - 1, stageIndex + 1)] || currentStage;
-                                        
-                                        const currentAbs = parseInt(currentStage?.absElev || "300");
-                                        const nextAbs = parseInt(nextStage?.absElev || "300");
-                                        
-                                        const baseH = (currentAbs / maxAbsElev) * 80;
-                                        const nextH = (nextAbs / maxAbsElev) * 80;
-                                        
-                                        const internalI = i % Math.max(1, 120 / (stages.length || 1));
-                                        const ratio = internalI / Math.max(1, 120 / (stages.length || 1));
-                                        const interpolatedH = baseH + (nextH - baseH) * ratio;
-                                        
-                                        const h = interpolatedH + Math.sin(i * 0.2) * 2 + Math.cos(i * 0.1) * 3;
-                                        
-                                        return (
-                                             <div 
-                                               key={i} 
-                                               className={cn(
-                                                   "flex-1 rounded-t-[1px] transition-all duration-500", 
-                                                   "bg-gradient-to-t from-orange-vibrant to-orange-400 opacity-80 shadow-[0_-4px_8px_rgba(249,115,22,0.1)]"
-                                               )} 
-                                               style={{ height: `${Math.max(5, h)}%` }} 
-                                             />
-                                        );
-                                   })}
-                              </div>
-                              <div className="mt-4 flex justify-between text-[8px] font-black text-text-faint uppercase tracking-[0.2em]">
-                                   <span>{stages[0]?.name || "Basecamp Alpha"}</span>
-                                   <span className="animate-pulse">Tactical Scan Active</span>
-                                   <span>{stages[stages.length-1]?.name || "Objective Delta"}</span>
-                              </div>
-                         </div>
-                    </div>
-                </main>
-            </div>
-
-            <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingStageId ? "CONFIGURATION ÉTAPE" : "NOUVELLE ÉTAPE"}>
-                <div className="space-y-6 pt-2">
-                    <div className="flex items-center justify-between p-4 rounded-xl bg-bg-surface-2 border border-border-subtle group cursor-pointer hover:border-orange-vibrant/30 transition-all" onClick={() => { setIsModalOpen(false); setIsPickingMode(true); }}>
-                         <div className="flex items-center gap-3">
-                             <div className="w-8 h-8 rounded-lg bg-orange-vibrant/10 flex items-center justify-center">
-                                 <Icons.MapPin className="w-4 h-4 text-orange-vibrant" />
-                             </div>
-                             <div>
-                                 <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-1">Localisation GPS</div>
-                                 <div className="text-xs font-bold text-text-primary">
-                                     {stageCoords ? `${stageCoords[0].toFixed(4)}, ${stageCoords[1].toFixed(4)}` : "Cliquer pour pointer sur carte"}
-                                 </div>
-                             </div>
-                         </div>
-                         <Icons.ChevronRight className="w-4 h-4 text-text-faint group-hover:translate-x-1 transition-transform" />
-                    </div>
-
-                    <div className="space-y-3">
-                        <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Nom / Destination</label>
-                        <input type="text" placeholder="Refuge..." value={stageName} onChange={(e) => setStageName(e.target.value)} className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:ring-2 focus:ring-orange-vibrant/30" />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                        <div className="space-y-3 relative">
-                            <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Altitude (m)</label>
-                            <input type="number" placeholder="Alt." value={stageAbsElev} onChange={(e) => setStageAbsElev(e.target.value)} className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:ring-2 focus:ring-orange-vibrant/30" />
-                            {isFetchingElevation && <div className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin border-2 border-orange-vibrant border-t-transparent rounded-full w-4 h-4" />}
                         </div>
+                    )}
+                    
+                    {/* Section Routes Enregistrées */}
+                    <div className="space-y-4 pt-4 border-t border-stone-200">
+                        <h2 className="text-xl font-bold text-stone-900">
+                            Toutes les Routes ({filteredRoutes.length})
+                        </h2>
                         <div className="space-y-3">
-                            <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Gain D+ (m)</label>
-                            <input type="number" placeholder="Gain" value={stageElev} onChange={(e) => setStageElev(e.target.value)} className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:ring-2 focus:ring-orange-vibrant/30" />
-                        </div>
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-black text-text-muted uppercase tracking-widest">Dist. (km)</label>
-                            <input type="number" placeholder="Dist" value={stageDist} onChange={(e) => setStageDist(e.target.value)} className="w-full bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-3 text-sm font-bold text-text-primary outline-none focus:ring-2 focus:ring-orange-vibrant/30" />
+                            {filteredRoutes.map(route => (
+                                <RouteItem key={route.id} route={route} />
+                            ))}
                         </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle mt-6">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-primary">Annuler</button>
-                        <button type="button" onClick={handleSaveStage} className="px-8 py-3 rounded-xl bg-orange-vibrant text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-orange-vibrant/20 transition-all hover:scale-105 active:scale-95">
-                            {editingStageId ? "Mettre à jour" : "Ajouter"}
-                        </button>
-                    </div>
+                    {filteredRoutes.length === 0 && (
+                        <p className="text-center text-stone-500 p-8 bg-white rounded-xl border border-stone-200">
+                            Aucune route trouvée. Essayez une recherche différente ou <Link href="/treks" className="text-orange-600 hover:underline">explorez nos treks</Link>.
+                        </p>
+                    )}
+
                 </div>
-            </Modal>
+
+                {/* COLONNE DROITE : Carte & Statistiques */}
+                <div className="lg:col-span-1 space-y-8 sticky top-10">
+                    
+                    {/* Carte Mock */}
+                    <div className="p-6 bg-stone-950 rounded-2xl shadow-xl border border-stone-800 text-white min-h-[350px]">
+                        <h3 className="text-xs font-bold uppercase text-stone-400 mb-4 tracking-widest flex items-center gap-2">
+                            <Icons.Map className="w-4 h-4 text-orange-600" />
+                            Carte (Mock)
+                        </h3>
+                        <div className="h-64 flex items-center justify-center bg-stone-800 rounded-lg border-2 border-dashed border-stone-700">
+                                <Icons.Compass className="w-12 h-12 text-stone-600 opacity-50" />
+                        </div>
+                    </div>
+
+                    {/* Stats de l'Aventurier */}
+                    <div className="p-6 bg-white rounded-2xl border border-stone-200 shadow-sm">
+                            <h3 className="text-lg font-bold text-stone-900 mb-4 flex items-center gap-2">
+                            <Icons.StatsDistance className="w-5 h-5 text-blue-600" />
+                            Statistiques Globales
+                        </h3>
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between items-center border-b border-stone-100 pb-2">
+                                <span className="text-stone-600">Distance Totale</span>
+                                <span className="font-bold text-stone-900">740 km</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-stone-100 pb-2">
+                                <span className="text-stone-600">Dénivelé Total</span>
+                                <span className="font-bold text-stone-900">26 200 m</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-stone-600">Jours de Trek</span>
+                                <span className="font-bold text-stone-900">30 Jours</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                </div>
+            </div>
         </div>
     );
 }

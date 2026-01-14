@@ -1,165 +1,338 @@
-// app/page.tsx
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { Icons } from "@/components/icons";
-import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { Logo } from "@/components/Logo";
 
 export default function LandingPage() {
+  const router = useRouter();
+
+  const demoAction = () => {
+    router.push("/app/select-trek");
+  };
+
+  useEffect(() => {
+    // Smooth scroll for anchor links
+    const handleAnchorClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest('a');
+      if (anchor) {
+        const href = anchor.getAttribute('href');
+        // Check if internal anchor link
+        if (href && href.startsWith('#') && href.length > 1) {
+          e.preventDefault();
+          const element = document.querySelector(href);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }
+    };
+
+    document.addEventListener('click', handleAnchorClick);
+    return () => document.removeEventListener('click', handleAnchorClick);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-bg-base text-text-primary antialiased selection:bg-cyan-vibrant selection:text-white">
-      
-      {/* FLOATING NAV */}
-      <nav className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-2xl bg-bg-surface-1/60 backdrop-blur-xl border border-white/10 flex items-center gap-8 shadow-2xl">
-          <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 bg-cyan-vibrant text-white rounded-lg flex items-center justify-center shadow-lg shadow-cyan-vibrant/20 group-hover:scale-110 transition-transform">
-                  <Icons.Logo className="w-5 h-5" />
-              </div>
-              <span className="text-sm font-black tracking-tighter uppercase">Yeti <span className="text-cyan-vibrant">Expédition</span></span>
-          </Link>
-          <div className="hidden md:flex items-center gap-6">
-              {['Concept', 'Basecamp', 'Sherpa', 'Tarifs'].map((item) => (
-                  <a key={item} href={`#${item.toLowerCase()}`} className="text-[10px] font-black uppercase tracking-widest text-text-faint hover:text-cyan-vibrant transition-colors">{item}</a>
-              ))}
+    <div id="landingPage" className="min-h-screen bg-stone-50 text-stone-900 antialiased font-sans">
+
+      {/* Navigation */}
+      <nav className="absolute top-0 left-0 right-0 z-50 pt-6">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          
+          <Logo variant="light" />
+
+          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-white/90 drop-shadow-md">
+            <a href="#features" className="hover:text-white transition hover:underline decoration-2 underline-offset-4 decoration-orange-500">Fonctionnalités</a>
+            <a href="#how" className="hover:text-white transition hover:underline decoration-2 underline-offset-4 decoration-orange-500">Comment ça marche</a>
+            <a href="#pricing" className="hover:text-white transition hover:underline decoration-2 underline-offset-4 decoration-orange-500">Tarifs</a>
           </div>
-          <div className="h-4 w-[1px] bg-white/10" />
-          <Link href="/basecamp" className="px-4 py-1.5 bg-white text-black text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-cyan-vibrant hover:text-white transition-all">
-              Launch App
-          </Link>
+          <div className="flex items-center gap-3">
+            <button onClick={demoAction} className="px-5 py-2.5 rounded-full bg-white text-stone-900 text-sm font-bold hover:bg-orange-600 hover:text-white transition shadow-lg">
+              Ouvrir l'app
+            </button>
+          </div>
+        </div>
       </nav>
 
-      {/* HERO SECTION */}
-      <section className="relative min-h-screen flex items-center justify-center pt-32 pb-20 overflow-hidden">
-          {/* Background Elements */}
-          <div className="absolute inset-0 z-0">
-               <Image 
-                 src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2400&auto=format&fit=crop" 
-                 alt="Background" 
-                 fill 
-                 className="object-cover opacity-20 filter grayscale scale-110 animate-pulse-slow"
-               />
-               <div className="absolute inset-0 bg-gradient-to-b from-bg-base via-transparent to-bg-base" />
+      {/* Hero Section */}
+      <section className="relative min-h-screen overflow-hidden bg-stone-950 text-white flex items-center pt-20">
+        <div className="absolute inset-0">
+          <Image
+            className="w-full h-full object-cover opacity-60"
+            src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=2400&auto=format&fit=crop"
+            alt="Montagne"
+            fill
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-stone-950/30 via-transparent to-stone-950"></div>
+        </div>
+
+        <div className="relative z-10 max-w-6xl mx-auto px-6 pb-20 w-full">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold uppercase tracking-widest mb-8 glass">
+            <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+            Your European Trek Intelligence
           </div>
 
-          <div className="relative z-10 max-w-7xl mx-auto px-8 text-center space-y-12 animate-slide-up">
-              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-bg-surface-2 border border-border-subtle shadow-xl">
-                  <div className="w-2 h-2 rounded-full bg-orange-vibrant animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Système de Planification Tactique v4.0</span>
-              </div>
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9] drop-shadow-xl">
+            <span className="block">20h de recherche.</span>
+            <span className="block mt-2">Ou <span className="text-orange-500">30 minutes</span></span>
+            <span className="block mt-2 text-stone-300">avec YETI.</span>
+          </h1>
 
-              <h1 className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.8] uppercase flex flex-col">
-                  <span className="text-text-primary drop-shadow-2xl">20h de Recherche.</span>
-                  <span className="text-transparent border-text stroke-cyan-vibrant" style={{ WebkitTextStroke: '1px var(--color-cyan-vibrant)' }}>Ou 30 minutes</span>
-                  <span className="text-cyan-vibrant drop-shadow-[0_0_30px_rgba(34,211,238,0.3)]">avec YETI.</span>
-              </h1>
+          <p className="mt-8 text-xl text-stone-200 max-w-2xl leading-relaxed drop-shadow-md">
+            Choisis ton trek. Récupère une config validée terrain. Génère ton dossier complet.
+            <span className="text-white font-bold">Les randonneurs sérieux préparent comme des pros.</span>
+          </p>
 
-              <p className="text-lg md:text-xl text-text-muted max-w-2xl mx-auto font-medium leading-relaxed">
-                  L&apos;IA Sherpa croise votre équipement, la météo et le terrain pour générer un roadbook millimétré. <span className="text-text-primary">Ne partez plus au hasard.</span>
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-                  <Link href="/basecamp" className="h-14 px-10 rounded-2xl bg-cyan-vibrant text-white font-black text-xs uppercase tracking-[0.2em] flex items-center gap-3 hover:scale-105 transition-all shadow-2xl shadow-cyan-vibrant/20">
-                      Démarrer l&apos;Expédition
-                      <Icons.ArrowRight className="w-5 h-5" />
-                  </Link>
-                  <a href="#concept" className="h-14 px-10 rounded-2xl bg-bg-surface-2 border border-border-default text-text-primary font-black text-xs uppercase tracking-[0.2em] flex items-center hover:bg-bg-surface-3 transition-all">
-                      Voir le Concept
-                  </a>
-              </div>
-
-              {/* SOCIAL PROOF / STATS */}
-              <div className="pt-20 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
-                   {[
-                       { label: 'Projets Actifs', value: '12.4k' },
-                       { label: 'Items Trackés', value: '450k+' },
-                       { label: 'Dénivelé Planifié', value: '2.8M m' },
-                       { label: 'Sherpa AI Score', value: '98%' }
-                   ].map((stat, i) => (
-                       <div key={i} className="premium-card p-6 rounded-2xl text-center flex flex-col justify-center gap-2 group hover:border-cyan-vibrant/30 transition-colors">
-                           <div className="text-4xl md:text-5xl font-black text-text-primary font-mono tracking-tighter group-hover:text-cyan-vibrant transition-colors">{stat.value}</div>
-                           <div className="text-xs font-black text-text-muted uppercase tracking-[0.2em]">{stat.label}</div>
-                       </div>
-                   ))}
-              </div>
+          <div className="mt-10 flex flex-col sm:flex-row gap-4">
+            <button onClick={demoAction} className="h-14 px-8 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-black tracking-tight transition shadow-[0_0_60px_-15px_rgba(249,115,22,0.6)] flex items-center justify-center gap-3">
+              <span>Créer mon premier projet</span>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </button>
+            <a href="#how" className="h-14 px-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold glass transition flex items-center justify-center backdrop-blur-md">
+              Voir comment ça marche
+            </a>
           </div>
+
+          <div className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-6 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md">
+              <div className="text-4xl font-black">70%</div>
+              <div className="mt-2 text-sm text-stone-300">des randonneurs partent mal équipés</div>
+            </div>
+            <div className="p-6 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md">
+              <div className="text-4xl font-black">10h+</div>
+              <div className="mt-2 text-sm text-stone-300">perdues en recherche moyenne</div>
+            </div>
+            <div className="p-6 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md">
+              <div className="text-4xl font-black">40%</div>
+              <div className="mt-2 text-sm text-stone-300">de retours sacs mal adaptés</div>
+            </div>
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-orange-600/30 to-orange-500/20 border border-orange-500/30 backdrop-blur-md">
+              <div className="text-4xl font-black text-orange-400">0→1</div>
+              <div className="mt-2 text-sm text-orange-200">plateforme qui résout tout</div>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* NARRATIVE SECTION */}
-      <section id="concept" className="py-40 bg-bg-surface-1">
-          <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-              <div className="space-y-8">
-                  <div className="text-[10px] font-black text-cyan-vibrant uppercase tracking-[0.4em]">Le Problème Analogique</div>
-                  <h2 className="text-4xl md:text-6xl font-black tracking-tight text-text-primary uppercase leading-none">
-                      Le matos ne suffit plus. <br/>
-                      <span className="text-text-faint">Il faut de l&apos;intelligence.</span>
-                  </h2>
-                  <p className="text-lg text-text-muted leading-relaxed font-medium">
-                      Historiquement, planifier un trek demandait des dizaines d&apos;onglets ouverts : Météo Blue, Iphigénie, forums spécialisés, fichiers Excel... YETI centralise tout via son moteur neuronal <strong>Sherpa</strong>.
-                  </p>
-                  <div className="space-y-4">
-                      {[
-                          { title: 'Calcul de masse dynamique', desc: 'Ajustement du poids du sac selon le volume consommé.' },
-                          { title: 'Corrélations météorologiques', desc: 'Alertes si votre duvet n’est pas adapté à la limite pluie-neige.' },
-                          { title: 'Tactical Backbone', desc: 'Visualisez l’équilibre de votre charge en 3D Studio.' }
-                      ].map((feature, i) => (
-                        <div key={i} className="flex gap-6 p-6 premium-card rounded-2xl group cursor-default hover:bg-bg-surface-2 transition-all">
-                            <div className="w-14 h-14 rounded-2xl bg-cyan-vibrant/10 text-cyan-vibrant flex items-center justify-center group-hover:bg-cyan-vibrant group-hover:text-white transition-all shadow-lg shadow-cyan-vibrant/5">
-                                <Icons.Check className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h4 className="text-base font-black text-text-primary uppercase tracking-tight">{feature.title}</h4>
-                                <p className="text-sm text-text-muted mt-2 font-medium leading-relaxed">{feature.desc}</p>
-                            </div>
-                        </div>
-                      ))}
-                  </div>
-              </div>
-
-              <div className="relative group">
-                   <div className="absolute inset-0 bg-cyan-vibrant opacity-20 blur-[100px] rounded-full group-hover:opacity-30 transition-opacity" />
-                   <div className="premium-card rounded-3xl overflow-hidden aspect-square relative z-10 border-white/5 shadow-2xl scale-95 group-hover:scale-100 transition-transform duration-700">
-                        <Image 
-                          src="https://images.unsplash.com/photo-1551632811-561732d1e306?q=80&w=1200&auto=format&fit=crop" 
-                          alt="Expedition" 
-                          fill 
-                          className="object-cover grayscale hover:grayscale-0 transition-all duration-1000"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-bg-base/80 to-transparent" />
-                        <div className="absolute bottom-8 left-8 right-8">
-                             <div className="text-[10px] font-black text-white/50 uppercase tracking-widest mb-1">Système Sherpa v4.0</div>
-                             <div className="text-xl font-black text-white uppercase tracking-tight leading-none">Analyse de charge multi-layers active.</div>
-                        </div>
-                   </div>
-              </div>
+      {/* Features */}
+      <section id="features" className="py-24 bg-[#F5F5F4]"> 
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-200 text-stone-600 text-xs font-bold uppercase tracking-widest mb-4">
+              Fonctionnalités
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight text-stone-900">
+              Ce que les autres ne font pas
+            </h2>
           </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <div className="p-8 rounded-3xl bg-white shadow-sm border border-stone-200 card-hover cursor-default">
+              <div className="w-16 h-16 rounded-2xl bg-stone-100 flex items-center justify-center mb-6 border border-stone-100">
+                <svg className="w-10 h-10 text-orange-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 4L4 20h16L12 4z" />
+                  <path d="M12 10v10" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-black mb-2 text-stone-900">Basecamp</h3>
+              <p className="text-stone-600 text-sm leading-relaxed">Dashboard contextuel qui évolue selon J-X. Tu vois exactement où tu en es et quoi faire.</p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-white shadow-sm border border-stone-200 card-hover cursor-default">
+              <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-6 border border-slate-100">
+                 <svg className="w-10 h-10 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9" />
+                  <path d="M13 11l-3 5h4l-3 5" /> 
+                </svg>
+              </div>
+              <h3 className="text-xl font-black mb-2 text-stone-900">Weather Intelligence</h3>
+              <p className="text-stone-600 text-sm leading-relaxed">Météo croisée avec ton équipement. &quot;Ton duvet sera limite J3 à 2400m.&quot;</p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-white shadow-sm border border-stone-200 card-hover cursor-default">
+              <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center mb-6 border border-emerald-100">
+                <svg className="w-10 h-10 text-emerald-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="8" y="8" width="10" height="12" rx="2" />
+                  <path d="M16 8V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+                  <path d="M16 4l2 2" /> 
+                  <path d="M6 18l-2 2" /> 
+                </svg>
+              </div>
+              <h3 className="text-xl font-black mb-2 text-stone-900">Clone & Adapt</h3>
+              <p className="text-stone-600 text-sm leading-relaxed">Clone une config validée terrain et adapte-la automatiquement à ton profil.</p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-white shadow-sm border border-stone-200 card-hover cursor-default">
+              <div className="w-16 h-16 rounded-2xl bg-stone-100 flex items-center justify-center mb-6 border border-stone-200">
+                <svg className="w-14 h-14 text-stone-800" viewBox="0 0 40 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="4" y1="12" x2="30" y2="12" />
+                  <circle cx="8" cy="12" r="3" fill="white" />
+                  <circle cx="20" cy="12" r="3" fill="white" />
+                  <circle cx="32" cy="12" r="5" fill="white" />
+                  <polyline points="30 12 31.5 13.5 34.5 10.5" strokeWidth="2" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-black mb-2 text-stone-900">Timeline Auto</h3>
+              <p className="text-stone-600 text-sm leading-relaxed">Tâches générées automatiquement : J-30 planif, J-15 test, J-7 météo, J-1 check final.</p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-white shadow-sm border border-stone-200 card-hover cursor-default">
+              <div className="w-16 h-16 rounded-2xl bg-orange-50 flex items-center justify-center mb-6 border border-orange-100">
+                <svg className="w-10 h-10 text-red-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 21l-6-6" />
+                  <circle cx="10" cy="10" r="7" />
+                  <path d="M7 11l3-3 3 3" /> 
+                </svg>
+              </div>
+              <h3 className="text-xl font-black mb-2 text-stone-900">Analyse Sherpa</h3>
+              <p className="text-stone-600 text-sm leading-relaxed">Score de préparation + alertes contextuelles. Pas juste &quot;attention&quot;, mais &quot;voici la solution&quot;.</p>
+            </div>
+
+            <div className="p-8 rounded-3xl bg-white shadow-sm border border-stone-200 card-hover cursor-default">
+              <div className="w-16 h-16 rounded-2xl bg-zinc-100 flex items-center justify-center mb-6 border border-zinc-200">
+                <svg className="w-12 h-12 text-zinc-800" viewBox="0 0 32 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                   <line x1="16" y1="2" x2="16" y2="22" />
+                   <rect x="4" y="10" width="8" height="10" rx="2" />
+                   <circle cx="8" cy="6" r="2.5" />
+                   <path d="M5 10v4h6v-4" strokeWidth="1" />
+                   <rect x="20" y="10" width="8" height="10" rx="2" />
+                   <circle cx="24" cy="6" r="2.5" />
+                   <path d="M21 10v4h6v-4" strokeWidth="1" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-black mb-2 text-stone-900">Split Mode</h3>
+              <p className="text-stone-600 text-sm leading-relaxed">Mode groupe avec répartition intelligente du matériel et checklist par personne.</p>
+            </div>
+
+          </div>
+        </div>
       </section>
 
-      {/* FOOTER CTA */}
-      <footer className="py-40 bg-bg-base border-t border-border-subtle overflow-hidden relative">
-          <div className="max-w-4xl mx-auto px-8 text-center relative z-10 space-y-10">
-               <h3 className="text-4xl md:text-7xl font-black tracking-tighter uppercase text-text-primary leading-none">
-                   Prêt à optimiser <br/>
-                   <span className="text-cyan-vibrant drop-shadow-[0_0_20px_rgba(34,211,238,0.2)]">votre sac ?</span>
-               </h3>
-               <p className="text-lg text-text-muted font-medium max-w-xl mx-auto">
-                   Rejoignez la nouvelle école de la randonnée technique. Gratuit pour les préparateurs.
-               </p>
-               <div className="flex justify-center">
-                   <Link href="/basecamp" className="h-16 px-12 rounded-2xl bg-white text-black font-black text-sm uppercase tracking-[0.3em] flex items-center hover:scale-105 transition-all shadow-2xl">
-                       Get Started Now
-                   </Link>
-               </div>
-               <div className="pt-20 text-[8px] font-black text-text-faint uppercase tracking-[0.5em]">
-                   © 2026 YETI EXPÉDITION SYSTEM — ALL RIGHTS RESERVED
-               </div>
+      {/* How it works */}
+      <section id="how" className="py-24 bg-white">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-100 text-stone-600 text-xs font-bold uppercase tracking-widest mb-4">
+              Comment ça marche
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight text-stone-900">
+              De l'idée au départ en <span className="gradient-text">3 étapes</span>
+            </h2>
           </div>
-          
-          {/* Background Text Decor */}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[20vw] font-black text-white/[0.02] uppercase tracking-tighter select-none pointer-events-none whitespace-nowrap">
-              EXPD-INFRASTRUCTURE
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-lg shadow-orange-500/30">1</div>
+              <h3 className="text-xl font-black mb-3">Choisis ton trek</h3>
+              <p className="text-stone-600">GR20, TMB, Camino... Sélectionne ta destination et tes dates. YETI récupère les données terrain.</p>
+            </div>
+            <div className="text-center">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-lg shadow-orange-500/30">2</div>
+              <h3 className="text-xl font-black mb-3">Clone une config pro</h3>
+              <p className="text-stone-600">Récupère un pack validé par la communauté. Adapte-le à ton profil, ton budget, ta morphologie.</p>
+            </div>
+            <div className="text-center">
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-orange-500 to-orange-600 text-white flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-lg shadow-orange-500/30">3</div>
+              <h3 className="text-xl font-black mb-3">Score 100% et pars</h3>
+              <p className="text-stone-600">Sherpa analyse ton pack × météo × terrain. Résous les alertes, exporte ton dossier, pars serein.</p>
+            </div>
           </div>
-      </footer>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-24 bg-stone-50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold uppercase tracking-widest mb-4">
+              Tarifs
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight text-stone-900">
+              Simple et transparent
+            </h2>
+            <p className="mt-4 text-xl text-stone-500">Gratuit pour préparer. Payant pour l'intelligence avancée.</p>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            <div className="p-6 rounded-3xl bg-white border border-stone-200">
+              <div className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Gratuit</div>
+              <div className="text-4xl font-black">0€</div>
+              <div className="text-sm text-stone-500 mb-6">Pour commencer</div>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Pack Builder complet</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> 3 projets actifs</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Export liste TXT</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Communauté</li>
+              </ul>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border-2 border-orange-500 shadow-xl relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-orange-600 text-white text-xs font-bold">Populaire</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-orange-600 mb-2">Diagnostic</div>
+              <div className="text-4xl font-black">7€</div>
+              <div className="text-sm text-stone-500 mb-6">par projet</div>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Tout le gratuit +</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Analyse Sherpa complète</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Weather Intelligence</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Export PDF</li>
+              </ul>
+              <button className="mt-6 w-full py-3 rounded-xl bg-orange-600 text-white font-bold hover:bg-orange-500 transition">Choisir</button>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-stone-200 shadow-sm">
+              <div className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Groupe</div>
+              <div className="text-4xl font-black">12€</div>
+              <div className="text-sm text-stone-500 mb-6">par projet</div>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Jusqu'à 6 personnes</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Répartition auto</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Export par membre</li>
+                <li className="flex items-center gap-2"><span className="text-emerald-600 font-bold">✓</span> Sync temps réel</li>
+              </ul>
+              <button className="mt-6 w-full py-3 rounded-xl bg-stone-900 text-white font-bold hover:bg-stone-800 transition">Choisir</button>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-stone-900 text-white">
+              <div className="text-xs font-bold uppercase tracking-widest text-orange-400 mb-2">YETI Pass</div>
+              <div className="text-4xl font-black">29€</div>
+              <div className="text-sm text-stone-400 mb-6">par an</div>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-center gap-2"><span className="text-orange-400">✓</span> Tout illimité</li>
+                <li className="flex items-center gap-2"><span className="text-orange-400">✓</span> Projets illimités</li>
+                <li className="flex items-center gap-2"><span className="text-orange-400">✓</span> Treks en avant-première</li>
+                <li className="flex items-center gap-2"><span className="text-orange-400">✓</span> Badge Supporter</li>
+              </ul>
+              <button className="mt-6 w-full py-3 rounded-xl bg-orange-600 text-white font-bold hover:bg-orange-500 transition">S'abonner</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer CTA */}
+      <section className="py-24 bg-stone-950 text-white">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-4xl md:text-6xl font-black tracking-tight">
+            Prêt à préparer<br/>
+            <span className="gradient-text">comme un pro ?</span>
+          </h2>
+          <p className="mt-6 text-xl text-stone-400 max-w-2xl mx-auto">
+            Rejoins les randonneurs qui préparent intelligemment.
+          </p>
+          <div className="mt-10">
+            <button onClick={demoAction} className="h-14 px-10 rounded-full bg-orange-600 hover:bg-orange-500 text-white font-black transition shadow-[0_0_60px_-15px_rgba(249,115,22,0.5)]">
+              Créer mon premier projet — Gratuit
+            </button>
+          </div>
+          <p className="mt-6 text-sm text-stone-500">Pas de carte bancaire • Export gratuit • Données sécurisées</p>
+        </div>
+      </section>
+
     </div>
   );
 }

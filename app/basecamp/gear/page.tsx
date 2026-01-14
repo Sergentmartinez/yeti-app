@@ -1,3 +1,4 @@
+// app/basecamp/gear/page.tsx
 "use client";
 
 import { useState, useMemo } from "react";
@@ -5,205 +6,168 @@ import Link from "next/link";
 import { Icons } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { GearItemCard } from "@/components/pack";
-import { GEAR_ITEMS, GEAR_CATEGORIES, getOwnedGear } from "@/lib/gear";
+import { GEAR_ITEMS, GEAR_CATEGORIES, getOwnedGear } from "@/lib/gear"; // Import des utilitaires Gear
+import { GearItem } from "@/types"; // Nécessaire pour le type GearItem
+
+// --- Composant Principal ---
 
 export default function GearPage() {
-    const [view, setView] = useState<'table' | 'topshot' | 'analytics'>('table');
+    
+    // État pour la catégorie de tri et la recherche
     const [activeCategory, setActiveCategory] = useState<string>("");
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [showOwnedOnly, setShowOwnedOnly] = useState<boolean>(false);
 
+    // Filtrer l'inventaire complet en fonction des états
     const filteredItems = useMemo(() => {
         let items = GEAR_ITEMS;
-        if (showOwnedOnly) items = getOwnedGear(items);
+
+        // 1. Filtrer par possession (Owned Only)
+        if (showOwnedOnly) {
+            items = getOwnedGear(items);
+        }
+
+        // 2. Filtrer par recherche
         if (searchTerm) {
-            items = items.filter(item => 
+            return items.filter(item => 
                 item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.brand?.toLowerCase().includes(searchTerm.toLowerCase())
+                item.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.category.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
+
+        // 3. Filtrer par catégorie active
         if (activeCategory) {
-            items = items.filter(item => item.category === activeCategory);
+            return items.filter(item => item.category === activeCategory);
         }
+
         return items;
     }, [searchTerm, activeCategory, showOwnedOnly]);
 
+    const activeCategoryData = GEAR_CATEGORIES.find(c => c.id === activeCategory);
+    
+    // Simuler le statut de possession (puisque ce n'est pas une page d'édition de pack)
+    const isItemOwned = (itemId: string) => GEAR_ITEMS.find(item => item.id === itemId)?.owned || false;
+
     return (
-        <div className="min-h-screen bg-bg-base transition-colors duration-300">
+        <div className="min-h-screen bg-stone-50 pb-20 font-sans">
+            
             {/* HEADER */}
-            <header className="h-16 border-b border-border-subtle flex items-center justify-between px-8 bg-bg-surface-1 sticky top-0 z-30 translate-z-0">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-xl font-black text-text-primary tracking-tight">Mon Garage</h1>
-                    <div className="h-4 w-[1px] bg-border-subtle" />
-                    <nav className="flex items-center gap-1 p-1 rounded-lg bg-bg-surface-2 border border-border-subtle">
-                        {(['table', 'topshot', 'analytics'] as const).map((v) => (
-                            <button
-                                key={v}
-                                onClick={() => setView(v)}
-                                className={cn(
-                                    "px-4 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all",
-                                    view === v 
-                                        ? "bg-bg-surface-1 text-accent-cyan shadow-sm ring-1 ring-border-subtle" 
-                                        : "text-text-faint hover:text-text-muted"
-                                )}
-                            >
-                                {v === 'table' ? 'Tableau' : v === 'topshot' ? 'Topshot' : 'Analytics'}
-                            </button>
-                        ))}
-                    </nav>
-                </div>
-                <div className="flex items-center gap-4">
-                    <div className="relative group">
-                        <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-faint group-focus-within:text-accent-cyan transition-colors" />
-                        <input
-                            type="text"
-                            placeholder="RECHERCHER..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-64 bg-bg-surface-2 border border-border-subtle rounded-xl pl-10 pr-4 py-2 text-[10px] font-black tracking-widest text-text-primary placeholder:text-text-faint focus:outline-none focus:ring-1 focus:ring-accent-cyan/50 transition-all"
-                        />
+            <header className="bg-white border-b border-stone-200 shadow-sm">
+                <div className="max-w-7xl mx-auto px-6 py-6 flex justify-between items-center">
+                    <div>
+                        <h1 className="text-3xl font-black text-stone-900 flex items-center gap-3">
+                            <Icons.NavInventory className="w-7 h-7 text-orange-600" />
+                            Mon Inventaire
+                        </h1>
+                        <p className="text-sm text-stone-500 mt-1 ml-10">Gère et organise ta collection de matériel de trek.</p>
                     </div>
-                    <button className="premium-card px-4 py-2 rounded-xl flex items-center gap-2 text-accent-cyan hover:bg-accent-cyan/10 transition-colors">
-                        <Icons.Plus className="w-4 h-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Nouveau Item</span>
-                    </button>
+                    <Link href="/basecamp" className="text-sm font-medium text-stone-600 hover:text-stone-900 transition-colors flex items-center gap-2">
+                         <Icons.ArrowLeft className="w-4 h-4" /> Retour Basecamp
+                    </Link>
                 </div>
             </header>
 
-            <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-slide-up">
-                
-                {/* GLOBAL STATS BAR */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[
-                        { label: 'Total Items', value: GEAR_ITEMS.length, icon: Icons.Archive, color: 'text-accent-cyan' },
-                        { label: 'Poids Total', value: '184.2', unit: 'kg', icon: Icons.Activity, color: 'text-accent-orange' },
-                        { label: 'Valeur Est.', value: '4.850', unit: '€', icon: Icons.TrendingUp, color: 'text-emerald-500' },
-                        { label: 'En Prêt', value: '3', icon: Icons.User, color: 'text-accent-purple' },
-                    ].map((stat, i) => (
-                        <div key={i} className="premium-card p-6 rounded-2xl flex items-center justify-between group hover:translate-y-[-2px] transition-all">
-                            <div>
-                                <div className="text-[10px] font-black text-text-faint uppercase tracking-[0.2em] mb-1">{stat.label}</div>
-                                <div className={cn("text-2xl font-black font-mono tracking-tighter", stat.color)}>
-                                    {stat.value}{stat.unit && <span className="text-xs ml-0.5">{stat.unit}</span>}
-                                </div>
-                            </div>
-                            <div className={cn("p-3 rounded-xl bg-bg-surface-3 transition-colors", `group-hover:${stat.color.replace('text-', 'bg-')}/10`)}>
-                                <stat.icon className={cn("w-6 h-6", stat.color)} />
-                            </div>
-                        </div>
+            <main className="max-w-7xl mx-auto px-6 mt-10">
+
+                {/* Barre de Recherche et Filtres */}
+                <div className="bg-white p-6 rounded-2xl shadow-xl border border-stone-200 mb-8">
+                    
+                    {/* 1. Recherche */}
+                    <div className="flex items-center border border-stone-300 rounded-xl px-4 py-3 mb-4 focus-within:ring-2 focus-within:ring-blue-500">
+                        <Icons.Search className="w-5 h-5 text-stone-400 shrink-0" /> 
+                        <input
+                            type="text"
+                            placeholder="Rechercher un article ou une marque..."
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                setActiveCategory(""); 
+                            }}
+                            className="flex-1 ml-3 text-stone-900 placeholder-stone-400 focus:outline-none bg-transparent text-lg font-medium"
+                        />
+                    </div>
+                    
+                    {/* 2. Filtres & Catégories */}
+                    <div className="flex flex-wrap gap-2 mt-4 border-t border-stone-100 pt-4 items-center">
+                        
+                        <span className="text-xs font-bold uppercase text-stone-500 mr-2">Catégories :</span>
+                        
+                        {GEAR_CATEGORIES.map(category => {
+                            const Icon = Icons[category.icon as keyof typeof Icons];
+                            return (
+                                <button
+                                    key={category.id}
+                                    onClick={() => {
+                                        setActiveCategory(category.id === activeCategory ? "" : category.id); // Toggle
+                                        setSearchTerm("");
+                                    }}
+                                    className={cn(
+                                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition",
+                                        activeCategory === category.id && !searchTerm
+                                            ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                                            : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                                    )}
+                                    disabled={!!searchTerm}
+                                >
+                                    <Icon className="w-4 h-4 shrink-0" /> 
+                                    {category.name}
+                                </button>
+                            );
+                        })}
+
+                        {/* Bouton Filtre Possession */}
+                        <button
+                            onClick={() => setShowOwnedOnly(!showOwnedOnly)}
+                            className={cn(
+                                "flex items-center gap-2 px-3 py-1.5 ml-auto rounded-full text-xs font-bold transition",
+                                showOwnedOnly
+                                    ? "bg-green-600 text-white shadow-md shadow-green-200"
+                                    : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                            )}
+                        >
+                            <Icons.Check className="w-4 h-4 shrink-0" /> 
+                            Articles Possédés ({getOwnedGear(GEAR_ITEMS).length})
+                        </button>
+                    </div>
+                </div>
+
+                {/* Liste des Articles */}
+                <div className="mb-6">
+                    <h2 className="text-3xl font-black text-stone-900">
+                        {showOwnedOnly ? "Votre Équipement Possédé" : (activeCategoryData ? activeCategoryData.name : "Inventaire Complet")}
+                    </h2>
+                    <p className="text-sm text-stone-500 mt-1">
+                        {filteredItems.length} article(s) trouvé(s).
+                    </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredItems.map(item => (
+                        <GearItemCard
+                            key={item.id}
+                            item={item}
+                            // Dans l'inventaire, 'isInPack' est remplacé par 'isOwned'
+                            isInPack={isItemOwned(item.id)} 
+                            onToggle={() => {
+                                // Dans la V1, nous ne permettons pas d'éditer l'inventaire ici.
+                                console.log(`Tentative d'édition de la propriété 'owned' pour ${item.name}`);
+                                alert(`Fonction d'édition de l'inventaire (V2) pour ${item.name}.`);
+                            }}
+                        />
                     ))}
                 </div>
 
-                {view === 'table' && (
-                    <div className="space-y-6">
-                        {/* CATEGORIES FILTERS */}
-                        <div className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide">
-                            <button
-                                onClick={() => setActiveCategory("")}
-                                className={cn(
-                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all",
-                                    activeCategory === "" 
-                                        ? "bg-accent-cyan text-bg-surface-1 shadow-lg shadow-accent-cyan/20" 
-                                        : "bg-bg-surface-2 border border-border-subtle text-text-muted hover:border-text-faint"
-                                )}
-                            >
-                                Tous
-                            </button>
-                            {GEAR_CATEGORIES.map(cat => (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => setActiveCategory(cat.id)}
-                                    className={cn(
-                                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all flex items-center gap-2",
-                                        activeCategory === cat.id 
-                                            ? "bg-bg-surface-2 border border-accent-cyan text-accent-cyan shadow-sm" 
-                                            : "bg-bg-surface-2 border border-border-subtle text-text-muted hover:border-text-faint"
-                                    )}
-                                >
-                                    {cat.name}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* ITEMS GRID */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                            {filteredItems.map(item => (
-                                <GearItemCard key={item.id} item={item} />
-                            ))}
-                        </div>
-
-                        {filteredItems.length === 0 && (
-                            <div className="premium-card rounded-2xl p-20 text-center flex flex-col items-center justify-center border-dashed border-2 border-border-default">
-                                <Icons.Archive className="w-12 h-12 text-text-faint mb-4" />
-                                <h3 className="text-lg font-black text-text-primary uppercase tracking-widest">Aucun Item Trouvé</h3>
-                                <p className="text-xs text-text-muted mt-2 font-bold uppercase tracking-widest">Essayez d&apos;ajuster vos filtres de recherche.</p>
-                            </div>
-                        )}
+                {filteredItems.length === 0 && (
+                    <div className="text-center p-12 bg-white rounded-2xl shadow-inner border border-stone-200">
+                        <Icons.Info className="w-8 h-8 mx-auto text-stone-400 mb-4" />
+                        <p className="text-lg font-medium text-stone-700">Aucun article ne correspond à ce filtre.</p>
+                        <p className="text-sm text-stone-500 mt-1">
+                            Ajustez votre recherche ou désactivez le filtre &quot;Possédés&quot;.
+                        </p>
                     </div>
                 )}
-
-                {view === 'topshot' && (
-                    <div className="premium-card rounded-2xl p-4 bg-bg-surface-1 border-border-default relative h-[800px] overflow-hidden group">
-                        {/* Grid Pattern Background */}
-                        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, var(--text-primary) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-                        
-                        {/* Floating Controls */}
-                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 bg-bg-surface-2/80 backdrop-blur-md rounded-2xl p-4 ring-1 ring-border-subtle shadow-2xl">
-                            <button className="p-2 bg-text-primary/5 hover:bg-text-primary/10 rounded-lg transition-colors"><Icons.Plus className="w-5 h-5 text-text-primary" /></button>
-                            <div className="h-6 w-[1px] bg-border-subtle" />
-                            <span className="text-[10px] font-black text-text-muted tracking-[0.2em] uppercase">Scale: 1.0</span>
-                            <div className="h-6 w-[1px] bg-border-subtle" />
-                            <button className="p-2 bg-bg-surface-2 rounded-lg border border-accent-cyan shadow-sm"><Icons.Layers className="w-5 h-5 text-accent-cyan" /></button>
-                        </div>
-
-                        {/* MOCK TOPSHOT CANVAS */}
-                        <div className="relative w-full h-full flex items-center justify-center">
-                            <div className="absolute top-1/4 left-1/3 transform -rotate-12 hover:scale-110 hover:z-30 transition-all cursor-grab active:cursor-grabbing">
-                                <div className="premium-card w-48 h-64 rounded-xl p-4 bg-bg-surface-2 shadow-2xl overflow-hidden">
-                                     <div className="h-40 bg-bg-surface-3 rounded-lg mb-4 flex items-center justify-center">
-                                         <Icons.NavPack className="w-12 h-12 text-text-faint" />
-                                     </div>
-                                     <div className="text-[10px] font-black text-text-muted uppercase mb-1">Osprey Exos 48</div>
-                                     <div className="text-[10px] font-bold text-accent-cyan font-mono">1.2 kg</div>
-                                </div>
-                            </div>
-
-                            <div className="absolute top-1/2 right-1/4 transform rotate-6 hover:scale-110 transition-all z-10 cursor-grab active:cursor-grabbing">
-                                <div className="premium-card w-40 h-56 rounded-xl p-4 bg-bg-surface-2 shadow-2xl overflow-hidden">
-                                     <div className="h-32 bg-bg-surface-3 rounded-lg mb-4 flex items-center justify-center">
-                                         <Icons.NavBasecamp className="w-10 h-10 text-text-faint" />
-                                     </div>
-                                     <div className="text-[10px] font-black text-text-muted uppercase mb-1">MSR Hubba NX</div>
-                                     <div className="text-[10px] font-bold text-accent-cyan font-mono">0.8 kg</div>
-                                </div>
-                            </div>
-
-                            <div className="absolute bottom-1/4 left-1/4 transform rotate-3 hover:scale-110 transition-all z-20 cursor-grab active:cursor-grabbing">
-                                <div className="premium-card w-32 h-40 rounded-xl p-4 bg-bg-surface-2 shadow-2xl overflow-hidden">
-                                     <div className="h-24 bg-bg-surface-3 rounded-lg mb-2 flex items-center justify-center">
-                                         <Icons.Zap className="w-8 h-8 text-text-faint" />
-                                     </div>
-                                     <div className="text-[9px] font-black text-text-muted uppercase mb-0.5">Garmin InReach</div>
-                                     <div className="text-[9px] font-bold text-accent-cyan font-mono">0.1 kg</div>
-                                </div>
-                            </div>
-
-                            {/* View Label */}
-                            <div className="absolute top-8 left-8">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-accent-cyan text-bg-surface-1 rounded-xl shadow-lg ring-4 ring-accent-cyan/20">
-                                        <Icons.Layers className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                        <div className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em]">Mode de Visualisation</div>
-                                        <div className="text-xl font-black text-text-primary tracking-tight">Topshot Studio</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+            </main>
         </div>
     );
 }

@@ -2,14 +2,12 @@
 import { 
   Map, Mountain, Tent, Backpack, Compass, Thermometer, Wind, Droplets, 
   Flame, Utensils, Shirt, BedDouble, Zap, Box, CheckCircle2, X, 
-  ChevronRight, ChevronDown, ChevronLeft, Search, Plus, Minus, Trash2, FileText, Share2, Upload,
+  ChevronRight, ChevronDown, ChevronLeft, Search, Plus, Trash2, FileText, Share2, 
   User, Settings, LogOut, Train, Plane, Bus, CalendarRange, Activity, 
   ArrowRight, ArrowLeft, CloudSun, Home, TrendingUp, Download, Check,
   Star, Gauge, Clock, Route, MapPin, AlertTriangle, Footprints, Target,
-  Package, Layers, Trophy, BookOpen, Archive, Hammer, Sun, Moon, Calendar,
-  Bell, Shield, Database, HelpCircle, Eye, Users, BarChart3, Wallet, Globe, Folder
+  Package, Layers, Trophy, BookOpen, Archive, Hammer
 } from "lucide-react";
-
 
 // Épaisseur de trait pour le look "Technique/Pro"
 const TECH_STROKE = 1.5; 
@@ -140,9 +138,6 @@ export const Icons = {
   PlusCircle: ({ className }: { className?: string }) => (
     <Plus strokeWidth={TECH_STROKE} className={className} />
   ),
-  Minus: ({ className }: { className?: string }) => (
-    <Minus strokeWidth={TECH_STROKE} className={className} />
-  ),
   Trash: ({ className }: { className?: string }) => (
     <Trash2 strokeWidth={TECH_STROKE} className={className} />
   ),
@@ -191,9 +186,6 @@ export const Icons = {
   Download: ({ className }: { className?: string }) => (
     <Download strokeWidth={TECH_STROKE} className={className} />
   ),
-  Upload: ({ className }: { className?: string }) => (
-    <Upload strokeWidth={TECH_STROKE} className={className} />
-  ),
   Star: ({ className }: { className?: string }) => (
     <Star strokeWidth={TECH_STROKE} className={className} />
   ),
@@ -241,63 +233,6 @@ export const Icons = {
   ),
   Map: ({ className }: { className?: string }) => (
       <Map strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Archive: ({ className }: { className?: string }) => (
-    <Archive strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Zap: ({ className }: { className?: string }) => (
-    <Zap strokeWidth={TECH_STROKE} className={className} />
-  ),
-  CloudSun: ({ className }: { className?: string }) => (
-    <CloudSun strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Backpack: ({ className }: { className?: string }) => (
-    <Backpack strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Route: ({ className }: { className?: string }) => (
-    <Route strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Sun: ({ className }: { className?: string }) => (
-    <Sun strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Moon: ({ className }: { className?: string }) => (
-    <Moon strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Calendar: ({ className }: { className?: string }) => (
-    <Calendar strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Bell: ({ className }: { className?: string }) => (
-    <Bell strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Shield: ({ className }: { className?: string }) => (
-    <Shield strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Database: ({ className }: { className?: string }) => (
-    <Database strokeWidth={TECH_STROKE} className={className} />
-  ),
-  HelpCircle: ({ className }: { className?: string }) => (
-    <HelpCircle strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Eye: ({ className }: { className?: string }) => (
-    <Eye strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Users: ({ className }: { className?: string }) => (
-    <Users strokeWidth={TECH_STROKE} className={className} />
-  ),
-  BarChart: ({ className }: { className?: string }) => (
-    <BarChart3 strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Wallet: ({ className }: { className?: string }) => (
-    <Wallet strokeWidth={TECH_STROKE} className={className} />
-  ),
-  AlertTriangle: ({ className }: { className?: string }) => (
-    <AlertTriangle strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Globe: ({ className }: { className?: string }) => (
-    <Globe strokeWidth={TECH_STROKE} className={className} />
-  ),
-  Folder: ({ className }: { className?: string }) => (
-    <Folder strokeWidth={TECH_STROKE} className={className} />
   ),
 };
 

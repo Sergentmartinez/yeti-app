@@ -1,4 +1,3 @@
-// components/pack/GearItemCard.tsx
 import { GearItem } from "@/types";
 import { formatWeight } from "@/lib/gear";
 import { Icons } from "@/components/icons";
@@ -6,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 interface GearItemCardProps { 
   item: GearItem; 
+  // Remplacement de 'selected' et 'onClick' par les nouveaux noms pour le PackBuilder :
   isInPack?: boolean; 
   onToggle?: () => void;
   quantity?: number; 
@@ -15,68 +15,41 @@ export function GearItemCard({ item, isInPack = false, quantity, onToggle }: Gea
   return (
     <div 
       className={cn(
-        "premium-card p-4 rounded-2xl group transition-all duration-300 cursor-pointer overflow-hidden", 
-        isInPack 
-          ? "ring-2 ring-cyan-vibrant/50 bg-cyan-vibrant/5 shadow-lg shadow-cyan-vibrant/10" 
-          : "hover:ring-1 hover:ring-border-default hover:translate-y-[-2px] hover:shadow-xl"
+        "bg-white p-4 rounded-xl border transition-all cursor-pointer", 
+        isInPack // Utilisation de isInPack pour le style
+          ? "border-orange-500 bg-orange-50 shadow-md" 
+          : "border-stone-200 hover:border-orange-300 hover:shadow-md"
       )} 
-      onClick={onToggle}
+      onClick={onToggle} // Utilisation de onToggle pour l'action
     >
-      <div className="flex justify-between items-start relative z-10">
+      <div className="flex justify-between items-start">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-black text-text-primary tracking-tight truncate group-hover:text-cyan-vibrant transition-colors">
-              {item.name}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2 flex-wrap mb-3">
-             <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
-              {item.brand || "Générique"}
-            </span>
-            <div className="w-1 h-1 rounded-full bg-border-subtle" />
-            <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
-              {item.categoryName}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {item.owned ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-vibrant/10 text-emerald-vibrant text-[9px] font-black uppercase tracking-wider rounded-md">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-stone-900 truncate">{item.name}</span>
+            {item.owned && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 text-green-700 text-[9px] font-semibold rounded">
                 <Icons.Check className="w-2.5 h-2.5" />
-                POSSÉDÉ
-              </span>
-            ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-vibrant/10 text-orange-vibrant text-[9px] font-black uppercase tracking-wider rounded-md">
-                WISHLIST
+                Possédé
               </span>
             )}
             {item.essential && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-vibrant/10 text-cyan-vibrant text-[9px] font-black uppercase tracking-wider rounded-md">
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[9px] font-semibold rounded">
                 <Icons.Star className="w-2.5 h-2.5" />
-                CRITIQUE
+                Essentiel
               </span>
             )}
           </div>
-        </div>
-
-        <div className="text-right ml-3 flex flex-col items-end">
-          <div className="text-sm font-black font-mono text-text-primary group-hover:text-orange-vibrant transition-colors">
-            {formatWeight(item.weight)}
+          <div className="text-sm text-stone-500 mt-1">
+            {item.brand && <span className="font-medium">{item.brand} • </span>}
+            {item.categoryName}
           </div>
-          {quantity && quantity > 1 && (
-            <div className="text-[10px] font-black text-cyan-vibrant mt-0.5">
-              ×{quantity}
-            </div>
+        </div>
+        <div className="text-right ml-3">
+          <div className="font-mono font-semibold text-stone-900">{formatWeight(item.weight)}</div>
+          {quantity && quantity > 0 && (
+            <div className="text-xs text-orange-600 font-semibold">×{quantity}</div>
           )}
         </div>
-      </div>
-      
-      {/* Interaction Indication */}
-      <div className="absolute bottom-0 right-0 w-8 h-8 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center translate-x-2 translate-y-2 group-hover:translate-x-0 group-hover:translate-y-0 duration-300">
-         <div className="bg-cyan-vibrant text-white rounded-tl-xl p-1.5 shadow-lg">
-            <Icons.Plus className="w-4 h-4" />
-         </div>
       </div>
     </div>
   );
