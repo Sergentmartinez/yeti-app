@@ -130,13 +130,13 @@ export default function SettingsPage() {
                     </button>
                   )}
                   
-                  {setting.type === "select" && (
-                    <select className="bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-2 text-sm font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-cyan-vibrant/50">
-                      {setting.options?.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
-                    </select>
-                  )}
+                    {setting.type === "select" && 'options' in setting && (
+                      <select className="bg-bg-surface-3 border border-border-subtle rounded-xl px-4 py-2 text-sm font-medium text-text-primary focus:outline-none focus:ring-1 focus:ring-cyan-vibrant/50">
+                        {setting.options?.map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    )}
                   
                   {setting.type === "button" && (
                     <button className="premium-card px-4 py-2 rounded-xl text-[10px] font-black text-cyan-vibrant uppercase tracking-widest hover:bg-cyan-vibrant/10 transition-colors">

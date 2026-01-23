@@ -8,15 +8,20 @@ import { cn } from "@/lib/utils";
 export function ContextBlock() {
   const pathname = usePathname();
   const { 
-    projects, 
-    currentProjectId, 
-    getGlobalStats, 
+    projects,
+    currentProjectId,
     getBaseWeight,
     packedItems,
     selectedTrekName
   } = useYetiStore();
 
-  const stats = getGlobalStats();
+  // Mock stats for now - TODO: implement getGlobalStats in store
+  const stats = {
+    totalGearCount: packedItems.length,
+    totalGearValue: packedItems.reduce((acc, item) => acc + (item.price || 0), 0),
+    totalDistance: 0,
+    totalElevation: 0
+  };
 
   // === RENDER HELPERS ===
 

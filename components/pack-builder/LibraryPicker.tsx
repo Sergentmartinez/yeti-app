@@ -5,7 +5,7 @@ import { useYetiStore } from "@/lib/store/useYetiStore";
 import { X, Search, Plus, PackageOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { GearItem } from "@/lib/types/pack";
+import { PackItem } from "@/lib/types/pack";
 
 interface LibraryPickerProps {
   isOpen: boolean;
@@ -13,22 +13,22 @@ interface LibraryPickerProps {
 }
 
 export function LibraryPicker({ isOpen, onClose }: LibraryPickerProps) {
-  const { gearLibrary, addGearToPack, activePackId } = useYetiStore();
+  const { gearLibrary, addItemToPack } = useYetiStore();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Filter items
-  const filteredItems = gearLibrary.filter(item => {
+  // Filter items - gearLibrary contains PackItems
+  const filteredItems = (gearLibrary as any).filter((item: any) => {
      const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || 
                            item.brand?.toLowerCase().includes(search.toLowerCase());
      const matchesCategory = selectedCategory ? item.category === selectedCategory : true;
      return matchesSearch && matchesCategory;
   });
 
-  const categories = Array.from(new Set(gearLibrary.map(i => i.category)));
+  const categories = Array.from(new Set((gearLibrary as any).map((i: any) => i.category)));
 
-  const handleAdd = (item: GearItem) => {
-      addGearToPack(activePackId, item.id);
+  const handleAdd = (item: any) => {
+      addItemToPack(item);
       // Optional: Show toast or feedback
   };
 
@@ -79,16 +79,16 @@ export function LibraryPicker({ isOpen, onClose }: LibraryPickerProps) {
                 >
                     Tout
                 </button>
-                {categories.map(cat => (
+                {categories.map((cat: any) => (
                     <button 
                         key={cat}
-                        onClick={() => setSelectedCategory(cat)}
+                        onClick={() => setSelectedCategory(cat as string)}
                         className={cn(
                             "px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-colors capitalize",
                             selectedCategory === cat ? "bg-white text-black" : "bg-zinc-800 text-zinc-400 hover:text-white"
                         )}
                     >
-                        {cat}
+                        {cat as string}
                     </button>
                 ))}
              </div>
@@ -97,7 +97,7 @@ export function LibraryPicker({ isOpen, onClose }: LibraryPickerProps) {
           {/* List */}
           <div className="flex-1 overflow-y-auto p-2">
              <div className="grid grid-cols-1 gap-1">
-                {filteredItems.map(item => (
+                {filteredItems.map((item: any) => (
                     <div key={item.id} className="group flex items-center justify-between p-3 hover:bg-zinc-800/50 rounded-xl transition-colors">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-xl shrink-0">
