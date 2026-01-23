@@ -23,9 +23,9 @@ import type { Task } from "@/lib/types/timeline";
 const DashboardMap = dynamic(() => import('@/components/maps/ExpeditionMap').then(mod => {
   const WrappedMap = () => {
     const GR20_STAGES = [
-      { lat: 42.5073, lon: 8.7879, name: "Calenzana" },
-      { lat: 42.1123, lon: 9.1345, name: "Vizzavona" },
-      { lat: 41.7345, lon: 9.3123, name: "Conca" },
+      { lat: 42.5073, lon: 8.7879, ele: 275, name: "Calenzana" },
+      { lat: 42.1123, lon: 9.1345, ele: 910, name: "Vizzavona" },
+      { lat: 41.7345, lon: 9.3123, ele: 252, name: "Conca" },
     ];
     return <mod.default stages={GR20_STAGES} />;
   };
@@ -228,7 +228,7 @@ export default function DashboardPage() {
                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">Projet Actif</span>
                </div>
                <h1 className="text-5xl font-black tracking-tighter text-white uppercase leading-none">
-                 BASECAMP
+                 DASHBOARD
                </h1>
             </div>
             <div className="h-10 w-px bg-white/10 mx-4 hidden md:block" />

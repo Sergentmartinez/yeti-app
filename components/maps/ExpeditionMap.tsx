@@ -193,7 +193,7 @@ function MapInner({ stages, refuges, activeStageId, pickingMode, onSelectPoint, 
             />
 
             {polylinePositions.length > 1 && (
-                <Polyline positions={polylinePositions} color="#22d3ee" weight={4} opacity={0.8} />
+                <Polyline positions={polylinePositions} color="#FEC631" weight={4} opacity={0.8} />
             )}
             
             {/* Render refuge markers with day numbers */}
