@@ -1,619 +1,569 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
   Map as MapIcon, Activity, Wind, CheckCircle2, Sparkles, 
   Backpack, Calendar, Plus, Ship, TestTube, Package, Rocket, 
   AlertTriangle, Compass, ChevronRight, CloudSun, Euro, 
-  Mountain, Route, Clock, Target, Zap, TrendingUp, Check
+  Mountain, TrendingUp, Clock, Target, Zap, Train, Home, 
+  UtensilsCrossed, FileCheck, Droplets, Route, Wallet,
+  Weight, Flame, ArrowUpRight, Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useYetiStore, TREK_DATABASE } from "@/lib/store/useYetiStore";
+import { ConcentricDonut } from "@/components/ui/ConcentricDonut";
 import { useTimelineStore } from "@/lib/store/useTimelineStore";
-import { SegmentedGauge } from "@/components/ui/SegmentedGauge";
+import type { Task } from "@/lib/types/timeline";
 
 // ============================================================================
-// CARTE - Import dynamique
+// 1. CARTE DYNAMIQUE
 // ============================================================================
-
 const DashboardMap = dynamic(() => import('@/components/maps/ExpeditionMap').then(mod => {
   const WrappedMap = () => {
     const GR20_STAGES = [
-      { lat: 42.5073, lon: 8.7879, ele: 275, name: "Calenzana" },
-      { lat: 42.4789, lon: 8.8456, ele: 1520, name: "Ortu di u Piobbu" },
-      { lat: 42.4512, lon: 8.8923, ele: 1270, name: "Carrozzu" },
-      { lat: 42.4234, lon: 8.9567, ele: 1422, name: "Ascu Stagnu" },
-      { lat: 42.3956, lon: 9.0234, ele: 1683, name: "Tighjettu" },
-      { lat: 42.3678, lon: 9.0678, ele: 1991, name: "Ciottulu" },
-      { lat: 42.3234, lon: 9.1123, ele: 1601, name: "Manganu" },
-      { lat: 42.2789, lon: 9.1567, ele: 1842, name: "Petra Piana" },
-      { lat: 42.2345, lon: 9.1789, ele: 1430, name: "Onda" },
-      { lat: 42.1123, lon: 9.1345, ele: 920, name: "Vizzavona" },
-      { lat: 42.0456, lon: 9.1678, ele: 1586, name: "Capannelle" },
-      { lat: 41.9789, lon: 9.1923, ele: 1820, name: "Prati" },
-      { lat: 41.9123, lon: 9.2234, ele: 1750, name: "Usciolu" },
-      { lat: 41.8456, lon: 9.2567, ele: 1530, name: "Asinau" },
-      { lat: 41.7789, lon: 9.2789, ele: 1055, name: "Paliri" },
-      { lat: 41.7345, lon: 9.3123, ele: 252, name: "Conca" },
+      { lat: 42.5073, lon: 8.7879, name: "Calenzana" },
+      { lat: 42.1123, lon: 9.1345, name: "Vizzavona" },
+      { lat: 41.7345, lon: 9.3123, name: "Conca" },
     ];
     return <mod.default stages={GR20_STAGES} />;
   };
   return WrappedMap;
 }), { 
   ssr: false,
-  loading: () => (
-    <div className="w-full h-full bg-zinc-900 animate-pulse flex items-center justify-center">
-      <MapIcon className="w-8 h-8 text-zinc-700" />
-    </div>
-  )
+  loading: () => <div className="w-full h-full bg-zinc-900/20 animate-pulse" />
 });
 
 // ============================================================================
-// DESIGN TOKENS
+// 2. DESIGN TOKENS
 // ============================================================================
-
-const COLORS = {
-  orange: "#f97316",
-  cyan: "#06b6d4",
-  emerald: "#10b981",
-  violet: "#a78bfa",
-  pink: "#f9a8d4",
-  blue: "#60a5fa",
-  red: "#ef4444",
+const THEME = {
+  bg: "bg-[#050505]", 
+  card: "bg-[#111111]", 
+  cardHover: "hover:bg-[#161616]",
+  border: "border-white/[0.08]",
+  orange: "#f21e2c", // Orange Yeti
+  textMuted: "text-zinc-500",
 };
 
 // ============================================================================
-// COMPOSANTS UI
+// 3. DONNÉES
 // ============================================================================
 
-const Card = ({ children, className, onClick, title, action, noPadding }: { 
-  children: React.ReactNode; 
-  className?: string; 
-  onClick?: () => void;
-  title?: string;
-  action?: React.ReactNode;
-  noPadding?: boolean;
-}) => (
+const RINGS_DATA = [
+  { id: 'materiel', label: 'Matériel', value: 85, color: THEME.orange }, 
+  { id: 'physique', label: 'Physique', value: 62, color: "#06b6d4" }, 
+  { id: 'logistique', label: 'Logistique', value: 90, color: "#10b981" },
+];
+
+const PACK_PILLS = [
+  { label: "BASE", val: "1.8KG", width: "45%", color: "#B21D3B" }, // Rouge foncé
+  { label: "VÊT.", val: "1.2KG", width: "25%", color: "#F9591F" }, // Orange
+  { label: "CUIS.", val: "0.8KG", width: "20%", color: "#FF8C42" }, // Orange clair
+  { label: "ÉLEC", val: "0.4", width: "10%", color: "#FEC631" }, // Jaune
+];
+
+const BUDGET_DATA = [
+  { label: "Transport", value: 320, color: "#B21D3B" }, // Rouge foncé
+  { label: "Refuges", value: 280, color: "#F9591F" },   // Orange
+  { label: "Bouffe", value: 150, color: "#FEC631" },    // Jaune
+];
+
+// Helper pour convertir les tâches du store au format dashboard
+const convertTaskForTimeline = (task: Task) => {
+  return {
+    id: task.id,
+    date: task.dueDate,
+    title: task.title,
+    status: task.status,
+    priority: task.priority
+  };
+};
+
+// Helper pour convertir J-XX en date formatée
+const formatDueDate = (dueDate: string): string => {
+  const match = dueDate.match(/J-(\d+)/);
+  if (!match) return dueDate;
+  
+  const daysUntil = parseInt(match[1]);
+  const today = new Date();
+  const targetDate = new Date(today);
+  targetDate.setDate(today.getDate() + daysUntil);
+  
+  const day = targetDate.getDate().toString().padStart(2, '0');
+  const months = ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUN', 'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'];
+  const month = months[targetDate.getMonth()];
+  
+  return `${day} ${month}`;
+};
+
+// Helper pour trier les tâches (en cours/urgent en haut, complétées en bas)
+const sortTasksForDisplay = (tasks: Task[]) => {
+  return [...tasks].sort((a, b) => {
+    // 1. Les tâches complétées vont en bas
+    if (a.status === 'done' && b.status !== 'done') return 1;
+    if (a.status !== 'done' && b.status === 'done') return -1;
+    
+    // 2. Parmi les non-complétées, trier par priorité (critical > high > medium > low)
+    if (a.status !== 'done' && b.status !== 'done') {
+      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+      const aPriority = priorityOrder[a.priority] ?? 99;
+      const bPriority = priorityOrder[b.priority] ?? 99;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+    }
+    
+    // 3. Ensuite par date (J-60 avant J-30, etc.)
+    const aMatch = a.dueDate.match(/J-(\d+)/);
+    const bMatch = b.dueDate.match(/J-(\d+)/);
+    if (aMatch && bMatch) {
+      return parseInt(bMatch[1]) - parseInt(aMatch[1]);
+    }
+    
+    return 0;
+  });
+};
+
+// ============================================================================
+// 4. COMPOSANTS UI
+// ============================================================================
+
+const Card = ({ children, className, title, headerIcon, onClick, noPadding }: any) => (
   <motion.div 
+    whileHover={onClick ? { scale: 1.002 } : undefined}
+    onClick={onClick}
     className={cn(
-      "rounded-2xl border border-white/10 bg-[#1c1c1e] overflow-hidden flex flex-col relative",
-      onClick && "cursor-pointer hover:border-white/20 transition-colors",
+      "relative rounded-[24px] border overflow-hidden flex flex-col transition-colors",
+      THEME.card, THEME.border, onClick && THEME.cardHover,
       !noPadding && "p-5",
       className
     )}
-    whileHover={onClick ? { scale: 1.002 } : undefined}
-    onClick={onClick}
-    role={onClick ? "button" : undefined}
   >
-    {title && (
-      <div className="flex items-center justify-between mb-4 px-1">
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-zinc-500">{title}</span>
-        {action}
+    {(title || headerIcon) && (
+      <div className="flex items-start justify-between mb-4 z-10 relative">
+        {title && (
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 font-sans mt-1">
+            {title}
+          </span>
+        )}
+        {headerIcon}
       </div>
     )}
     {children}
   </motion.div>
 );
 
-// ============================================================================
-// ANNEAUX CONCENTRIQUE - État de préparation
-// ============================================================================
-
-const PreparationRings = ({ scores }: { scores: { materiel: number; physique: number; logistique: number } }) => {
-  const size = 130;
-  const strokeWidth = 8;
-  const gap = 5;
-  const center = size / 2;
-  const globalScore = Math.round((scores.materiel + scores.physique + scores.logistique) / 3);
-  
-  const rings = [
-    { value: scores.materiel, color: COLORS.orange, label: 'Matériel', icon: Backpack },
-    { value: scores.physique, color: COLORS.cyan, label: 'Physique', icon: Activity },
-    { value: scores.logistique, color: COLORS.emerald, label: 'Logistique', icon: Compass },
-  ];
-  
-  return (
-    <div className="flex items-center gap-6">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90">
-          {rings.map((ring, i) => {
-            const radius = (size - strokeWidth) / 2 - (i * (strokeWidth + gap));
-            const circumference = 2 * Math.PI * radius;
-            const offset = circumference - (ring.value / 100) * circumference;
-            return (
-              <g key={i}>
-                <circle cx={center} cy={center} r={radius} fill="none" stroke="#27272a" strokeWidth={strokeWidth} strokeOpacity={0.3} />
-                <motion.circle
-                  cx={center} cy={center} r={radius} fill="none" stroke={ring.color} strokeWidth={strokeWidth} strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  initial={{ strokeDashoffset: circumference }}
-                  animate={{ strokeDashoffset: offset }}
-                  transition={{ delay: 0.2 + i * 0.15, duration: 1 }}
-                />
-              </g>
-            );
-          })}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-5xl font-black text-white leading-none tracking-tighter">{globalScore}%</span>
-          <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mt-1">Global</span>
-        </div>
+const PillGauge = () => (
+  <div className="flex items-center gap-1 h-10 w-full mt-2">
+    {PACK_PILLS.map((p, i) => (
+      <div 
+        key={i}
+        className="h-full rounded-xl relative flex items-center justify-center first:rounded-l-xl last:rounded-r-xl overflow-hidden"
+        style={{ width: p.width, backgroundColor: p.color }}
+      >
+        <span className="text-[9px] font-black text-black/70 truncate px-1">{p.val}</span>
       </div>
-      
-      <div className="space-y-3 flex-1">
-        {rings.map((ring, i) => {
-          const Icon = ring.icon;
-          return (
-            <div key={i} className="flex items-center justify-between gap-3 group">
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  "p-1.5 rounded-lg transition-colors bg-zinc-900/50 text-zinc-500",
-                )}>
-                  <Icon size={14} style={{ color: ring.color }} />
-                </div>
-                <span className="text-xs font-bold text-zinc-400 group-hover:text-white transition-colors">{ring.label}</span>
-              </div>
-              <span className="text-sm font-black tracking-tight" style={{ color: ring.color }}>{ring.value}%</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
+    ))}
+  </div>
+);
 
 // ============================================================================
-// PAGE PRINCIPALE
+// 5. PAGE DASHBOARD
 // ============================================================================
-
-const calculateDateFromJ = (jString: string, departureDate: Date | null) => {
-  if (!departureDate || !jString || !jString.startsWith('J-')) return null;
-  const days = parseInt(jString.replace('J-', ''));
-  if (isNaN(days)) return null;
-  const date = new Date(departureDate);
-  date.setDate(date.getDate() - days);
-  return date;
-};
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { phases, stats, toggleTask, loadFromTemplate, updateTask } = useTimelineStore();
   
-  const {
-    selectedTrekName,
-    getTotalBudget,
-    getBudgetByCategory,
-    budgetLimit,
-    getBaseWeight,
-    targetWeight,
-    getWeightByCategory,
-    preparationScores,
-    getDaysUntilDeparture,
-    getTrekInfo,
-    departureDate
-  } = useYetiStore();
-  
-  // Timeline Data
-  const { phases, stats } = useTimelineStore();
+  // Charger le template GR20 au premier rendu si aucune tâche
+  React.useEffect(() => {
+    const allTasksCheck = phases.flatMap(phase => phase.tasks);
+    if (allTasksCheck.length === 0) {
+      loadFromTemplate('GR20');
+    }
+  }, [phases, loadFromTemplate]);
 
-  const daysUntil = getDaysUntilDeparture() || 58;
-  const totalBudget = getTotalBudget();
-  const budgetByCategory = getBudgetByCategory();
-  const baseWeight = getBaseWeight();
-  const weightByCategory = getWeightByCategory();
-  const trekInfo = getTrekInfo();
+  // Activer une tâche au chargement pour la démo
+  React.useEffect(() => {
+    const allTasks = phases.flatMap(phase => phase.tasks);
+    const hasInProgress = allTasks.some(t => t.status === 'in-progress');
+    if (allTasks.length > 0 && !hasInProgress) {
+      const taskToActivate = allTasks.find(t => t.priority === 'critical' || t.priority === 'high');
+      if (taskToActivate) {
+        updateTask(taskToActivate.id, { status: 'in-progress' });
+      }
+    }
+  }, [phases, updateTask]);
   
-  // Merge tasks for dashboard view
-  const allTasks = phases.flatMap(p => p.tasks).sort((a, b) => {
-     // Priority sort: Active > Critical > High
-     if (a.status === 'in-progress' && b.status !== 'in-progress') return -1;
-     if (b.status === 'in-progress' && a.status !== 'in-progress') return 1;
-     return 0;
-  });
-
-  const completedTasks = stats.completedTasks;
-  const activeTasks = allTasks.filter(t => t.status !== 'done');
+  // Récupérer toutes les tâches de toutes les phases
+  const allTasks = useMemo(() => {
+    return phases.flatMap(phase => phase.tasks);
+  }, [phases]);
   
-  // Find current focus task
-  const currentTask = allTasks.find(t => t.status === 'in-progress') || 
-                      allTasks.find(t => t.status === 'todo' && t.priority === 'critical') ||
-                      allTasks[0];
-
+  // Trier et limiter les tâches pour l'affichage
+  const sortedTasks = useMemo(() => {
+    return sortTasksForDisplay(allTasks).slice(0, 8); // Limiter à 8 tâches max
+  }, [allTasks]);
+  
+  // Récupérer les tâches prioritaires (non complétées avec priorité critical ou high)
+  const priorityTasks = useMemo(() => {
+    return allTasks
+      .filter(t => t.status !== 'done' && (t.priority === 'critical' || t.priority === 'high'))
+      .slice(0, 3);
+  }, [allTasks]);
+  
+  // Compter le nombre total de tâches
+  const totalTasksCount = allTasks.length;
+  
   return (
-    <div className="min-h-screen text-white font-sans bg-black p-6">
-      
-      {/* HEADER */}
-      <header className="flex items-start justify-between mb-8">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-500">Projet Actif</span>
-          </div>
-          <h1 className="text-6xl font-black tracking-tighter text-white uppercase leading-none">BASECAMP</h1>
-          <div className="flex items-center gap-2 text-sm text-zinc-500 mt-2 font-medium">
-            <span className="text-white font-bold">{selectedTrekName}</span>
-            <span>•</span>
-            <span className="text-orange-500 font-bold">J-{daysUntil}</span>
-            <span>•</span>
-            <span>{baseWeight.toFixed(1)}kg</span>
-            <span>•</span>
-            <span>{completedTasks}/{stats.totalTasks}</span>
-          </div>
-        </div>
-        
-        <Link href="/basecamp/gear">
-          <button className="bg-orange-600 hover:bg-orange-500 text-white px-6 py-3 rounded-full font-black text-xs uppercase tracking-widest shadow-xl shadow-orange-600/20 transition-all flex items-center gap-3">
-            <Plus size={16} />
-            Ajouter Item
-          </button>
-        </Link>
-      </header>
+    <div className={cn("h-screen font-sans bg-[#050505] overflow-hidden flex flex-col selection:bg-orange-500/30")}>
+      <div className="flex-1 flex flex-col px-6 md:px-8 py-6 max-w-[1800px] mx-auto w-full h-full">
 
-      {/* MAIN GRID */}
-      <div className="grid grid-cols-12 gap-5">
-        
-        {/* LEFT COLUMN (9/12) */}
-        <div className="col-span-12 lg:col-span-9 space-y-5">
+        {/* --- HEADER COMPACT --- */}
+        <header className="flex items-center justify-between mb-6 shrink-0 h-16">
+          <div className="flex items-center gap-8">
+            <div>
+               <div className="flex items-center gap-2 mb-1">
+                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500">Projet Actif</span>
+               </div>
+               <h1 className="text-5xl font-black tracking-tighter text-white uppercase leading-none">
+                 BASECAMP
+               </h1>
+            </div>
+            <div className="h-10 w-px bg-white/10 mx-4 hidden md:block" />
+            <div className="flex items-center gap-6 text-zinc-500 font-medium text-sm hidden md:flex">
+               <span className="text-white font-bold">GR20 NORD → SUD</span>
+               <span><span style={{ color: THEME.orange }}>J-58</span> AVANT DÉPART</span>
+               <span>4.2 KG</span>
+            </div>
+          </div>
           
-          {/* ROW 1: TOP KPI (4 Units) */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-             <Card title="État Préparation" action={<Activity className="w-5 h-5 text-orange-500" />} onClick={() => router.push('/basecamp/profile')}>
-               <PreparationRings scores={preparationScores} />
-             </Card>
-             <Card title="Poids Sac" action={<Backpack className="w-5 h-5 text-orange-500" />} onClick={() => router.push('/basecamp/packbuilder')}>
-                <div className="flex items-baseline gap-1 mb-2">
-                   <span className="text-5xl font-black text-white tracking-tighter">{baseWeight.toFixed(1)}</span>
-                   <span className="text-xl font-bold text-zinc-500">kg</span>
-                </div>
-                
-                <div className="mt-auto">
-                  <SegmentedGauge 
-                    segments={[
-                      { id: 'base', value: 1.8, color: COLORS.violet, label: "Base" },
-                      { id: 'vetements', value: 1.0, color: COLORS.cyan, label: "Vêtements" },
-                      { id: 'cuisine', value: 0.8, color: COLORS.orange, label: "Cuisine" },
-                      { id: 'elec', value: 0.4, color: COLORS.pink, label: "Tech" },
-                    ]} 
-                    total={5} 
-                    showConnectingLine={true} 
-                    height={20} 
-                  />
-                  <div className="flex gap-3 mt-3 overflow-x-auto scrollbar-hide pb-1">
-                    {[
-                      { l: 'Base', c: COLORS.violet }, 
-                      { l: 'Vêtements', c: COLORS.cyan },
-                      { l: 'Cuisine', c: COLORS.orange }
-                    ].map((s, i) => (
-                      <span key={i} className="flex items-center gap-1.5 flex-shrink-0">
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.c }} />
-                        <span className="text-[9px] font-bold text-zinc-500 uppercase">{s.l}</span>
-                      </span>
-                    ))}
+          <button className="group h-10 px-6 bg-[#B21D3B] hover:bg-[#F9591F] text-white rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 shadow-lg shadow-[#B21D3B]/20 hover:shadow-[#F9591F]/20">
+            <Plus size={14} strokeWidth={3} className="text-white transition-colors" /> 
+            AJOUTER ITEM
+          </button>
+        </header>
+
+        {/* --- GRID (Calculée pour tenir sur une page) --- */}
+        <div className="flex-1 grid grid-cols-12 gap-4 min-h-0 pb-2">
+          
+          {/* === GAUCHE (8/12) === */}
+          <div className="col-span-12 lg:col-span-8 flex flex-col gap-4 h-full">
+            
+            {/* ROW 1: KPIs (Hauteur fixe ~180px) */}
+            <div className="grid grid-cols-4 gap-4 h-[180px] shrink-0">
+              
+              {/* 1. Préparation */}
+              <Card className="col-span-1" title="Préparation" headerIcon={<Activity className="text-zinc-700" size={18} />}>
+                <div className="flex-1 flex items-center justify-center -mt-2">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-7xl font-black text-[#b31e3c] tracking-tighter">78</span>
+                    <span className="text-2xl font-black text-zinc-600">%</span>
                   </div>
                 </div>
-             </Card>
-             <Card title="Budget Trek" action={<Euro className="w-5 h-5 text-blue-500" />} onClick={() => router.push('/basecamp/budget')}>
-                <div className="flex items-baseline gap-1 mb-2">
-                   <span className="text-5xl font-black text-white tracking-tighter">{totalBudget}</span>
-                   <span className="text-xl font-bold text-zinc-500 ml-1">€</span>
-                </div>
-                <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">sur {budgetLimit}€</div>
-                <div className="mt-auto">
-                   <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-zinc-800">
-                      <div className="bg-orange-500 w-[60%]" />
-                      <div className="bg-cyan-500 w-[20%]" />
-                      <div className="bg-emerald-500 w-[10%]" />
-                   </div>
-                   <div className="flex justify-between items-center mt-3 text-[9px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded">
-                      Maîtrisé
-                   </div>
-                </div>
-             </Card>
-             <Card title={`Météo J-${daysUntil}`} action={<CloudSun className="w-5 h-5 text-indigo-400" />}>
-                <div className="flex flex-col">
-                  <span className="text-5xl font-black text-white tracking-tighter">12°C</span>
-                  <span className="text-[10px] text-zinc-500 font-bold uppercase mt-1 tracking-widest">Calenzana</span>
-                  <span className="text-[9px] text-zinc-600 font-bold mt-0.5">{new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).toUpperCase()}</span>
-                </div>
-                <div className="mt-auto grid grid-cols-4 gap-1 pt-3 border-t border-white/5">
-                   {['10h', '13h', '16h', '19h'].map((h, i) => (
-                     <div key={i} className="text-center">
-                       <div className="text-[8px] text-zinc-600 font-bold uppercase">{h}</div>
-                       <div className="text-xs font-bold text-white mt-0.5">{[8, 12, 11, 9][i]}°</div>
-                     </div>
-                   ))}
-                </div>
-             </Card>
-          </div>
+              </Card>
 
-          {/* ROW 2: SHERPA AI (Large) */}
-          <Card className="bg-gradient-to-br from-[#1c1c1e] to-[#2d1b4d] border-purple-500/20 p-8" onClick={() => router.push('/basecamp/sherpa')}>
-             <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                   <Sparkles className="w-6 h-6 text-purple-400" />
-                   <span className="text-sm font-black text-white uppercase tracking-[0.2em]">Sherpa AI Analysis</span>
-                </div>
-                <div className="flex gap-2">
-                   <span className="px-3 py-1.5 rounded-lg bg-zinc-900/80 text-[10px] font-black text-zinc-400 uppercase tracking-widest">Météo J-5</span>
-                   <span className="px-3 py-1.5 rounded-lg bg-purple-500/20 text-[10px] font-black text-purple-300 uppercase tracking-widest animate-pulse border border-purple-500/30">! Prioritaire</span>
-                </div>
-             </div>
+              {/* 2. Poids Sac */}
+              <Card className="col-span-1" title="Poids Sac" headerIcon={<Weight className="text-[#f21e2c]" size={18} />}>
+                 <div className="flex items-end gap-1 mb-2">
+                    <span className="text-4xl font-black text-[#f21e2c] tracking-tighter leading-none">4.2</span>
+                    <span className="text-[10px] font-bold text-zinc-500 mb-1">KG</span>
+                    <span className="ml-auto text-[8px] font-bold text-emerald-500 uppercase tracking-wide bg-emerald-500/10 px-1.5 py-0.5 rounded">Optimisé</span>
+                 </div>
+                 <div className="mt-auto">
+                    <PillGauge />
+                    <div className="flex justify-between text-[8px] font-black text-zinc-600 mt-1.5 uppercase">
+                       {PACK_PILLS.map(p => <span key={p.label}>{p.label}</span>)}
+                    </div>
+                 </div>
+              </Card>
 
-             <div className="flex flex-col lg:flex-row gap-10">
-                <div className="flex-1 space-y-6">
-                   <h2 className="text-3xl font-black text-white leading-tight tracking-tight">
-                      Le vent s&apos;annonce violent (&gt;80km/h) pour votre étape au Col de Vergio.
-                   </h2>
-                   <p className="text-lg text-zinc-400 leading-relaxed font-medium">
-                      Votre <span className="text-white font-bold underline decoration-purple-500/50 underline-offset-4">Tente MSR Hubba</span> est adaptée mais je recommande un haubanage renforcé ou de viser le refuge de Ciottulu.
-                   </p>
-                </div>
+              {/* 3. Budget */}
+              <Card className="col-span-1" title="Budget" headerIcon={<Wallet className="text-[#f21e2c]" size={18} />}>
+                 <div className="flex items-end gap-1 mb-2">
+                    <span className="text-4xl font-black text-[#f21e2c] tracking-tighter leading-none">847</span>
+                    <span className="text-[10px] font-bold text-zinc-500 mb-1">€</span>
+                 </div>
+                 <div className="mt-auto space-y-2">
+                    <div className="h-2 w-full bg-zinc-800 rounded-full overflow-hidden flex">
+                       {BUDGET_DATA.map((b, i) => (
+                          <div key={i} style={{ width: `${(847 / 1200) * 100}%`, backgroundColor: b.color }} />
+                       ))}
+                    </div>
+                    <div className="flex justify-between items-center text-[10px] font-bold uppercase">
+                       <span className="text-zinc-500">Limit: 1200€</span>
+                       <span className="text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded">OK</span>
+                    </div>
+                 </div>
+              </Card>
 
-                <div className="flex gap-4 min-w-[340px]">
-                   <div className="flex-1 bg-black/40 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
-                      <Wind className="w-8 h-8 text-zinc-600" />
-                      <div className="text-center">
-                         <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Rafales</div>
-                         <div className="text-2xl font-black text-white tracking-tight">85 km/h</div>
-                      </div>
-                   </div>
-                   <div className="flex-1 bg-black/40 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center gap-3">
-                      <Activity className="w-8 h-8 text-zinc-600" />
-                      <div className="text-center">
-                         <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Risque</div>
-                         <div className="text-2xl font-black text-white tracking-tight">Élevé</div>
-                      </div>
-                   </div>
-                </div>
-             </div>
-
-             <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-red-500/10 border-l-4 border-red-500 p-5 rounded-r-xl group cursor-pointer hover:bg-red-500/15 transition-all">
-                   <div className="flex items-center gap-2 mb-2 text-red-500">
-                      <AlertTriangle size={18} />
-                      <span className="text-xs font-black uppercase tracking-widest">Conflit équipement</span>
-                   </div>
-                   <p className="text-sm font-bold text-red-100/80">Tente MSR assignée à 2 projets</p>
-                </div>
-                <div className="bg-blue-500/10 border-l-4 border-blue-500 p-5 rounded-r-xl group cursor-pointer hover:bg-blue-500/15 transition-all">
-                   <div className="flex items-center gap-2 mb-2 text-blue-500">
-                      <Wind size={18} />
-                      <span className="text-xs font-black uppercase tracking-widest">Alerte météo J5</span>
-                   </div>
-                   <p className="text-sm font-bold text-blue-100/80">-2°C prévu à Petra Piana</p>
-                </div>
-                <div className="bg-emerald-500/10 border-l-4 border-emerald-500 p-5 rounded-r-xl group cursor-pointer hover:bg-emerald-500/15 transition-all">
-                   <div className="flex items-center gap-2 mb-2 text-emerald-500">
-                      <Sparkles size={18} />
-                      <span className="text-xs font-black uppercase tracking-widest">Suggestion</span>
-                   </div>
-                   <p className="text-sm font-bold text-emerald-100/80">TOAKS 650ml = -280g vs MSR</p>
-                </div>
-             </div>
-
-             <div className="mt-8 pt-6 border-t border-white/5 text-center">
-                <span className="text-xs font-black text-cyan-400 uppercase tracking-widest hover:text-cyan-300 transition-colors cursor-pointer">
-                   Voir toutes les analyses →
-                </span>
-             </div>
-          </Card>
-
-          {/* ROW 3: TREK INFO (3) + MAP (6) */}
-          <div className="grid grid-cols-1 md:grid-cols-9 gap-5">
-             <div className="col-span-3 space-y-4">
-                <div className="premium-card p-5 rounded-2xl border-l-4 border-l-orange-500">
-                   <div className="flex items-center gap-3 mb-4">
-                      <Mountain className="w-5 h-5 text-orange-500" />
-                      <span className="text-sm font-black text-white uppercase tracking-widest">GR20 Corse</span>
-                   </div>
-                   <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-zinc-900/60 p-4 rounded-2xl flex flex-col gap-3">
-                         <Route className="w-5 h-5 text-cyan-500" />
-                         <div>
-                            <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Distance</div>
-                            <div className="text-3xl font-black text-white tracking-tighter">180 <span className="text-sm font-bold text-zinc-600">km</span></div>
-                         </div>
-                      </div>
-                      <div className="bg-zinc-900/60 p-4 rounded-2xl flex flex-col gap-3">
-                         <TrendingUp className="w-5 h-5 text-amber-500" />
-                         <div>
-                            <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Dénivelé</div>
-                            <div className="text-3xl font-black text-amber-500 tracking-tighter">11 000 <span className="text-sm font-bold text-zinc-600">m D+</span></div>
-                         </div>
-                      </div>
-                      <div className="bg-zinc-900/60 p-4 rounded-2xl flex flex-col gap-3">
-                         <Clock className="w-5 h-5 text-blue-500" />
-                         <div>
-                            <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Étapes</div>
-                            <div className="text-3xl font-black text-white tracking-tighter">16 <span className="text-sm font-bold text-zinc-600">jours</span></div>
-                         </div>
-                      </div>
-                      <div className="bg-zinc-900/60 p-4 rounded-2xl flex flex-col gap-3">
-                         <Target className="w-5 h-5 text-red-500" />
-                         <div>
-                            <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Difficulté</div>
-                            <div className="text-3xl font-black text-red-500 tracking-tighter">5 <span className="text-sm font-bold text-zinc-600">/5</span></div>
-                         </div>
-                      </div>
-                   </div>
-                </div>
-             </div>
-
-             <Card className="col-span-6 min-h-[340px] p-0 overflow-hidden group shadow-2xl relative" noPadding onClick={() => router.push('/basecamp/routes')}>
-                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/80 backdrop-blur-md border border-white/10 shadow-xl">
-                   <Compass className="w-4 h-4 text-orange-500" />
-                   <span className="text-[10px] font-black uppercase tracking-wider text-white">Focus Itinéraire</span>
-                </div>
-                <div className="w-full h-full grayscale-[0.3] group-hover:grayscale-0 transition-all duration-700">
-                  <DashboardMap />
-                </div>
-             </Card>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: TIMELINE MISSION (3/12) */}
-        <Card className="col-span-12 lg:col-span-3 h-full flex flex-col min-h-[800px]" title="Timeline Mission">
-           
-           {/* Departure Date & Countdown */}
-           <div className="mb-6 pb-4 border-b border-white/5">
-              <div className="flex items-baseline justify-between mb-2">
-                 <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Départ</span>
-                 <span className="text-sm font-bold text-white">{departureDate ? new Date(departureDate!).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Non défini'}</span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                 <span className="text-6xl font-black text-orange-500 tracking-tighter">J-</span>
-                 <span className="text-6xl font-black text-white tracking-tighter">{daysUntil}</span>
-              </div>
-           </div>
-
-           {/* Phase Progress */}
-           <div className="mb-6">
-              <div className="flex justify-between items-center mb-3">
-                 <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Progression</span>
-                 <div className="flex gap-1">
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <div key={i} className={cn("w-8 h-1 rounded-full", i <= Math.ceil((stats.progressPercentage / 20)) ? "bg-emerald-500" : "bg-zinc-800")} />
+              {/* 4. Météo */}
+              <Card className="col-span-1" title="Météo Direct" headerIcon={<CloudSun className="text-[#f21e2c]" size={18} />}>
+                 <div className="flex flex-col mb-2">
+                    <span className="text-4xl font-black text-[#f21e2c] tracking-tighter leading-none">12°</span>
+                    <span className="text-[11px] font-bold text-zinc-400 uppercase mt-1.5">Calenzana</span>
+                 </div>
+                 <div className="mt-auto grid grid-cols-4 gap-2 pt-3 border-t border-white/10">
+                    {['09', '12', '15', '18'].map((h, i) => (
+                       <div key={i} className="text-center">
+                          <span className="text-[10px] font-bold text-zinc-500 block mb-1">{h}h</span>
+                          <div className="text-xs font-black text-white">{[8, 12, 11, 7][i]}°</div>
+                       </div>
                     ))}
                  </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                 {phases.map(p => {
-                    const phaseTotal = p.tasks.length;
-                    const phaseDone = p.tasks.filter(t => t.status === 'done').length;
-                    const phaseActive = p.tasks.some(t => t.status === 'in-progress');
-                    const isDone = phaseTotal > 0 && phaseDone === phaseTotal;
-                    
-                    // Full phase name mapping
-                    const phaseNames: Record<string, string> = {
-                      'planning': 'Planification',
-                      'equipment': 'Équipement',
-                      'supplies': 'Approvisionnement',
-                      'final': 'Finalisation'
-                    };
-                    
-                    return (
-                      <div key={p.id} className="flex items-center gap-2">
-                         <div className={cn(
-                           "w-7 h-7 rounded-lg flex items-center justify-center border transition-all flex-shrink-0",
-                           isDone ? "bg-emerald-500 border-emerald-500 text-white" :
-                           phaseActive ? "bg-zinc-800 border-cyan-500/50 text-cyan-500" :
-                           "bg-zinc-900 border-zinc-800 text-zinc-700"
-                         )}>
-                            {p.id === 'planning' ? <CheckCircle2 size={12} /> :
-                             p.id === 'equipment' ? <Backpack size={12} /> :
-                             p.id === 'supplies' ? <Package size={12} /> :
-                             <Rocket size={12} />}
-                         </div>
-                         <span className={cn("text-[9px] font-black uppercase tracking-wide flex-1", 
-                            isDone ? "text-emerald-500" : 
-                            phaseActive ? "text-cyan-500" : "text-zinc-600"
-                         )}>{phaseNames[p.id] || p.name}</span>
-                      </div>
-                    );
-                 })}
-              </div>
-           </div>
+              </Card>
+            </div>
 
-           {/* Priority Tasks */}
-           <div className="mb-6">
-              <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-3">Tâches Prioritaires</span>
-              <div className="space-y-2">
-              {allTasks.filter(t => t.status === 'in-progress' || (t.status === 'todo' && t.priority === 'critical')).slice(0, 3).map((task) => (
-                <div key={task.id} className="flex items-center gap-2 p-2 bg-zinc-900/50 rounded-lg cursor-pointer hover:bg-zinc-900/80 transition-colors" onClick={() => router.push('/basecamp/timeline')}>
-                   <div className={cn(
-                      "w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0",
-                      task.status === 'in-progress' ? "border-orange-500 bg-orange-500/10 text-orange-500" :
-                      "border-zinc-700 bg-transparent"
-                   )}>
-                      {task.status === 'in-progress' ? <Activity size={10} /> : null}
-                   </div>
-                   <span className="text-[10px] font-bold text-white truncate flex-1">{task.title}</span>
-                   {task.priority === 'critical' && task.status !== 'done' && (
-                     <span className="text-[8px] font-black text-red-500 uppercase">!</span>
-                   )}
+            {/* ROW 2: CARTE REMONTÉE (Hauteur flexible) */}
+            <Card className="flex-1 p-0 overflow-hidden relative group border-0 min-h-[250px]" noPadding>
+               <div className="absolute top-4 left-4 z-10">
+                  <span className="bg-black/80 backdrop-blur border border-white/10 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase text-white flex items-center gap-2 shadow-xl">
+                     <Compass size={12} className="text-[#FF4500]" /> Focus Itinéraire
+                  </span>
+               </div>
+               <div className="w-full h-full transition-all duration-700">
+                  <DashboardMap />
+               </div>
+               {/* Stats sur la carte */}
+               <div className="absolute bottom-8 left-8 z-20 flex gap-12">
+                  <div>
+                     <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Distance</span>
+                     <span className="text-5xl font-black text-[#f21e2c] tracking-tighter">180<span className="text-lg text-zinc-500 ml-2">KM</span></span>
+                  </div>
+                  <div>
+                     <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Dénivelé</span>
+                     <span className="text-5xl font-black text-[#f21e2c] tracking-tighter">11<span className="text-lg text-zinc-500 ml-2">KM+</span></span>
+                  </div>
+                  <div>
+                     <span className="text-[11px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Difficulté</span>
+                     <span className="text-5xl font-black text-[#f21e2c] tracking-tighter">5<span className="text-lg text-zinc-500 ml-2">/5</span></span>
+                  </div>
+               </div>
+            </Card>
+
+            {/* ROW 3: SHERPA AI (Design exact sherpa1.jpg) */}
+            <Card className="bg-[#111111] border-indigo-500/20 h-[220px] shrink-0 relative overflow-hidden" noPadding>
+               <div className="absolute inset-0 bg-[url('/images/stripes.jpg')] opacity-20 pointer-events-none" style={{ backgroundSize: '100% 100%', backgroundPosition: 'top', transform: 'scaleY(-1)' }} />
+               <div className="p-6 h-full flex flex-col justify-between relative">
+                  
+                  {/* Top: Header + Stats Right */}
+                  <div className="flex justify-between items-start">
+                     <div className="max-w-2xl">
+                        <div className="flex items-center gap-3 mb-2">
+                           <Sparkles className="w-4 h-4 text-indigo-400" />
+                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Sherpa AI Analysis</span>
+                           <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-[9px] font-bold text-indigo-300 uppercase">Prioritaire</span>
+                        </div>
+                        <h2 className="text-xl font-black text-white leading-tight mb-1">
+                           Le vent s&apos;annonce violent (&gt;80km/h) pour votre étape au Col de Vergio.
+                        </h2>
+                        <p className="text-zinc-400 text-xs font-medium">
+                           Votre <span className="text-white font-bold">Tente MSR Hubba</span> est adaptée mais je recommande un haubanage renforcé.
+                        </p>
+                     </div>
+
+                     {/* Stats Right Block */}
+                     <div className="flex gap-2">
+                        <div className="bg-[#1a1a1c] rounded-lg p-2 min-w-[70px] text-center border border-white/5">
+                           <Wind className="w-4 h-4 text-zinc-500 mx-auto mb-1" />
+                           <div className="text-[8px] font-black uppercase text-zinc-600">Rafales</div>
+                           <div className="text-sm font-black text-white">85 km/h</div>
+                        </div>
+                        <div className="bg-[#1a1a1c] rounded-lg p-2 min-w-[70px] text-center border border-white/5">
+                           <Activity className="w-4 h-4 text-zinc-500 mx-auto mb-1" />
+                           <div className="text-[8px] font-black uppercase text-zinc-600">Risque</div>
+                           <div className="text-sm font-black text-white">Élevé</div>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Bottom: 3 Colored Cards (Horizontal) */}
+                  <div className="grid grid-cols-3 gap-3 mt-2">
+                     {/* Rouge */}
+                     <div className="bg-[#220a0a] border-l-2 border-red-600 p-3 rounded flex flex-col justify-center">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                           <AlertTriangle size={12} className="text-red-500" />
+                           <span className="text-[9px] font-black text-red-500 uppercase">Conflit</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-red-200/80 leading-tight">Tente assignée 2x.</span>
+                     </div>
+                     {/* Bleu */}
+                     <div className="bg-[#0a1022] border-l-2 border-blue-500 p-3 rounded flex flex-col justify-center">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                           <Wind size={12} className="text-blue-500" />
+                           <span className="text-[9px] font-black text-blue-500 uppercase">Météo J-5</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-blue-200/80 leading-tight">-2°C ressenti -8°.</span>
+                     </div>
+                     {/* Vert */}
+                     <div className="bg-[#0a1a10] border-l-2 border-emerald-500 p-3 rounded flex flex-col justify-center">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                           <Sparkles size={12} className="text-emerald-500" />
+                           <span className="text-[9px] font-black text-emerald-500 uppercase">Optimisation</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-200/80 leading-tight">TOAKS 650ml = -280g.</span>
+                     </div>
+                  </div>
+
+               </div>
+            </Card>
+
+          </div>
+
+          {/* === DROITE (4/12) : TIMELINE === */}
+          <div className="col-span-12 lg:col-span-4 flex flex-col h-full bg-[#111111] rounded-[24px] border border-white/[0.08] overflow-hidden relative">
+             {/* Image de fond red_target BORD À BORD */}
+             <div 
+               className="absolute inset-0 bg-[url('/images/red_target.png')] bg-fill bg-center opacity-20 pointer-events-none rounded-[24px]" 
+               style={{ transform: "scaleX(-1)" }}
+             />
+             {/* Gradient vertical pour assombrir vers le bas */}
+             <div 
+               className="absolute inset-0 pointer-events-none rounded-[24px]" 
+               style={{ background: "linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.5) 100%)" }}
+             />
+             
+             {/* Contenu avec padding par-dessus l'image */}
+             <div className="relative z-10 flex flex-col h-full p-6">
+             
+             {/* Header J-58 */}
+             <div className="mb-6 border-b border-white/5 pb-6">
+                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] block mb-2">Timeline Mission</span>
+                <div className="flex items-baseline gap-1">
+                   <span className="text-7xl font-black tracking-tighter" style={{ color: '#B21D3B' }}>J-</span>
+                   <span className="text-7xl font-black tracking-tighter" style={{ color: '#B21D3B' }}>58</span>
                 </div>
-              ))}
-              </div>
-           </div>
-
-           <div className="flex-1 space-y-3 relative ml-3 border-l-2 border-zinc-800 pl-6 overflow-y-auto pr-2 max-h-[400px] scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
-              {allTasks.slice(0, 15).map((item, i) => {
-                 const realDate = calculateDateFromJ(item.dueDate, departureDate);
-                 const dateDisplay = realDate ? realDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }).toUpperCase() : item.dueDate;
-                 const isToday = realDate && Math.abs(realDate.getTime() - new Date().getTime()) < 24 * 60 * 60 * 1000;
-                 const daysFromNow = realDate ? Math.ceil((realDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
-                 const isUrgent = daysFromNow !== null && daysFromNow >= 0 && daysFromNow <= 3;
-                 
-                 const isDone = item.status === 'done';
-                 const isActive = item.status === 'in-progress';
-                 
-                 return (
-                <div key={item.id} className="relative group pl-2 pb-2">
-                   {/* Connecting Line */}
-                   {i !== allTasks.slice(0, 15).length - 1 && (
-                      <div className="absolute left-[19px] top-8 bottom-0 w-[1px] bg-zinc-800 group-hover:bg-zinc-700 transition-colors" />
-                   )}
-
-                   <div className={cn(
-                     "relative flex items-center gap-4 p-3 rounded-2xl border transition-all duration-300 cursor-pointer group/item",
-                     isDone ? "bg-zinc-900/20 border-transparent opacity-50 hover:opacity-80" :
-                     isActive ? "bg-linear-to-r from-orange-500/10 to-transparent border-orange-500/30 hover:border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.1)]" :
-                     "bg-zinc-900/40 border-white/5 hover:bg-zinc-800 hover:border-white/10"
-                   )} onClick={() => router.push('/basecamp/timeline')}>
-                      
-                      {/* Status Icon */}
-                      <div className={cn(
-                        "w-6 h-6 rounded-full flex items-center justify-center border-2 shrink-0 transition-all duration-300 z-10",
-                        isDone ? "bg-black border-emerald-500/50 text-emerald-500 group-hover/item:border-emerald-500" :
-                        isActive ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-500/40 scale-110" :
-                        "bg-black border-zinc-700 text-zinc-600 group-hover/item:border-zinc-500 group-hover/item:text-zinc-400"
-                      )}>
-                         {isDone && <Check size={12} strokeWidth={3} />}
-                         {isActive && <Activity size={12} className="animate-pulse" />}
-                         {!isDone && !isActive && <div className="w-1.5 h-1.5 rounded-full bg-current" />}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                         <div className="flex justify-between items-baseline mb-0.5">
-                            <span className={cn(
-                               "text-[9px] font-black uppercase tracking-[0.15em]",
-                               isActive ? "text-orange-400" : "text-zinc-600 group-hover/item:text-zinc-500"
-                            )}>{dateDisplay}</span>
-                            
-                            {/* Priority Dot */}
-                            {item.priority === 'critical' && !isDone && (
-                               <div className="flex h-1.5 w-1.5 p-0.5 rounded-full bg-red-500/20">
-                                  <div className="w-full h-full rounded-full bg-red-500 animate-pulse" />
-                               </div>
-                            )}
-                         </div>
-                         <h4 className={cn(
-                            "text-xs font-bold leading-tight truncate transition-colors",
-                            isDone ? "text-zinc-500 line-through decoration-zinc-700" : 
-                            isActive ? "text-white" : "text-zinc-300 group-hover/item:text-zinc-100"
-                         )}>
-                            {item.title}
-                         </h4>
-                      </div>
-                   </div>
+                <div className="flex justify-between items-end mt-2">
+                   <span className="text-xs font-bold text-zinc-400">21 Mars 2026</span>
+                   <span className="text-[10px] font-bold text-zinc-600 uppercase">Départ</span>
                 </div>
-              )})}
-           </div>
-           
-           <div className="pt-4 mt-auto border-t border-white/5">
-              <Link href="/basecamp/timeline" className="block">
-                 <button className="w-full py-3 rounded-xl border border-zinc-800 bg-zinc-900/50 text-xs font-bold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all uppercase tracking-widest flex items-center justify-center gap-2 group">
-                    Voir tout le planning ({allTasks.length})
-                    <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                 </button>
-              </Link>
-           </div>
-        </Card>
+                
+                {/* Phases */}
+                <div className="flex gap-1 mt-4">
+                   <div className="flex-1 h-1 bg-emerald-500 rounded-full" />
+                   <div className="flex-1 h-1 bg-zinc-800 rounded-full" />
+                   <div className="flex-1 h-1 bg-zinc-800 rounded-full" />
+                   <div className="flex-1 h-1 bg-zinc-800 rounded-full" />
+                </div>
+                <div className="flex justify-between text-[8px] font-black text-zinc-600 mt-1.5 uppercase">
+                   <span className="text-emerald-500">Planification</span>
+                   <span>Matériel</span>
+                   <span>Ravitaillement</span>
+                   <span>Départ</span>
+                </div>
+             </div>
 
+             {/* Tâches Prioritaires */}
+             <div className="mb-6 shrink-0">
+                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-3 pl-1">Priorités ({priorityTasks.length})</span>
+                <div className="space-y-2">
+                   {priorityTasks.map((task) => (
+                      <div 
+                         key={task.id} 
+                         className="group flex items-center justify-between p-3 rounded-xl bg-zinc-900/40 border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
+                         onClick={() => toggleTask(task.id)}
+                      >
+                         <div className="flex items-center gap-3">
+                            <div className="w-3.5 h-3.5 rounded border-2 border-zinc-700 group-hover:border-zinc-500 transition-colors" />
+                            <span className="text-xs font-bold text-zinc-300 group-hover:text-white transition-colors">{task.title}</span>
+                         </div>
+                         <span className={cn(
+                            "text-[8px] font-black px-1.5 py-0.5 rounded",
+                            task.priority === 'critical' ? "text-red-500 bg-red-500/10" : "text-orange-500 bg-orange-500/10"
+                         )}>!</span>
+                      </div>
+                   ))}
+                </div>
+             </div>
+
+             {/* Timeline Verticale */}
+             <div className="flex-1 overflow-hidden flex flex-col min-h-0 relative">
+                <div className="flex-1 flex flex-col">
+                    <span className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-3 pl-1">Planning</span>
+                    <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar relative pl-2">
+                       
+                       <div className="space-y-6 pb-4">
+                          {sortedTasks.map((task, index) => {
+                             const isActive = index === 3; // La 4ème tâche est maintenant la tâche active
+                             const isDone = task.status === 'done';
+                             
+                             return (
+                                <div 
+                                   key={task.id} 
+                                   className="relative flex items-center gap-4 group"
+                                >
+                                   {/* Ligne avant le premier cercle */}
+                                   {index === 0 && (
+                                      <div className="absolute left-5 bottom-[38px] w-0.5 h-[32px] bg-zinc-800 z-0" />
+                                   )}
+                                   
+                                   {/* Segment de ligne verticale vers le cercle suivant */}
+                                   {index < sortedTasks.length - 1 && (
+                                      <div className="absolute left-5 top-[38px] w-0.5 h-[64px] bg-zinc-800 z-0" />
+                                   )}
+                                   
+                                   {/* Ligne après le dernier cercle */}
+                                   {index === sortedTasks.length - 1 && (
+                                      <div className="absolute left-5 top-[38px] w-0.5 h-[32px] bg-zinc-800 z-0" />
+                                   )}
+                                   
+                                   {/* Dot (40px width) */}
+                                   <div className={cn(
+                                      "w-10 h-10 rounded-full flex items-center justify-center z-10 shrink-0 border-2 transition-colors bg-[#111111]",
+                                      isActive ? `border-[${THEME.orange}] text-white` : 
+                                      isDone ? "border-zinc-700 text-zinc-500" : "border-zinc-800 text-zinc-700"
+                                   )} style={{ borderColor: isActive ? THEME.orange : undefined }}>
+                                      {isDone ? <Check size={14} /> : 
+                                       isActive ? <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: THEME.orange }} /> : 
+                                       <div className="w-2 h-2 bg-zinc-800 rounded-full" />}
+                                   </div>
+                                   
+                                   <div className={cn(
+                                      "flex-1 p-3 rounded-xl transition-all border",
+                                      isActive ? `bg-[#FF4500]/5 border-[#FF4500]/20` : "border-transparent"
+                                   )}>
+                                      <span className={cn(
+                                         "text-[9px] font-black uppercase tracking-widest block mb-0.5",
+                                         isActive ? "text-[#FF4500]" : "text-zinc-600"
+                                      )}>{formatDueDate(task.dueDate)}</span>
+                                      <span className={cn(
+                                         "text-sm font-bold transition-colors",
+                                         isActive ? "text-white" : isDone ? "text-zinc-500 line-through" : "text-zinc-400"
+                                      )}>{task.title}</span>
+                                   </div>
+                                </div>
+                             );
+                          })}
+                       </div>
+                    </div>
+                    
+                    {/* Bouton Voir tout le planning */}
+                    <div className="pt-4 border-t border-white/5 mt-2">
+                       <button
+                          onClick={() => router.push('/basecamp/timeline')}
+                          className="w-full group flex items-center justify-between p-3 rounded-xl bg-zinc-900/40 border border-white/5 hover:border-[#FF4500]/30 hover:bg-[#FF4500]/5 transition-all"
+                       >
+                          <div className="flex items-center gap-2">
+                             <Calendar size={14} className="text-zinc-500 group-hover:text-[#FF4500] transition-colors" />
+                             <span className="text-xs font-black uppercase tracking-widest text-zinc-400 group-hover:text-white transition-colors">
+                                Voir tout le planning
+                             </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[9px] font-bold text-zinc-600 group-hover:text-zinc-400">({totalTasksCount})</span>
+                             <ChevronRight size={14} className="text-zinc-600 group-hover:text-[#FF4500] transition-colors" />
+                          </div>
+                       </button>
+                    </div>
+                </div>
+             </div>
+             
+             </div> {/* Fermeture du div content avec padding */}
+
+          </div>
+
+        </div>
       </div>
     </div>
   );

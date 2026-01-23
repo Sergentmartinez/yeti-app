@@ -116,7 +116,7 @@ function MapInner({ stages, refuges, activeStageId, pickingMode, onSelectPoint, 
 }) {
     const map = useMap();
     const [isReady, setIsReady] = useState(false);
-    const [style, setStyle] = useState<keyof typeof MAP_STYLES>("tactical");
+    const [style, setStyle] = useState<keyof typeof MAP_STYLES>("satellite");
     const hasFitBounds = useRef(false);
 
     useEffect(() => {
@@ -290,9 +290,25 @@ export default function ExpeditionMap({ stages, refuges, activeStageId, onSelect
         className="w-full h-full rounded-2xl z-0"
         scrollWheelZoom={true}
         zoomControl={false}
+        preferCanvas={true}
+        style={{ background: 'transparent' }}
       >
         <MapInner stages={stages} refuges={refuges} activeStageId={activeStageId} pickingMode={pickingMode} onSelectPoint={onSelectPoint} onHoverPoint={onHoverPoint} hoveredPoint={hoveredPoint} zoomToCoords={zoomToCoords} onZoomEnd={onZoomEnd} />
       </MapContainer>
+      <style jsx global>{`
+        .leaflet-container {
+          background: transparent !important;
+        }
+        .leaflet-tile-container {
+          image-rendering: -webkit-optimize-contrast !important;
+          image-rendering: crisp-edges !important;
+        }
+        /* Masquer toute grille de débogage */
+        .leaflet-grid-layer,
+        .leaflet-debug-grid {
+          display: none !important;
+        }
+      `}</style>
     </div>
   );
 }

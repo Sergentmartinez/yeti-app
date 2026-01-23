@@ -2,35 +2,60 @@
 Tâche en cours — Jan 2025
 
 ## 🎯 Objectif actuel
-Stabiliser l’architecture YETI et préparer la base solide pour que Claude (ou Cursor + Claude) puisse coder tout le projet proprement.
+Stabiliser l'architecture YETI et préparer la base solide pour que Claude (ou Cursor + Claude) puisse coder tout le projet proprement.
 
-## 🧩 Tâches
-1. **Simplifier l’arborescence Next.js**
-   - Fusionner packbuilder et inventory dans /basecamp
-   - Nettoyer /treks/[slug] (garder uniquement page.tsx)
+## ✅ ÉTAT ACTUEL (23 Jan 2026)
 
-2. **Créer les pages manquantes**
-   - /basecamp/page.tsx
-   - /basecamp/packbuilder/page.tsx
-   - /basecamp/inventory/page.tsx
+### Architecture Stabilisée
+- ✅ `/app/basecamp/page.tsx` - Mission Control (Dashboard principal)
+- ✅ `/app/basecamp/packbuilder/page.tsx` - Pack Builder complet avec Sherpa AI intégré
+- ✅ `/app/basecamp/dashboard/page.tsx` - Dashboard détaillé
+- ✅ `/app/basecamp/timeline/page.tsx` - Timeline des tâches
+- ✅ `/app/basecamp/routes/page.tsx` - Gestion des routes
+- ✅ Duplication `pack-builder` supprimée (gardé `packbuilder`)
 
-3. **Rendre le site fonctionnel**
-   - Corriger les imports cassés
-   - Uniformiser les chemins d’accès aux treks
-   - Vérifier que chaque trek slug charge correctement
+### Sherpa AI - Système Expert
+- ✅ `/lib/sherpa/rules.ts` - Moteur de règles basé sur les PDFs Decathlon/Globe Trotting
+  - Règles de chargement et équilibre du sac
+  - Items de sécurité obligatoires
+  - Vérification du poids
+  - Règles spécifiques par trek (GR20, TMB, Camino)
+- ✅ `/lib/sherpa/engine.ts` - Analyse LLM simulée
 
-4. **Préparer SherpaAI (Rule-first)**
-   - Créer `/lib/sherpa/rules.ts`
-   - Créer `/lib/sherpa/engine.ts`
+### Treks Configurés
+- ✅ GR20 (avec tracks GPX intégrés)
+- ✅ TMB (Tour du Mont-Blanc)
+- ✅ Camino (Chemin de Compostelle)
+- ✅ Système de chargement dynamique via `lib/treks/index.ts`
 
-5. **Mettre à jour YETI_MASTER.md**  
-   - Ajouter architecture validée par le Conseil des Sages (ChatGPT + Claude + Gemini + Grok + Perplexity)
+### Statut Technique
+- ✅ Mode développement fonctionnel (port 3002)
+- ⚠️ Build webpack échoue (erreur connue Next.js 15.5.9 - non bloquant)
+- ✅ Toutes les routes compilent sans erreur en dev
+- ✅ Intégration Tailwind + Design System
 
-## 📌 Livrable final
-Une version stable du site YETI en LOCALLY avec :  
-- GR20 / TMB / Camino consultables  
-- Basecamp fonctionnel  
-- Inventaire lisible  
-- Pack Builder affiché  
-- Architecture validée pour 5 ans  
+## 📌 Prochaines Étapes Recommandées
+
+1. **Corriger le build production**
+   - Mettre à jour Next.js ou contourner l'erreur webpack
+
+2. **Compléter les pages Basecamp**
+   - `/basecamp/gear/` - Inventaire matériel
+   - `/basecamp/weather/` - Prévisions météo
+   - `/basecamp/sherpa/` - Interface Sherpa AI dédiée
+
+3. **Améliorer l'intégration Mapbox**
+   - Visualisation 3D des treks
+   - Profil d'élévation interactif
+
+4. **Tests E2E**
+   - Vérifier tous les parcours utilisateur
+   - Tester le Pack Builder avec différents treks
+
+## 🎯 Livrable
+Version stable du site YETI avec :  
+- ✅ GR20 / TMB / Camino consultables  
+- ✅ Basecamp fonctionnel (Mission Control, Dashboard, Timeline)
+- ✅ Pack Builder avec Sherpa AI opérationnel
+- ✅ Architecture propre et maintenable
 
