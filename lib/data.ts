@@ -1,7 +1,7 @@
 // Fichier : lib/data.ts
 // RÔLE : Gestionnaire de données globales + Pont vers le module Treks
 
-import { Trek, User } from "@/types";
+import { Trek } from "@/types";
 
 // 1. IMPORTATION DU SYSTÈME MODULAIRE (Le "Futur")
 // On importe les fonctions depuis votre dossier 'treks' bien rangé
@@ -29,20 +29,19 @@ export function getTrekBySlug(slug: string): Trek | undefined {
 // --- B. DONNÉES UTILISATEUR (MOCK) ---
 // Ces données restent ici pour l'instant (Profil, Header...)
 
-export const MOCK_USER: User = {
+export const MOCK_USER = {
   id: 'user-001',
   username: 'Thomas',
-  // La propriété 'name' a été retirée pour corriger l'erreur TypeScript
   email: 'thomas@yeti.app',
-  role: 'user',
+  role: 'user' as const,
   level: 3, 
-  experience: 'intermediate',
+  experience: 'intermediate' as const,
   stats: {
     height: 180,
     weight: 75,
     torsoLength: 52,
-    apparelSize: 'L',
-    gender: 'male'
+    apparelSize: 'L' as const,
+    gender: 'male' as const
   },
 };
 

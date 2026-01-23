@@ -36,7 +36,7 @@ export function GearItemCard({ item, isInPack = false, quantity, onToggle }: Gea
             </span>
             <div className="w-1 h-1 rounded-full bg-border-subtle" />
             <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
-              {item.categoryName}
+              {item.category}
             </span>
           </div>
 

@@ -2,12 +2,12 @@
 import { 
   Map, Mountain, Tent, Backpack, Compass, Thermometer, Wind, Droplets, 
   Flame, Utensils, Shirt, BedDouble, Zap, Box, CheckCircle2, X, 
-  ChevronRight, ChevronDown, ChevronLeft, Search, Plus, Trash2, FileText, Share2, 
+  ChevronRight, ChevronDown, ChevronLeft, Search, Plus, Minus, Trash2, FileText, Share2, Upload,
   User, Settings, LogOut, Train, Plane, Bus, CalendarRange, Activity, 
   ArrowRight, ArrowLeft, CloudSun, Home, TrendingUp, Download, Check,
   Star, Gauge, Clock, Route, MapPin, AlertTriangle, Footprints, Target,
   Package, Layers, Trophy, BookOpen, Archive, Hammer, Sun, Moon, Calendar,
-  Bell, Shield, Database, HelpCircle, Eye, Users, BarChart3, Wallet, Globe, Folder
+  Bell, Shield, Database, HelpCircle, Eye, Users, BarChart3, Wallet, Globe, Folder, Lock, Flag
 } from "lucide-react";
 
 
@@ -131,6 +131,9 @@ export const Icons = {
   SimpleCheck: ({ className }: { className?: string }) => (
     <Check strokeWidth={TECH_STROKE} className={className} />
   ),
+  Flag: ({ className }: { className?: string }) => (
+    <Flag strokeWidth={TECH_STROKE} className={className} />
+  ),
   Close: ({ className }: { className?: string }) => (
     <X strokeWidth={TECH_STROKE} className={className} />
   ),
@@ -139,6 +142,9 @@ export const Icons = {
   ),
   PlusCircle: ({ className }: { className?: string }) => (
     <Plus strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Minus: ({ className }: { className?: string }) => (
+    <Minus strokeWidth={TECH_STROKE} className={className} />
   ),
   Trash: ({ className }: { className?: string }) => (
     <Trash2 strokeWidth={TECH_STROKE} className={className} />
@@ -173,6 +179,9 @@ export const Icons = {
   File: ({ className }: { className?: string }) => (
     <FileText strokeWidth={TECH_STROKE} className={className} />
   ),
+  FileText: ({ className }: { className?: string }) => (
+    <FileText strokeWidth={TECH_STROKE} className={className} />
+  ),
   User: ({ className }: { className?: string }) => (
     <User strokeWidth={TECH_STROKE} className={className} />
   ),
@@ -187,6 +196,9 @@ export const Icons = {
   ),
   Download: ({ className }: { className?: string }) => (
     <Download strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Upload: ({ className }: { className?: string }) => (
+    <Upload strokeWidth={TECH_STROKE} className={className} />
   ),
   Star: ({ className }: { className?: string }) => (
     <Star strokeWidth={TECH_STROKE} className={className} />
@@ -292,6 +304,9 @@ export const Icons = {
   ),
   Folder: ({ className }: { className?: string }) => (
     <Folder strokeWidth={TECH_STROKE} className={className} />
+  ),
+  Lock: ({ className }: { className?: string }) => (
+    <Lock strokeWidth={TECH_STROKE} className={className} />
   ),
 };
 

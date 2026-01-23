@@ -125,7 +125,7 @@ export default function PackBuilderPage() {
                         </div>
                         <div>
                            <div className="text-[10px] font-black text-text-primary uppercase tracking-tight line-clamp-1">{item.name}</div>
-                           <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest">{item.categoryName}</div>
+                           <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest">{item.category}</div>
                         </div>
                      </div>
                      <div className="text-right">
