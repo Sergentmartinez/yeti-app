@@ -248,7 +248,7 @@ export function BasecampSidebar() {
                 </div>
                 
                 {/* Stats row */}
-                <div className="flex items-center gap-3 text-[11px] text-text-muted">
+                <div className="flex items-center gap-3 text-xs text-text-muted">
                   <span className="flex items-center gap-1">
                     <Timer size={12} />
                     J-{daysLeft}
@@ -358,7 +358,7 @@ export function BasecampSidebar() {
           {/* GLOBAL Section */}
           <div className="mb-4">
             {!isCollapsed && (
-              <div className="text-[10px] uppercase font-black text-text-faint tracking-[0.15em] px-3 mb-2">
+              <div className="text-xs uppercase font-black text-text-faint tracking-[0.15em] px-3 mb-2">
                 Global
               </div>
             )}
@@ -390,7 +390,7 @@ export function BasecampSidebar() {
                       <>
                         <span className="flex-1 truncate">{item.label}</span>
                         {item.badge && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-bg-surface-3 text-text-muted">
+                          <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-bg-surface-3 text-text-muted">
                             {item.badge}
                           </span>
                         )}
@@ -408,7 +408,7 @@ export function BasecampSidebar() {
           {/* PROJECT Section */}
           <div className="pt-2">
             {!isCollapsed && (
-              <div className="text-[10px] uppercase font-black text-text-faint tracking-[0.15em] px-3 mb-2 flex items-center justify-between">
+              <div className="text-xs uppercase font-black text-text-faint tracking-[0.15em] px-3 mb-2 flex items-center justify-between">
                 <span>Projet</span>
                 {currentExp && (
                   <span 
@@ -479,7 +479,7 @@ export function BasecampSidebar() {
             {!isCollapsed && (
               <div className="flex flex-1 flex-col truncate">
                 <span className="text-sm font-bold text-text-primary truncate">Marco</span>
-                <span className="text-[10px] font-black text-accent-cyan uppercase tracking-tight">Pro</span>
+                <span className="text-xs font-black text-accent-cyan uppercase tracking-tight">Pro</span>
               </div>
             )}
           </Link>
@@ -514,7 +514,7 @@ export function BasecampSidebar() {
             <div className="p-6 space-y-5">
               {/* Nom de mission */}
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-text-muted mb-2">
+                <label className="block text-xs font-black uppercase tracking-[0.15em] text-text-muted mb-2">
                   Nom de mission
                 </label>
                 <input
@@ -530,7 +530,7 @@ export function BasecampSidebar() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Terrain cible */}
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-text-muted mb-2">
+                  <label className="block text-xs font-black uppercase tracking-[0.15em] text-text-muted mb-2">
                     Terrain cible
                   </label>
                   <div className="relative">
@@ -551,7 +551,7 @@ export function BasecampSidebar() {
                 
                 {/* Fenêtre de départ */}
                 <div>
-                  <label className="block text-[10px] font-black uppercase tracking-[0.15em] text-text-muted mb-2">
+                  <label className="block text-xs font-black uppercase tracking-[0.15em] text-text-muted mb-2">
                     Fenêtre de départ
                   </label>
                   <div className="relative">
@@ -623,7 +623,7 @@ function ExpeditionSection({
         <span className="text-xs font-bold uppercase tracking-wider text-text-secondary">
           {title}
         </span>
-        <span className="text-[10px] font-bold text-text-faint bg-bg-surface-4 px-1.5 py-0.5 rounded">
+        <span className="text-xs font-bold text-text-faint bg-bg-surface-4 px-1.5 py-0.5 rounded">
           {expeditions.length}
         </span>
       </div>
@@ -657,12 +657,12 @@ function ExpeditionSection({
                   {exp.name}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[11px] text-text-muted">
+                  <span className="text-xs text-text-muted">
                     {exp.location}
                   </span>
                   <span className="text-text-faint">•</span>
                   <span className={cn(
-                    "text-[11px] font-medium",
+                    "text-xs font-medium",
                     exp.status === 'completed' ? "text-accent-emerald" : "text-text-muted"
                   )}>
                     {exp.status === 'completed' ? '✓ Terminé' : `J-${daysLeft}`}
@@ -672,7 +672,7 @@ function ExpeditionSection({
               
               {/* Progress indicator */}
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-[11px] font-bold" style={{ color: getStatusColor(exp.progress) }}>
+                <span className="text-xs font-bold" style={{ color: getStatusColor(exp.progress) }}>
                   {exp.progress}%
                 </span>
                 <div 

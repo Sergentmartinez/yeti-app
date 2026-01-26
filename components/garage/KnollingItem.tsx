@@ -19,17 +19,33 @@ export const KnollingItem: React.FC<KnollingItemProps> = ({
   isSelected 
 }) => {
   const [isDragging, setIsDragging] = React.useState(false);
+  const [dragDistance, setDragDistance] = React.useState(0);
+  const dragStartPos = React.useRef({ x: 0, y: 0 });
   
-  const handleDragStart = () => {
+  const handleDragStart = (e: any, info: any) => {
     setIsDragging(true);
+    setDragDistance(0);
+    dragStartPos.current = { x: info.point.x, y: info.point.y };
+  };
+  
+  const handleDrag = (e: any, info: any) => {
+    const distance = Math.sqrt(
+      Math.pow(info.point.x - dragStartPos.current.x, 2) +
+      Math.pow(info.point.y - dragStartPos.current.y, 2)
+    );
+    setDragDistance(distance);
   };
   
   const handleDragEnd = () => {
-    setIsDragging(false);
+    // Petit délai pour que le clic ne se déclenche pas
+    setTimeout(() => {
+      setIsDragging(false);
+    }, 100);
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    if (!isDragging) {
+    // Ne ouvrir le modal que si c'est un vrai clic (pas de drag)
+    if (!isDragging && dragDistance < 5) {
       e.stopPropagation();
       onSelect(item);
     }
@@ -44,6 +60,7 @@ export const KnollingItem: React.FC<KnollingItemProps> = ({
       dragMomentum={false}
       dragElastic={0}
       onDragStart={handleDragStart}
+      onDrag={handleDrag}
       onDragEnd={handleDragEnd}
       onClick={handleClick}
       initial={{ 
