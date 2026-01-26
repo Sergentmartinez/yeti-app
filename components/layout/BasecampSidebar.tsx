@@ -46,7 +46,7 @@ const INITIAL_EXPEDITIONS: Expedition[] = [
 // Navigation globale
 const GLOBAL_NAV = [
   { id: 'basecamp', href: "/basecamp", label: "Basecamp", icon: Icons.Home, exact: true },
-  { id: 'garage', href: "/basecamp/gear", label: "Garage", icon: Icons.Archive, badge: "62" },
+  { id: 'garage', href: "/basecamp/garage", label: "Garage", icon: Icons.Archive, badge: "62" },
   { id: 'projects', href: "/basecamp/projects", label: "Projets", icon: Icons.Folder, badge: "4" },
 ];
 

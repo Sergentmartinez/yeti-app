@@ -89,9 +89,52 @@ function generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+// === TYPES ===
+
+interface SupabaseMockType {
+    auth: {
+        getUser: () => UserProfile;
+        updateUser: (updates: Partial<UserProfile>) => UserProfile;
+        signIn: (email: string) => { user: UserProfile; session: string };
+        signOut: () => void;
+        isSignedIn: () => boolean;
+    };
+    projects: {
+        getAll: () => SavedProject[];
+        getById: (projectId: string) => SavedProject | null;
+        create: (data: Omit<SavedProject, 'id' | 'createdAt' | 'updatedAt'>) => SavedProject;
+        update: (projectId: string, updates: Partial<SavedProject>) => SavedProject | null;
+        delete: (projectId: string) => boolean;
+        getActive: () => SavedProject | null;
+    };
+    gear: {
+        getAll: () => SavedGearItem[];
+        getOwned: () => SavedGearItem[];
+        add: (item: Omit<SavedGearItem, 'id' | 'userId'>) => SavedGearItem;
+        update: (itemId: string, updates: Partial<SavedGearItem>) => SavedGearItem | null;
+        delete: (itemId: string) => boolean;
+        toggleOwned: (itemId: string) => boolean;
+    };
+    settings: {
+        get: () => Record<string, unknown>;
+        update: (updates: Record<string, unknown>) => Record<string, unknown>;
+    };
+    utils: {
+        exportData: () => {
+            user: UserProfile;
+            projects: SavedProject[];
+            gear: SavedGearItem[];
+            settings: Record<string, unknown>;
+            exportedAt: string;
+        };
+        importData: (data: any) => void;
+        resetAll: () => void;
+    };
+}
+
 // === API MOCK ===
 
-export const supabaseMock = {
+export const supabaseMock: SupabaseMockType = {
 
     // === AUTH ===
 

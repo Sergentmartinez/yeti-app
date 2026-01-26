@@ -1,0 +1,281 @@
+[
+  {
+    "id": "anker_powerbank_10_000_mah_22_5w_noir_a1388g11",
+    "name": "Anker_Powerbank_10_000_Mah_22_5W_Noir_A1388G11",
+    "texturePath": "/gear/color/anker_powerbank_10_000_mah_22_5w_noir_a1388g11.webp",
+    "normalPath": "/gear/normal/anker_powerbank_10_000_mah_22_5w_noir_a1388g11.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "arc_teryx_beta_ar_jacket_stormhood_black",
+    "name": "Arc_Teryx_Beta_Ar_Jacket_Stormhood_Black",
+    "texturePath": "/gear/color/arc_teryx_beta_ar_jacket_stormhood_black.webp",
+    "normalPath": "/gear/normal/arc_teryx_beta_ar_jacket_stormhood_black.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "black_diamond_\u00e9quipement___b\u00e2tons_de_randonn\u00e9e_trail_back_bd1125526044all1",
+    "name": "Black_Diamond_\u00c9quipement___B\u00e2tons_De_Randonn\u00e9e_Trail_Back_Bd1125526044All1",
+    "texturePath": "/gear/color/black_diamond_\u00e9quipement___b\u00e2tons_de_randonn\u00e9e_trail_back_bd1125526044all1.webp",
+    "normalPath": "/gear/normal/black_diamond_\u00e9quipement___b\u00e2tons_de_randonn\u00e9e_trail_back_bd1125526044all1.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "carte_ign_chambery_aix_les_bains_3332ot_si",
+    "name": "Carte_Ign_Chambery_Aix_Les_Bains_3332Ot_Si",
+    "texturePath": "/gear/color/carte_ign_chambery_aix_les_bains_3332ot_si.webp",
+    "normalPath": "/gear/normal/carte_ign_chambery_aix_les_bains_3332ot_si.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "cartouche_jetpower_230gr_fuel_canister",
+    "name": "Cartouche_Jetpower_230Gr_Fuel_Canister",
+    "texturePath": "/gear/color/cartouche_jetpower_230gr_fuel_canister.webp",
+    "normalPath": "/gear/normal/cartouche_jetpower_230gr_fuel_canister.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "climbing_cord_rope",
+    "name": "Climbing_Cord_Rope",
+    "texturePath": "/gear/color/climbing_cord_rope.webp",
+    "normalPath": "/gear/normal/climbing_cord_rope.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "forclaz_panneau_solaire_slr_500_v2_10w",
+    "name": "Forclaz_Panneau_Solaire_Slr_500_V2_10W",
+    "texturePath": "/gear/color/forclaz_panneau_solaire_slr_500_v2_10w.webp",
+    "normalPath": "/gear/normal/forclaz_panneau_solaire_slr_500_v2_10w.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "forclaz_repas_lyophilis\u00e9_p\u00e2tes_\u00e0_la_bolognaise_120g",
+    "name": "Forclaz_Repas_Lyophilis\u00e9_P\u00e2tes_\u00c0_La_Bolognaise_120G",
+    "texturePath": "/gear/color/forclaz_repas_lyophilis\u00e9_p\u00e2tes_\u00e0_la_bolognaise_120g.webp",
+    "normalPath": "/gear/normal/forclaz_repas_lyophilis\u00e9_p\u00e2tes_\u00e0_la_bolognaise_120g.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "frontier_ultralight_cutlery_set___fork_spoon_knife",
+    "name": "Frontier_Ultralight_Cutlery_Set___Fork_Spoon_Knife",
+    "texturePath": "/gear/color/frontier_ultralight_cutlery_set___fork_spoon_knife.webp",
+    "normalPath": "/gear/normal/frontier_ultralight_cutlery_set___fork_spoon_knife.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "gridlock_screwgate_mousqueton",
+    "name": "Gridlock_Screwgate_Mousqueton",
+    "texturePath": "/gear/color/gridlock_screwgate_mousqueton.webp",
+    "normalPath": "/gear/normal/gridlock_screwgate_mousqueton.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "hydro_flask_food_jar_28oz_828_ml_insulated",
+    "name": "Hydro_Flask_Food_Jar_28Oz_828_Ml_Insulated",
+    "texturePath": "/gear/color/hydro_flask_food_jar_28oz_828_ml_insulated.webp",
+    "normalPath": "/gear/normal/hydro_flask_food_jar_28oz_828_ml_insulated.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "msr_guardian_purifier_profile_1",
+    "name": "Msr_Guardian_Purifier_Profile_1",
+    "texturePath": "/gear/color/msr_guardian_purifier_profile_1.webp",
+    "normalPath": "/gear/normal/msr_guardian_purifier_profile_1.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "msr_hubba_hubba_nx_green",
+    "name": "Msr_Hubba_Hubba_Nx_Green",
+    "texturePath": "/gear/color/msr_hubba_hubba_nx_green.webp",
+    "normalPath": "/gear/normal/msr_hubba_hubba_nx_green.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "nalgene_wh_sustain_gourde_transparente_1_l",
+    "name": "Nalgene_Wh_Sustain_Gourde_Transparente_1_L",
+    "texturePath": "/gear/color/nalgene_wh_sustain_gourde_transparente_1_l.webp",
+    "normalPath": "/gear/normal/nalgene_wh_sustain_gourde_transparente_1_l.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "nitecore_nu25_mct_ul_lampe_frontale_noir",
+    "name": "Nitecore_Nu25_Mct_Ul_Lampe_Frontale_Noir",
+    "texturePath": "/gear/color/nitecore_nu25_mct_ul_lampe_frontale_noir.webp",
+    "normalPath": "/gear/normal/nitecore_nu25_mct_ul_lampe_frontale_noir.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "opinel_n_7",
+    "name": "Opinel_N_7",
+    "texturePath": "/gear/color/opinel_n_7.webp",
+    "normalPath": "/gear/normal/opinel_n_7.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "osprey_exos_58",
+    "name": "Osprey_Exos_58",
+    "texturePath": "/gear/color/osprey_exos_58.webp",
+    "normalPath": "/gear/normal/osprey_exos_58.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "patagonia_classic_retro_x_vest_heren___dark_natural",
+    "name": "Patagonia_Classic_Retro_X_Vest_Heren___Dark_Natural",
+    "texturePath": "/gear/color/patagonia_classic_retro_x_vest_heren___dark_natural.webp",
+    "normalPath": "/gear/normal/patagonia_classic_retro_x_vest_heren___dark_natural.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "patagonia_r1_daily_gloves_black",
+    "name": "Patagonia_R1_Daily_Gloves_Black",
+    "texturePath": "/gear/color/patagonia_r1_daily_gloves_black.webp",
+    "normalPath": "/gear/normal/patagonia_r1_daily_gloves_black.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "patagonia_retro_pile_jkt_pelican",
+    "name": "Patagonia_Retro_Pile_Jkt_Pelican",
+    "texturePath": "/gear/color/patagonia_retro_pile_jkt_pelican.webp",
+    "normalPath": "/gear/normal/patagonia_retro_pile_jkt_pelican.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "salomon_soft_flask_insulate_400ml___13oz_42_clear_blue",
+    "name": "Salomon_Soft_Flask_Insulate_400Ml___13Oz_42_Clear_Blue",
+    "texturePath": "/gear/color/salomon_soft_flask_insulate_400ml___13oz_42_clear_blue.webp",
+    "normalPath": "/gear/normal/salomon_soft_flask_insulate_400ml___13oz_42_clear_blue.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "salomon_x_ultra_pioneer_gore_tex_chaussures_de_randonn\u00e9e",
+    "name": "Salomon_X_Ultra_Pioneer_Gore_Tex_Chaussures_De_Randonn\u00e9e",
+    "texturePath": "/gear/color/salomon_x_ultra_pioneer_gore_tex_chaussures_de_randonn\u00e9e.webp",
+    "normalPath": "/gear/normal/salomon_x_ultra_pioneer_gore_tex_chaussures_de_randonn\u00e9e.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "seatosummit_etherlightxrinsulatedascmat_s",
+    "name": "Seatosummit_Etherlightxrinsulatedascmat_S",
+    "texturePath": "/gear/color/seatosummit_etherlightxrinsulatedascmat_s.webp",
+    "normalPath": "/gear/normal/seatosummit_etherlightxrinsulatedascmat_s.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "seatosummit_sparkdown_sleeping_bag",
+    "name": "Seatosummit_Sparkdown_Sleeping_Bag",
+    "texturePath": "/gear/color/seatosummit_sparkdown_sleeping_bag.webp",
+    "normalPath": "/gear/normal/seatosummit_sparkdown_sleeping_bag.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "seatosummit_sparkdown_sleeping_bag_packed",
+    "name": "Seatosummit_Sparkdown_Sleeping_Bag_Packed",
+    "texturePath": "/gear/color/seatosummit_sparkdown_sleeping_bag_packed.webp",
+    "normalPath": "/gear/normal/seatosummit_sparkdown_sleeping_bag_packed.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "silva_boussole_expedition_4",
+    "name": "Silva_Boussole_Expedition_4",
+    "texturePath": "/gear/color/silva_boussole_expedition_4.webp",
+    "normalPath": "/gear/normal/silva_boussole_expedition_4.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "sunglasses",
+    "name": "Sunglasses",
+    "texturePath": "/gear/color/sunglasses.webp",
+    "normalPath": "/gear/normal/sunglasses.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "treck_n_eatsemoule_au_lait_et_aux_fruits_si",
+    "name": "Treck_N_Eatsemoule_Au_Lait_Et_Aux_Fruits_Si",
+    "texturePath": "/gear/color/treck_n_eatsemoule_au_lait_et_aux_fruits_si.webp",
+    "normalPath": "/gear/normal/treck_n_eatsemoule_au_lait_et_aux_fruits_si.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "trekneat_nourriture_de_trekking_\u0153ufs",
+    "name": "Trekneat_Nourriture_De_Trekking_\u0152ufs",
+    "texturePath": "/gear/color/trekneat_nourriture_de_trekking_\u0153ufs.webp",
+    "normalPath": "/gear/normal/trekneat_nourriture_de_trekking_\u0153ufs.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "veste_orange_lowe_alpin",
+    "name": "Veste_Orange_Lowe_Alpin",
+    "texturePath": "/gear/color/veste_orange_lowe_alpin.webp",
+    "normalPath": "/gear/normal/veste_orange_lowe_alpin.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  },
+  {
+    "id": "watch_garmin_fenix_8_garmin_fenix_8_solar_gps_watch",
+    "name": "Watch_Garmin_Fenix_8_Garmin_Fenix_8_Solar_Gps_Watch",
+    "texturePath": "/gear/color/watch_garmin_fenix_8_garmin_fenix_8_solar_gps_watch.webp",
+    "normalPath": "/gear/normal/watch_garmin_fenix_8_garmin_fenix_8_solar_gps_watch.webp",
+    "ratio": 1.0,
+    "width": 1024,
+    "height": 1024
+  }
+]

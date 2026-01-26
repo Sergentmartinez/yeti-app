@@ -13,6 +13,12 @@ export interface GearItem {
   price?: number;
   essential?: boolean;
   owned?: boolean;
+  // Nouveaux champs pour le Knolling
+  image?: string; // URL de l'image détourée
+  description?: string; // Description détaillée
+  dimensions?: { width: number; height: number }; // Ratio pour le positionnement
+  position?: { x: number; y: number }; // Position par défaut sur le canvas
+  color?: string; // Couleur dominante (optionnel)
 }
 
 export interface GearCategory {

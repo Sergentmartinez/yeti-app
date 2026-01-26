@@ -1,0 +1,8 @@
+rembg
+opencv-python
+numpy
+torch
+torchvision
+timm
+Pillow
+tqdm

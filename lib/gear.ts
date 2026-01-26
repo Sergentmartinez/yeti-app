@@ -1,76 +1,92 @@
-// lib/gear.ts (CODE INTÉGRAL, CORRIGÉ POUR LES ICÔNES)
+// lib/gear.ts - Données enrichies pour le Garage Knolling
+// 🔗 CONNECTÉ À LA VRAIE BASE DE DONNÉES
 
 import { GearItem, GearCategory } from "@/types";
+import { 
+  KNOLLING_GEAR_DATABASE, 
+  GEAR_CATEGORIES as KNOLLING_CATEGORIES, 
+  type KnollingGearItem 
+} from "@/lib/gear/knolling-database";
 
-// --- DÉFINITIONS MOCK ---
+// --- DÉFINITIONS DE CATÉGORIES ---
+export const GEAR_CATEGORIES: GearCategory[] = KNOLLING_CATEGORIES.map(cat => ({
+    id: cat.id,
+    name: cat.name,
+    icon: "CatMisc" // Icône par défaut
+}));
 
-export const GEAR_CATEGORIES: GearCategory[] = [
-    // La clé 'icon' doit correspondre aux exports de components/icons.ts
-    { id: "shelter", name: "Abri", icon: "CatShelter" }, 
-    { id: "sleep", name: "Sommeil", icon: "CatSleep" }, 
-    { id: "pack", name: "Sac à Dos", icon: "NavPack" },
-    { id: "clothing", name: "Vêtements", icon: "CatWear" }, 
-    { id: "footwear", name: "Chaussures", icon: "Modere" }, // Modere utilise Footprints (OK)
-    { id: "cooking", name: "Cuisine", icon: "CatCook" }, 
-    { id: "water", name: "Hydratation", icon: "CatWater" }, 
-    { id: "navigation", name: "Navigation", icon: "CatNav" }, 
-    { id: "safety", name: "Sécurité", icon: "Warning" }, 
-    { id: "hygiene", name: "Hygiène", icon: "CatMisc" }, // Utilise CatMisc comme icône générique
-    { id: "electronics", name: "Électronique", icon: "CatTech" }, 
-    { id: "misc", name: "Divers", icon: "CatMisc" }, 
-];
-
-export const GEAR_ITEMS: GearItem[] = [
-    // Shelter
-    { id: "tente-ultralight", name: "Tente 2P Ultralight", weight: 1300, category: "shelter", essential: true, owned: true },
-    { id: "tarp", name: "Tarp 3x3", weight: 450, category: "shelter", essential: false, owned: true },
-    // Sleep
-    { id: "s-bag-700", name: "Sac de Couchage -5°C", weight: 1100, brand: "Millet", category: "sleep", essential: true, owned: true },
-    { id: "matelas-gonflable", name: "Matelas R-Value 4.0", weight: 550, brand: "Thermarest", category: "sleep", essential: true, owned: true },
-    // Pack
-    { id: "sac-60l", name: "Sac à dos 60L", weight: 1800, brand: "Osprey", category: "pack", essential: true, owned: true },
-    // Safety
-    { id: "trousse-secours", name: "Trousse de premiers secours", weight: 350, category: "safety", essential: true, owned: true },
-    // Water
-    { id: "gourde-1l", name: "Gourde 1L Nalgene", weight: 120, category: "water", essential: true, owned: true },
-    // Clothing (Ajout d'un item non possédé pour le test)
-    { id: "veste-pluie", name: "Veste de Pluie G-Tex", weight: 300, category: "clothing", essential: true, owned: true },
-    { id: "pantalon-randonnee", name: "Pantalon Randonnée Léger", weight: 400, category: "clothing", essential: true, owned: false }, // owned: false
-    // Misc
-    { id: "lampe-frontale", name: "Lampe Frontale", weight: 80, category: "misc", essential: true, owned: true },
-];
-
-// --- UTILITAIRES DE POIDS ET MESURE ---
-
-// NOUVEAU : Seuils de poids pour la jauge (en grammes)
-export const WEIGHT_THRESHOLDS = {
-    OPTIMAL: 12000, // 12.0 kg
-    MAX_SAFE: 15000, // 15.0 kg
+// --- CONVERSION DE LA BASE DE DONNÉES ---
+const convertToGearItem = (item: KnollingGearItem, index: number): GearItem => {
+    const col = index % 6;
+    const row = Math.floor(index / 6);
+    
+    return {
+        id: item.id,
+        name: item.name,
+        weight: item.weight,
+        category: item.category,
+        brand: item.brand || "Unknown",
+        price: item.price,
+        essential: item.essential,
+        owned: item.owned,
+        description: `${item.brand} - ${item.name}`,
+        image: item.image,
+        dimensions: { 
+            width: Math.round(item.realSize * 100),
+            height: Math.round(item.realSize * 100) 
+        },
+        position: { 
+            x: 100 + (col * 150), 
+            y: 80 + (row * 160) 
+        },
+        color: getCategoryColor(item.category)
+    };
 };
 
-/**
- * Filtre les articles que l'utilisateur possède.
- */
+const getCategoryColor = (category: string): string => {
+    const colors: Record<string, string> = {
+        shelter: "#FF6B35",
+        sleep: "#F72C25",
+        pack: "#2C3E50",
+        clothing: "#E74C3C",
+        footwear: "#8B4513",
+        cooking: "#FF6B6B",
+        water: "#3498DB",
+        navigation: "#2C3E50",
+        safety: "#E74C3C",
+        electronics: "#34495E",
+        hygiene: "#3498DB",
+        misc: "#95A5A6"
+    };
+    return colors[category] || "#95A5A6";
+};
+
+// 🔥 VRAIES DONNÉES - Conversion de KNOLLING_GEAR_DATABASE
+export const GEAR_ITEMS: GearItem[] = KNOLLING_GEAR_DATABASE.map(convertToGearItem);
+
+// --- UTILITAIRES ---
+
+export const WEIGHT_THRESHOLDS = {
+    OPTIMAL: 12000,
+    MAX_SAFE: 15000,
+};
+
 export const getOwnedGear = (items: GearItem[]): GearItem[] => {
     return items.filter(item => item.owned);
 };
 
-/** Calcule le poids total en grammes. */
 export const calculateTotalWeight = (items: GearItem[]): number => {
     return items.reduce((sum, item) => sum + item.weight, 0);
 };
 
-/** Formatte le poids en kg avec une décimale. */
 export const formatWeight = (weightInGrams: number): string => {
     return `${(weightInGrams / 1000).toFixed(1)} kg`;
 };
 
-/** Formatte la distance en km. */
 export const formatDistance = (distance: number): string => {
     return `${distance} km`;
 };
 
-/** Formatte le dénivelé en mètres (ajoute un +). */
 export const formatElevation = (elevation: number): string => {
     if (elevation >= 1000) {
         return `${(elevation / 1000).toFixed(1)} km`; 
@@ -78,13 +94,26 @@ export const formatElevation = (elevation: number): string => {
     return `${elevation} m`;
 };
 
-/** Détermine la couleur de la jauge en fonction des seuils. */
 export const getWeightStatus = (weightInGrams: number) => {
     if (weightInGrams > WEIGHT_THRESHOLDS.MAX_SAFE) {
-        return "high-risk"; // Red
+        return "high-risk";
     }
     if (weightInGrams > WEIGHT_THRESHOLDS.OPTIMAL) {
-        return "medium-risk"; // Amber/Orange
+        return "medium-risk";
     }
-    return "optimal"; // Green
+    return "optimal";
+};
+
+export const getItemsByCategory = (items: GearItem[], categoryId: string): GearItem[] => {
+    return items.filter(item => item.category === categoryId);
+};
+
+export const getCategoryStats = (items: GearItem[], categoryId: string) => {
+    const categoryItems = getItemsByCategory(items, categoryId);
+    const ownedItems = categoryItems.filter(item => item.owned);
+    return {
+        total: categoryItems.length,
+        owned: ownedItems.length,
+        weight: calculateTotalWeight(ownedItems),
+    };
 };

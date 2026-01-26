@@ -1,0 +1,45 @@
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                           RAPPORT FINAL                                   ║
+║                    Base de Données d'Équipement Yeti                      ║
+║                           2026-01-26 09:23:06                            ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ STATISTIQUES GLOBALES                                                     ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ Total d'équipements: 32                                      ║
+║ Équipements dans TypeScript: 44                                ║
+║ Poids total: 13116g (13.12kg)                        ║
+║ Prix total: 7201€                                        ║
+║ Poids moyen: 409.9g                                        ║
+║ Prix moyen: 225.0€                                        ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ RÉPARTITION PAR CATÉGORIE                                                 ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ ELECTRONICS :  3 items (1778g,  555€)        ║
+║ CLOTHING    :  5 items (1800g, 1820€)        ║
+║ MISC        :  4 items (1125g,  521€)        ║
+║ NAVIGATION  :  3 items (  98g, 1579€)        ║
+║ COOKING     :  3 items ( 365g,  362€)        ║
+║ SAFETY      :  3 items ( 600g,   63€)        ║
+║ WATER       :  3 items ( 770g,   92€)        ║
+║ SHELTER     :  1 items (1500g,  675€)        ║
+║ PACK        :  1 items (1200g,   69€)        ║
+║ FOOTWEAR    :  2 items (1600g,  550€)        ║
+║ SLEEP       :  4 items (2280g,  915€)        ║
+
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ MARQUES REPRÉSENTÉES                                                    ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║ Unknown             : 12 équipements                       ║
+║ Patagonia           :  3 équipements                       ║
+║ Forclaz             :  2 équipements                       ║
+║ MSR                 :  2 équipements                       ║
+║ Salomon             :  2 équipements                       ║
+║ ANKER               :  1 équipements                       ║
+║ Black Diamond       :  1 équipements                       ║
+║ Frontier            :  1 équipements                       ║
+║ Gridlock            :  1 équipements                       ║
+║ Nalgene             :  1 équipements                       ║
+║ ... et 6 autres marques                              ║
+
+╚══════════════════════════════════════════════════════════════════════════════╝

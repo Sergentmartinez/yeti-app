@@ -39,7 +39,7 @@ export function createProject(input: { name: string; trekSlug: string; startDate
   const members = (input.members || [{ name: "Moi" }]).map(m => ({
     id: crypto.randomUUID(),
     name: m.name,
-    role: m.name === "Moi" ? "leader" : "member",
+    role: (m.name === "Moi" ? "leader" : "member") as "leader" | "member",
   }));
   const p: AdventureProject = {
     id,
