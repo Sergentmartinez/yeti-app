@@ -54,7 +54,9 @@ const DraggableItem = ({
   onPositionChange: (id: string, pos: { x: number; y: number }) => void;
 }) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [dragDistance, setDragDistance] = useState(0);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [mouseStart, setMouseStart] = useState({ x: 0, y: 0 });
   const [currentPos, setCurrentPos] = useState(position);
   const itemRef = useRef<HTMLDivElement>(null);
 
@@ -66,7 +68,9 @@ const DraggableItem = ({
     e.preventDefault();
     e.stopPropagation();
     
+    setDragDistance(0);
     setIsDragging(true);
+    setMouseStart({ x: e.clientX, y: e.clientY });
     setDragStart({
       x: e.clientX - currentPos.x,
       y: e.clientY - currentPos.y,
@@ -79,8 +83,15 @@ const DraggableItem = ({
     const newX = e.clientX - dragStart.x;
     const newY = e.clientY - dragStart.y;
     
+    // Calculer la distance de drag
+    const distance = Math.sqrt(
+      Math.pow(e.clientX - mouseStart.x, 2) +
+      Math.pow(e.clientY - mouseStart.y, 2)
+    );
+    setDragDistance(distance);
+    
     setCurrentPos({ x: newX, y: newY });
-  }, [isDragging, dragStart]);
+  }, [isDragging, dragStart, mouseStart]);
 
   const handleMouseUp = useCallback(() => {
     if (isDragging) {
@@ -108,7 +119,8 @@ const DraggableItem = ({
   }, [position, isDragging]);
 
   const handleClick = (e: React.MouseEvent) => {
-    if (!isDragging) {
+    // Ne ouvrir le modal que si c'est un vrai clic (pas de drag)
+    if (dragDistance < 5) {
       e.stopPropagation();
       onSelect(item);
     }
@@ -241,22 +253,57 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
 
   const currentFloor = floorBackgrounds[floorStyle];
 
-  // Zoom avec molette (Ctrl + molette)
+  // Zoom avec molette (SANS Ctrl)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const delta = -e.deltaY * 0.002;
-        setScale((prev) => Math.min(Math.max(prev + delta, 0.3), 2));
-      }
+      e.preventDefault();
+      const delta = -e.deltaY * 0.002;
+      setScale((prev) => Math.min(Math.max(prev + delta, 0.3), 2));
     };
 
     container.addEventListener("wheel", handleWheel, { passive: false });
     return () => container.removeEventListener("wheel", handleWheel);
   }, []);
+
+  // Auto-zoom au chargement pour tout voir
+  useEffect(() => {
+    if (positions.length > 0 && containerRef.current) {
+      const container = containerRef.current;
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+      
+      // Trouver les bornes des items
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      
+      positions.forEach(pos => {
+        const item = items.find(i => i.id === pos.id);
+        const size = (item?.scale || 1) * 100;
+        
+        minX = Math.min(minX, pos.x);
+        minY = Math.min(minY, pos.y);
+        maxX = Math.max(maxX, pos.x + size);
+        maxY = Math.max(maxY, pos.y + size);
+      });
+      
+      const contentWidth = maxX - minX;
+      const contentHeight = maxY - minY;
+      
+      // Calculer le scale pour tout voir avec marge
+      const scaleX = (containerWidth * 0.85) / contentWidth;
+      const scaleY = (containerHeight * 0.85) / contentHeight;
+      const autoScale = Math.min(scaleX, scaleY, 1.5); // Max 1.5x
+      
+      // Centrer
+      const centerX = (containerWidth - contentWidth * autoScale) / 2 - minX * autoScale;
+      const centerY = (containerHeight - contentHeight * autoScale) / 2 - minY * autoScale;
+      
+      setScale(autoScale);
+      setPan({ x: centerX, y: centerY });
+    }
+  }, [positions, items]);
 
   // Pan avec souris (clic molette ou Shift + clic)
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -442,7 +489,7 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
       {/* Help - Bottom Left */}
       <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-sm rounded-xl px-4 py-3 text-[10px] text-zinc-300 space-y-1">
         <div><span className="text-white font-semibold">Shift + Drag</span> = Pan</div>
-        <div><span className="text-white font-semibold">Ctrl + Scroll</span> = Zoom</div>
+        <div><span className="text-white font-semibold">Molette</span> = Zoom</div>
         <div><span className="text-white font-semibold">R</span> = Reset</div>
       </div>
 
