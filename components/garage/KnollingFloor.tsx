@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { ZoomIn, ZoomOut, RotateCcw, Grid3X3, Shuffle } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Grid3X3 } from "lucide-react";
 
 // ============================================================================
 // TYPES
@@ -214,8 +214,28 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-  // Positions des items
+  // Positions des items - avec persistence localStorage
   const [positions, setPositions] = useState<ItemPosition[]>(() => {
+    // Essayer de charger depuis localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('knolling-positions');
+      if (saved) {
+        try {
+          const savedPositions = JSON.parse(saved);
+          // Vérifier que tous les items actuels ont une position
+          const hasAllItems = items.every(item => 
+            savedPositions.find((p: ItemPosition) => p.id === item.id)
+          );
+          if (hasAllItems) {
+            return savedPositions;
+          }
+        } catch (e) {
+          console.warn('Failed to load positions from localStorage', e);
+        }
+      }
+    }
+    
+    // Sinon, positions par défaut
     const cols = 6;
     const spacing = 140;
     return items.map((item, index) => ({
@@ -224,6 +244,13 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
       y: Math.floor(index / cols) * spacing + 100,
     }));
   });
+
+  // Sauvegarder positions dans localStorage quand elles changent
+  useEffect(() => {
+    if (typeof window !== 'undefined' && positions.length > 0) {
+      localStorage.setItem('knolling-positions', JSON.stringify(positions));
+    }
+  }, [positions]);
 
   // Floor backgrounds
   const floorBackgrounds = {
@@ -348,16 +375,6 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
     );
   }, [items]);
 
-  // Scatter (désordre)
-  const scatter = useCallback(() => {
-    setPositions(
-      items.map((item) => ({
-        id: item.id,
-        x: Math.random() * 700 + 100,
-        y: Math.random() * 500 + 100,
-      }))
-    );
-  }, [items]);
 
   // Reset view
   const resetView = useCallback(() => {
@@ -468,21 +485,14 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
           className="flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-sm rounded-xl text-xs font-bold text-white hover:bg-black/80 transition-colors"
         >
           <Grid3X3 className="w-4 h-4" />
-          Knolling
-        </button>
-        <button
-          onClick={scatter}
-          className="flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-sm rounded-xl text-xs font-bold text-white hover:bg-black/80 transition-colors"
-        >
-          <Shuffle className="w-4 h-4" />
-          Scatter
+          Reset
         </button>
         <button
           onClick={resetView}
           className="flex items-center gap-2 px-3 py-2 bg-black/60 backdrop-blur-sm rounded-xl text-xs font-bold text-white hover:bg-black/80 transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          Reset
+          Reset Vue
         </button>
       </div>
 

@@ -183,7 +183,7 @@ export default function GaragePage() {
           </div>
 
           {/* Filtres */}
-          <div className="p-6 flex-1">
+          <div className="p-6 flex-1 overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">Catégories</h3>
               <button
