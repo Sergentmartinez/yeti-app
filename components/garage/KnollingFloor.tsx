@@ -3,7 +3,8 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { ZoomIn, ZoomOut, RotateCcw, Grid3X3 } from "lucide-react";
+import { ZoomIn, ZoomOut, RotateCcw, Grid3X3, Box } from "lucide-react";
+import { Knolling3DCanvas } from "./Knolling3DCanvas";
 
 // ============================================================================
 // TYPES
@@ -16,6 +17,7 @@ export interface KnollingGearItem {
   weight: number;
   category: string;
   image: string;
+  realSize?: number; // Dimension physique en mètres
   scale?: number;
   owned?: boolean;
   essential?: boolean;
@@ -37,6 +39,15 @@ interface KnollingFloorProps {
 }
 
 // ============================================================================
+// CONSTANTES POUR LE RENDU
+// ============================================================================
+
+// Conversion des dimensions physiques (mètres) en pixels
+const PIXELS_PER_CM = 2.5; // 1cm = 2.5px à l'écran (échelle réduite pour éviter les débordements)
+const UNIFORM_SIZE = 120; // Taille fixe en mode 1:1 (pixels)
+const MAX_REAL_SIZE = 400; // Taille maximale en mode échelle réelle (pixels)
+
+// ============================================================================
 // SIMPLE DRAGGABLE ITEM - Sans effet physique
 // ============================================================================
 
@@ -46,12 +57,14 @@ const DraggableItem = ({
   isSelected,
   onSelect,
   onPositionChange,
+  uniformMode = false,
 }: {
   item: KnollingGearItem;
   position: { x: number; y: number };
   isSelected: boolean;
   onSelect: (item: KnollingGearItem) => void;
   onPositionChange: (id: string, pos: { x: number; y: number }) => void;
+  uniformMode?: boolean;
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragDistance, setDragDistance] = useState(0);
@@ -60,8 +73,51 @@ const DraggableItem = ({
   const [currentPos, setCurrentPos] = useState(position);
   const itemRef = useRef<HTMLDivElement>(null);
 
-  // Taille basée sur le scale
-  const size = (item.scale || 1) * 100;
+  // Calcul de la taille basée sur le mode
+  const size = uniformMode 
+    ? UNIFORM_SIZE 
+    : Math.min(
+        Math.round((item.realSize || item.scale || 0.5) * 100 * PIXELS_PER_CM), // realSize (mètres) -> cm -> pixels
+        MAX_REAL_SIZE // Limite de sécurité
+      );
+
+  // Calcul de l'ombre basée sur la hauteur de l'objet (effet 2.5D)
+  // Source lumineuse: Top-Left (45°) → Ombre projetée Bottom-Right
+  const getDropShadow = () => {
+    if (uniformMode) {
+      // En mode uniforme, ombres légères et uniformes
+      return isDragging 
+        ? "drop-shadow(3px 3px 4px rgba(0,0,0,0.35)) drop-shadow(8px 8px 12px rgba(0,0,0,0.25))"
+        : "drop-shadow(2px 2px 3px rgba(0,0,0,0.3)) drop-shadow(5px 5px 8px rgba(0,0,0,0.2))";
+    }
+
+    // En mode échelle réelle, ombres basées sur la taille physique
+    // Technique: Double Layer (Contact Shadow + Directional Shadow)
+    const realSizeCm = (item.realSize || item.scale || 0.5) * 100;
+    
+    let shadow = "";
+    if (realSizeCm <= 10) {
+      // LOW PROFILE: Objets plats (cartes, compas, lunettes, téléphone)
+      // Physics: Proche du sol, ombre dure et serrée
+      shadow = isDragging
+        ? "drop-shadow(3px 3px 3px rgba(0,0,0,0.45)) drop-shadow(6px 6px 8px rgba(0,0,0,0.35))"
+        : "drop-shadow(2px 2px 2px rgba(0,0,0,0.4)) drop-shadow(4px 4px 6px rgba(0,0,0,0.3))";
+    } else if (realSizeCm <= 50) {
+      // MEDIUM PROFILE: Objets standards (couteau, bouteille, chaussures)
+      // Physics: Hauteur normale, ombre distincte avec projection diagonale
+      shadow = isDragging
+        ? "drop-shadow(5px 5px 5px rgba(0,0,0,0.4)) drop-shadow(16px 16px 20px rgba(0,0,0,0.3))"
+        : "drop-shadow(4px 4px 4px rgba(0,0,0,0.35)) drop-shadow(12px 12px 15px rgba(0,0,0,0.25))";
+    } else {
+      // HIGH PROFILE: Grands objets (sacs, tentes, matelas, vestes)
+      // Physics: Objet haut, ombre longue et diffuse
+      shadow = isDragging
+        ? "drop-shadow(6px 6px 6px rgba(0,0,0,0.35)) drop-shadow(30px 30px 35px rgba(0,0,0,0.25))"
+        : "drop-shadow(5px 5px 5px rgba(0,0,0,0.3)) drop-shadow(25px 25px 30px rgba(0,0,0,0.2))";
+    }
+    
+    return shadow;
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -135,36 +191,34 @@ const DraggableItem = ({
         isSelected && "z-40"
       )}
       style={{
-        left: currentPos.x,
-        top: currentPos.y,
-        width: size,
-        height: size,
+        left: `${currentPos.x}px`,
+        top: `${currentPos.y}px`,
+        width: `${size}px`,
+        height: `${size}px`,
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
     >
-      {/* Ombre portée simple */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `radial-gradient(ellipse at center, rgba(0,0,0,0.4) 0%, transparent 70%)`,
-          transform: "translateY(8px) scale(0.9)",
-          filter: "blur(8px)",
-        }}
-      />
-
-      {/* Image de l'objet */}
+      {/* Image de l'objet avec ombre shape-aware */}
       <div
         className={cn(
-          "relative w-full h-full bg-contain bg-center bg-no-repeat rounded-lg transition-transform duration-150",
+          "relative w-full h-full transition-transform duration-150 flex items-center justify-center",
           isDragging && "scale-105",
           isSelected && "ring-2 ring-[#dc2626] ring-offset-2 ring-offset-transparent"
         )}
-        style={{
-          backgroundImage: `url(${item.image})`,
-          filter: isDragging ? "drop-shadow(0 8px 16px rgba(0,0,0,0.3))" : "drop-shadow(0 4px 8px rgba(0,0,0,0.2))",
-        }}
-      />
+      >
+        <img 
+          src={item.image} 
+          alt={item.name}
+          className={cn(
+            "pointer-events-none transition-all duration-200",
+            uniformMode ? "max-w-full max-h-full object-contain" : "w-full h-full object-contain"
+          )}
+          style={{
+            filter: getDropShadow(),
+          }}
+        />
+      </div>
 
       {/* Badge Essential */}
       {item.essential && (
@@ -213,10 +267,25 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [uniformMode, setUniformMode] = useState(false);
+  const [render3D, setRender3D] = useState(true); // Toggle 3D WebGL rendering
+
+  // Générer positions par défaut (SSR-safe)
+  const getDefaultPositions = () => {
+    const cols = 6;
+    const spacing = 140;
+    return items.map((item, index) => ({
+      id: item.id,
+      x: (index % cols) * spacing + 100,
+      y: Math.floor(index / cols) * spacing + 100,
+    }));
+  };
 
   // Positions des items - avec persistence localStorage
-  const [positions, setPositions] = useState<ItemPosition[]>(() => {
-    // Essayer de charger depuis localStorage
+  const [positions, setPositions] = useState<ItemPosition[]>(getDefaultPositions);
+
+  // Charger depuis localStorage après le premier render (client-only)
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('knolling-positions');
       if (saved) {
@@ -227,23 +296,14 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
             savedPositions.find((p: ItemPosition) => p.id === item.id)
           );
           if (hasAllItems) {
-            return savedPositions;
+            setPositions(savedPositions);
           }
         } catch (e) {
           console.warn('Failed to load positions from localStorage', e);
         }
       }
     }
-    
-    // Sinon, positions par défaut
-    const cols = 6;
-    const spacing = 140;
-    return items.map((item, index) => ({
-      id: item.id,
-      x: (index % cols) * spacing + 100,
-      y: Math.floor(index / cols) * spacing + 100,
-    }));
-  });
+  }, []); // Run once on mount
 
   // Sauvegarder positions dans localStorage quand elles changent
   useEffect(() => {
@@ -398,7 +458,7 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
     <div
       ref={containerRef}
       className={cn(
-        "relative w-full h-full overflow-hidden rounded-2xl",
+        "relative w-full h-full overflow-hidden",
         isPanning ? "cursor-grabbing" : "cursor-default",
         className
       )}
@@ -431,31 +491,43 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
         }}
       />
 
-      {/* Canvas transformable */}
-      <div
-        className="absolute origin-top-left"
-        style={{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-          width: "2500px",
-          height: "2000px",
-        }}
-      >
-        {items.map((item) => {
-          const pos = positions.find((p) => p.id === item.id);
-          if (!pos) return null;
+      {/* Rendering: 2D Canvas (CSS) vs 3D Canvas (WebGL) */}
+      {render3D ? (
+        /* Mode 3D: WebGL avec Three.js */
+        <Knolling3DCanvas
+          items={items}
+          positions={positions}
+          selectedItem={selectedItem}
+          onSelectItem={onSelectItem}
+        />
+      ) : (
+        /* Mode 2D: Canvas transformable traditionnel */
+        <div
+          className="absolute origin-top-left"
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+            width: "2500px",
+            height: "2000px",
+          }}
+        >
+          {items.map((item) => {
+            const pos = positions.find((p) => p.id === item.id);
+            if (!pos) return null;
 
-          return (
-            <DraggableItem
-              key={item.id}
-              item={item}
-              position={{ x: pos.x, y: pos.y }}
-              isSelected={selectedItem?.id === item.id}
-              onSelect={onSelectItem}
-              onPositionChange={handlePositionChange}
-            />
-          );
-        })}
-      </div>
+            return (
+              <DraggableItem
+                key={item.id}
+                item={item}
+                position={{ x: pos.x, y: pos.y }}
+                isSelected={selectedItem?.id === item.id}
+                onSelect={onSelectItem}
+                onPositionChange={handlePositionChange}
+                uniformMode={uniformMode}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* === CONTROLS UI === */}
 
@@ -493,6 +565,43 @@ export const KnollingFloor: React.FC<KnollingFloorProps> = ({
         >
           <RotateCcw className="w-4 h-4" />
           Reset Vue
+        </button>
+        <button
+          onClick={() => setUniformMode(!uniformMode)}
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 backdrop-blur-sm rounded-xl text-xs font-bold transition-colors",
+            uniformMode 
+              ? "bg-[#dc2626] text-white hover:bg-[#b91c1c]" 
+              : "bg-black/60 text-white hover:bg-black/80"
+          )}
+          title={uniformMode ? "Mode Échelle Réelle" : "Mode Inventaire 1:1"}
+        >
+          <svg 
+            className="w-4 h-4" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2"
+          >
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+          1:1
+        </button>
+        <button
+          onClick={() => setRender3D(!render3D)}
+          className={cn(
+            "flex items-center gap-2 px-3 py-2 backdrop-blur-sm rounded-xl text-xs font-bold transition-colors",
+            render3D 
+              ? "bg-purple-600 text-white hover:bg-purple-700" 
+              : "bg-black/60 text-white hover:bg-black/80"
+          )}
+          title={render3D ? "Mode 2D (CSS)" : "Mode 3D (WebGL)"}
+        >
+          <Box className="w-4 h-4" />
+          3D
         </button>
       </div>
 
