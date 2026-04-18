@@ -529,9 +529,9 @@ const Section = ({
     <div className="p-5 border-b border-white/[0.06] flex items-center gap-3">
       <div
         className="w-10 h-10 rounded-xl flex items-center justify-center"
-        style={{ background: `${color}20`, border: `1px solid ${color}40` }}
+        style={{ background: `${color}20`, border: `1px solid ${color}40`, color }}
       >
-        <Icon size={16} style={{ color }} />
+        <Icon size={16} />
       </div>
       <div>
         <h2 className="text-lg font-black text-white">{title}</h2>
